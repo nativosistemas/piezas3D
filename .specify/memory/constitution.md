@@ -1,19 +1,3 @@
-<!--
-Informe de Impacto de Sincronización (Sync Impact Report)
-- Cambio de versión: plantilla sin completar → 1.0.0 (ratificación inicial)
-- Principios definidos:
-  - [PRINCIPLE_1_NAME] → I. Diseño Paramétrico en OpenSCAD (NO NEGOCIABLE)
-  - [PRINCIPLE_2_NAME] → II. Pipeline Lineal de Cuatro Fases (NO NEGOCIABLE)
-  - [PRINCIPLE_3_NAME] → III. Validación y Simulación en FreeCAD (Cuando Aplique)
-  - [PRINCIPLE_4_NAME] → IV. Diseño para Manufactura Aditiva
-  - [PRINCIPLE_5_NAME] → V. Documentación de Producción Obligatoria
-- Secciones añadidas: Estructura del Repositorio y Formatos; Flujo de Trabajo y Puertas de Calidad
-- Secciones eliminadas: ninguna
-- Fuentes: "Perfil de GitHub Spec Kit: Agente de IA para Diseño Mecánico" (conservado en
-  .github/spec_kit_profile.md) y "Directiva de Diseño y Manufactura 3D" (integrada aquí)
-- Plantillas: .specify/templates/* no requieren cambios; leen esta constitución en tiempo de ejecución
-- TODOs diferidos: ninguno
--->
 # Constitución de piezas3D
 
 ## Principios Fundamentales
@@ -79,8 +63,8 @@ desde el principio para fabricarse sin problemas.
 
 ### V. Documentación de Producción Obligatoria
 
-Cada diseño DEBE incluir una guía de producción en `docs/` (plantilla de referencia:
-`docs/guia_impresion_y_armado.md`) con dos secciones críticas:
+Cada diseño DEBE incluir una guía de producción en `docs/<nombre_pieza>_guia.md` (plantilla de
+referencia: sección 4.B de `.github/spec_kit_profile.md`) con dos secciones críticas:
 
 - **A. Guía de impresión 3D:**
   - Orientación óptima (qué cara va sobre la cama) para minimizar soportes y maximizar
@@ -110,8 +94,10 @@ Los artefactos del diseño DEBEN ubicarse estrictamente en este árbol:
 └── docs/                       # Manuales de ensamblaje y guías de impresión (.md)
 ```
 
-- Excepciones permitidas: los artefactos de Spec Kit (`specs/`, `.specify/`) y la
-  configuración del agente (`.claude/`, `CLAUDE.md`).
+- Excepciones permitidas: los artefactos de Spec Kit (`specs/`, `.specify/`), la
+  configuración del agente (`.claude/`, `CLAUDE.md`) y las herramientas locales instaladas sin
+  privilegios (`.tools/`, excluido de git, con sus lanzadores en `.tools/bin/`), que NO DEBEN
+  contener artefactos del diseño.
 - Las plantillas de salida obligatorias (encabezado `.scad` y guía de producción) están
   definidas en `.github/spec_kit_profile.md` y DEBEN seguirse.
 - Herramientas objetivo: OpenSCAD (diseño), FreeCAD (simulación) y un laminador 3D
@@ -148,4 +134,4 @@ estas cuatro puertas.
 - Toda revisión de un diseño DEBE verificar el cumplimiento de esta constitución. Cualquier
   complejidad adicional DEBE justificarse en el plan.
 
-**Versión**: 1.0.0 | **Ratificada**: 2026-10-04 | **Última enmienda**: 2026-10-04
+**Versión**: 1.0.1 | **Ratificada**: 2026-10-04 | **Última enmienda**: 2026-10-04
