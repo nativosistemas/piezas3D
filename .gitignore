@@ -1,0 +1,14 @@
+# Claude Code: archivos locales/privados (las skills de Spec Kit sí se versionan)
+.claude/settings.local.json
+.claude/.cc-writes
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Copias de seguridad de FreeCAD y OpenSCAD
+*.FCBak
+*.FCStd1
+*.scad~
