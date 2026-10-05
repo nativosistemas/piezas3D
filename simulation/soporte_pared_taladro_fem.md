@@ -45,6 +45,9 @@ queda dividida en muchas facetas.
 .tools/bin/freecadcmd simulation/soporte_pared_taladro_fem.py
 ```
 
+`freecadcmd` usa el FreeCAD del snap, que se ejecuta fuera del sandbox de Claude Code. Tarda
+alrededor de un minuto.
+
 El script `simulation/soporte_pared_taladro_fem.py` hace lo siguiente:
 
 1. Importa el CSG y crea el objeto «Soporte» con la forma refinada.

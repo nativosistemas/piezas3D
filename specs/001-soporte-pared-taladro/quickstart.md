@@ -8,8 +8,9 @@ comandos se ejecutan desde la raíz del repositorio.
 
 ## Requisitos previos
 
-Las herramientas están instaladas localmente en `.tools/` (ignorado por git) y se invocan con los
-lanzadores de `.tools/bin/`. No hace falta `sudo` ni tocar el `PATH`. Para comprobarlas:
+Las herramientas son las del sistema (OpenSCAD 2021.01 instalado con `apt` y FreeCAD en snap) y
+se invocan con los lanzadores de `.tools/bin/` (ignorado por git). No hace falta tocar el `PATH`.
+Los lanzadores de FreeCAD, `ccx` y `gmsh` solo funcionan **fuera del sandbox**. Para comprobarlas:
 
 ```bash
 .tools/bin/openscad --version
@@ -27,27 +28,24 @@ lanzadores de `.tools/bin/`. No hace falta `sudo` ni tocar el `PATH`. Para compr
 .tools/bin/gmsh --version
 ```
 
-**Resultado esperado**: `OpenSCAD version 2021.01`, `FreeCAD 1.1.4`, `Version 2.23` (CalculiX) y
-`4.15.0` (Gmsh). Además hace falta `python3` del sistema, solo para medir la caja envolvente.
+**Resultado esperado**: `OpenSCAD version 2021.01`, `FreeCAD 1.1.1`, `Version 2.21` (CalculiX) y
+`4.13.1` (Gmsh). Además hace falta `python3` del sistema, solo para medir la caja envolvente.
 
-**Reinstalación** (solo si `.tools/` no existe, por ejemplo en un clon nuevo): se descargan las
-AppImage oficiales en `.tools/descargas/` y se extraen con `--appimage-extract` a `.tools/openscad/`
-y `.tools/freecad/`. Después se recrean los lanzadores de `.tools/bin/`:
+El snap de FreeCAD tiene un `/tmp` privado: lo que escriba en `$TMPDIR` o `/tmp` no se ve desde
+fuera. Sus salidas temporales van a `.tools/tmp/`.
 
-- `openscad` ejecuta `.tools/openscad/AppRun`, convierte a absoluta la ruta de `-o` y termina con
+**Reinstalación** (por ejemplo en una máquina nueva): `sudo apt install openscad` y
+`sudo snap install freecad`. Después se recrean los lanzadores de `.tools/bin/`:
+
+- `openscad` ejecuta `/usr/bin/openscad`, convierte a absoluta la ruta de `-o` y termina con
   código 1 si no se crea el archivo de salida. OpenSCAD 2021.01 resuelve las rutas relativas de
   `-o` desde la carpeta del `.scad` y devuelve 0 aunque no pueda escribir.
-- `freecad`, `gmsh` y `ccx` ejecutan `.tools/freecad/AppRun <programa>`.
-- `freecadcmd` hace además dos cosas: exporta `FREECAD_USER_HOME` y `XDG_CONFIG_HOME`,
-  `XDG_DATA_HOME` y `XDG_CACHE_HOME` apuntando a `.tools/freecad-home`, y antepone
-  `.tools/freecad/usr/bin` al `PATH`.
+- `freecad` y `freecadcmd` ejecutan `/snap/bin/freecad` y `/snap/bin/freecad.cmd`.
+- `ccx` y `gmsh` vienen dentro del snap, que no los publica como comandos; se ejecutan con
+  `snap run --shell freecad.cmd -c 'exec "$SNAP/usr/bin/<programa>" "$@"' sh "$@"`.
 
-Orígenes de descarga:
-
-| Herramienta | URL | Verificación |
-|-------------|-----|--------------|
-| OpenSCAD 2021.01 | `https://files.openscad.org/OpenSCAD-2021.01-x86_64.AppImage` | — |
-| FreeCAD 1.1.4 | `https://github.com/FreeCAD/FreeCAD/releases/download/1.1.4/FreeCAD_1.1.4-Linux-x86_64-py311.AppImage` | SHA-256 `f6dc6ba676e5ac96a565ebc8d657232f94c6158e85b4352141bd1a46f6b43434` |
+Hasta el 2026-10-05 se usaban las AppImage extraídas de OpenSCAD 2021.01 y FreeCAD 1.1.4
+(CalculiX 2.23, Gmsh 4.15.0); los resultados de la simulación coinciden con los del snap.
 
 Las salidas temporales de las pruebas van a `$TMPDIR`. Solo el STL por defecto se guarda en
 `exports/`.
