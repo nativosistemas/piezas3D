@@ -119,8 +119,9 @@ Abreviaturas: **C** = constitución, **P** = perfil (`spec_kit_profile.md`), **S
    `paso_armado` y tabla `pasos` en `_ensamblaje.scad`, capturas con `scripts/capturas_armado.sh`
    (fuera del sandbox) en `docs/img/<diseño>_paso_NN.png`. Pendiente: 17 componentes sin precio
    verificado (bulonería M8/M3, relé de 3,3 V, cables).
-3. Partir el perfil en skills (`pieza-openscad`, `simulacion-freecad`, `guia-produccion`,
-   `web-armado`) y recortar `disenio-multipieza`.
+3. ✅ Partir el perfil en skills (`pieza-openscad`, `simulacion-freecad`, `guia-produccion`,
+   `web-armado`) y recortar `disenio-multipieza`. El perfil queda como mapa de redirección hasta la
+   etapa 4. Inconsistencia 1 resuelta: la tabla de uniones usa `holgura("…")`.
 4. Constitución 2.0.0 con `/speckit-constitution`.
 5. Reducir `CLAUDE.md` a un mapa.
 6. Probar en una sesión nueva con un diseño chico.

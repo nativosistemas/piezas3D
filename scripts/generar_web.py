@@ -347,6 +347,17 @@ def seccion_componentes(md, filas, tc):
     faltan = "".join(f"<li>{md.inline(' '.join(p for p in (f['texto_cantidad'], f['descripcion']) if p))}</li>"
                      for f in sin_precio)
     fechas = sorted(f["fecha"] for f, _ in con_precio)
+    if sin_precio:
+        aviso = f"""
+<div class="aviso">
+  <p><strong>El precio final todavía no está completo:</strong> faltan {len(sin_precio)} componentes
+  sin precio verificado. No se cargan precios que no se hayan podido confirmar en una tienda.</p>
+  <details><summary>Ver los {len(sin_precio)} componentes sin precio</summary><ul>{faltan}</ul></details>
+</div>"""
+    else:
+        aviso = '<p class="fuente">Todos los componentes tienen precio verificado.</p>'
+    periodo = (f"verificados entre {fechas[0]} y {fechas[-1]}" if fechas
+               else "todavía sin precios verificados")
     resumen = f"""
 <div class="precio">
   <div class="tarjeta destacada">
@@ -361,13 +372,8 @@ def seccion_componentes(md, filas, tc):
     <span class="importe-usd">{usd(total_prorr / ars_por_usd)}</span>
     <span class="detalle">Si ya tenés el rollo y el resto de los paquetes</span>
   </div>
-</div>
-<div class="aviso">
-  <p><strong>El precio final todavía no está completo:</strong> faltan {len(sin_precio)} componentes
-  sin precio verificado. No se cargan precios que no se hayan podido confirmar en una tienda.</p>
-  <details><summary>Ver los {len(sin_precio)} componentes sin precio</summary><ul>{faltan}</ul></details>
-</div>
-<p class="fuente">Precios de tiendas argentinas, verificados entre {fechas[0]} y {fechas[-1]}.
+</div>{aviso}
+<p class="fuente">Precios de tiendas argentinas, {periodo}.
 Tipo de cambio: US$ 1 = {ars(ars_por_usd)} ({html.escape(tc['tipo'])},
 <a href="{html.escape(tc['url'])}" rel="noopener" target="_blank">{html.escape(tc['fuente'])}</a>,
 {tc['fecha']}). Los precios cambian: confirmalos antes de comprar.</p>"""

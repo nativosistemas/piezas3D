@@ -1,47 +1,21 @@
 ---
 name: disenio-multipieza
-description: Resume qué sabe hacer el proyecto piezas3D y cómo encarar un diseño que necesita varias piezas impresas que después se arman. Usar cuando el usuario plantea un diseño nuevo, sobre todo si es grande, tiene partes móviles, mezcla materiales o no entra en la cama de la impresora.
+description: Cómo encarar en piezas3D un diseño de varias piezas impresas que después se arman. Cuándo dividir, cómo unir las piezas, cómo organizar los archivos y cómo armar la tabla de pasos con las vistas explotadas. Usar al plantear un diseño nuevo, sobre todo si es grande, tiene partes móviles, mezcla materiales o no entra en la cama de la impresora.
 ---
 
-# Diseño multipieza en piezas3D
+# Diseño de varias piezas
 
-Guía corta para el agente. Primero dice **qué sabe hacer el proyecto** y después **cómo dividir
-un diseño en piezas que se arman**.
+El pipeline, las reglas y las puertas de calidad son los de siempre (`.specify/memory/constitution.md`)
+y cada pieza se modela y verifica con la skill `pieza-openscad`. Esta guía agrega solo lo propio de
+un diseño de varias piezas. Ejemplo completo: el puntero láser estelar
+(`src/puntero_laser_*.scad`, `specs/002-puntero-laser-estelar/`).
 
-> Las reglas obligatorias están en `.specify/memory/constitution.md`. Esta guía no las reemplaza:
-> las aplica a diseños de varias piezas.
+## 1. ¿Hace falta dividir?
 
----
+Dividir **solo si hay un motivo**: cada unión agrega tornillos, holguras y pasos de armado.
 
-## 1. Qué sabe hacer este proyecto
-
-| Habilidad | Herramienta | Resultado |
-|---|---|---|
-| Modelar piezas paramétricas | OpenSCAD | `.scad` en `src/` |
-| Revisar la forma con capturas PNG | OpenSCAD (línea de comandos) | Capturas temporales; la isométrica final en `docs/img/` |
-| Validar que una pieza aguanta la carga (FEA) | FreeCAD + Gmsh + CalculiX | Script y notas en `simulation/` |
-| Generar el archivo para imprimir | OpenSCAD (línea de comandos) | `.stl` en `exports/` |
-| Escribir la guía de impresión y armado | Markdown | `docs/<diseño>_guia.md` |
-| Planificar el trabajo paso a paso | Spec Kit (`/speckit-*`) | `specs/<NNN-nombre>/` |
-
-Las herramientas son las del sistema (OpenSCAD de apt y FreeCAD en snap) y se llaman con los
-lanzadores de `.tools/bin/`: `openscad`, `freecad`, `freecadcmd`, `gmsh`, `ccx`. Los cuatro
-últimos son del snap: solo arrancan fuera del sandbox y escriben sus temporales en
-`.tools/tmp/`, porque no ven el `/tmp` del sistema.
-
-Ejemplo terminado (una sola pieza): soporte de pared para taladro
-(`src/soporte_pared_taladro.scad`, `specs/001-soporte-pared-taladro/`).
-
----
-
-## 2. ¿Hace falta dividir en varias piezas?
-
-Dividir **solo si hay un motivo**. Cada unión agrega tornillos, tolerancias y pasos de armado.
-
-Motivos válidos:
-
-- **No entra en la cama** de la impresora (dejar ~10 mm de margen por lado).
-- **Se imprimiría con muchos soportes** en una sola pieza y separada se imprime plana.
+- **No entra en la cama** de la impresora (con el margen de `src/perfil_impresora.scad`).
+- **Se imprimiría con muchos soportes** y separada se imprime plana.
 - **Resistencia**: conviene orientar cada parte para que las capas no queden en la dirección del
   esfuerzo.
 - **Partes móviles**: bisagras, ejes, tapas, cajones, ruedas.
@@ -49,105 +23,82 @@ Motivos válidos:
 - **Repuestos**: una parte que se gasta o se rompe y conviene cambiar sola.
 - **Acceso**: tiene que abrirse para meter electrónica, pilas, etc.
 
-Si ninguno aplica, hacer **una sola pieza**.
+Si ninguno aplica, hacer **una sola pieza**. En la especificación, anotar el motivo de cada corte.
 
----
+## 2. Cómo unir las piezas
 
-## 3. Cómo unir las piezas
+Elegir la unión más simple que cumpla. Las holguras salen **siempre** de
+`holgura("…")` del perfil de impresora, nunca de números sueltos. Si el perfil no está medido, la
+guía lo avisa (skill `guia-produccion`).
 
-Elegir la unión más simple que cumpla. Holguras de referencia para FDM con boquilla de 0,4 mm.
-Son **valores por defecto**: si existe `src/perfil_impresora.scad` con `perfil_medido = true`,
-mandan sus valores (`holgura("presion" | "justo" | "deslizante" | "suelto")`); si no, avisar en la
-guía que las holguras no están medidas (plantilla 4.C de `.github/spec_kit_profile.md`).
-
-| Unión | Cuándo usarla | Holgura típica |
+| Unión | Cuándo usarla | Holgura |
 |---|---|---|
-| Tornillo + tuerca embebida (M3, M4) | Uniones fuertes que se desarman | +0,3 mm al agujero, +0,2 mm al hexágono |
+| Tornillo + tuerca embebida (M3, M4) | Uniones fuertes que se desarman | Paso del tornillo: `"deslizante"`; hexágono: `"justo"` |
 | Inserto roscado en caliente | Se desarma muchas veces | Agujero según el fabricante del inserto |
 | Tornillo autorroscante en plástico | Uniones simples y baratas | Agujero = 85 % del diámetro del tornillo |
-| Encastre a presión (*snap-fit*) | Tapas y carcasas sin herramientas | 0,2–0,3 mm |
-| Cola de milano / ranura deslizante | Unir tramos largos en línea | 0,2–0,3 mm por lado |
-| Pasador o clavija | Alinear dos piezas antes de pegar o atornillar | 0,1–0,2 mm |
-| Eje o bisagra impresa | Partes que giran | 0,3–0,5 mm |
-| Pegamento (cianoacrilato / epoxi) | Unión permanente sin carga alta | Sin holgura extra |
+| Encastre a presión (*snap-fit*) | Tapas y carcasas sin herramientas | `"justo"` |
+| Cola de milano o ranura deslizante | Unir tramos largos en línea | `"justo"` o `"deslizante"` por lado |
+| Pasador o clavija | Alinear dos piezas antes de pegar o atornillar | `"presion"` o `"justo"` |
+| Rodamiento a presión | Ejes que giran con poco juego | Calibrar con una probeta impresa (como la del 608 del puntero láser) |
+| Eje o bisagra impresa | Partes que giran | `"deslizante"` o `"suelto"` |
+| Pegamento (cianoacrilato o epoxi) | Unión permanente sin carga alta | Sin holgura extra |
 
-Reglas:
-
-- Las holguras van como **parámetros** (p. ej., `holgura_encastre = holgura("justo");`), nunca
-  como números sueltos.
-- Agregar **guías de alineación** (pasadores, rebajes) para que las piezas solo encajen en la
-  posición correcta.
+- Agregar **guías de alineación** (pasadores, marcos, rebajes) para que las piezas solo encajen en
+  la posición correcta.
 - Usar **una misma medida de tornillo** en todo el diseño siempre que se pueda.
 
----
-
-## 4. Cómo organizar los archivos
-
-Todo sigue en las carpetas de siempre. Las piezas se distinguen por el nombre:
+## 3. Cómo organizar los archivos
 
 ```text
 src/
-├── perfil_impresora.scad       # Holguras y límites medidos de la impresora (común a todo el proyecto)
-├── <diseño>_parametros.scad    # Medidas compartidas del diseño; hace include <perfil_impresora.scad>
-├── <diseño>_<pieza_a>.scad     # Una pieza por archivo, con su encabezado estándar
+├── perfil_impresora.scad       # Holguras y límites de la impresora (común a todo el proyecto)
+├── <diseño>_parametros.scad    # Medidas compartidas, derivadas y validaciones del diseño
+├── <diseño>_<pieza_a>.scad     # Una pieza por archivo, en su orientación de impresión
 ├── <diseño>_<pieza_b>.scad
-└── <diseño>_ensamblaje.scad    # Todas las piezas juntas en su posición (solo para revisar)
-
-simulation/
-└── <diseño>_<pieza>_fem.*      # Solo las piezas que soportan carga
-
-exports/
-├── <diseño>_<pieza_a>.stl      # Un .stl por pieza, ya en orientación de impresión
-└── <diseño>_<pieza_b>.stl      # (el ensamblaje NO se exporta)
-
-docs/
-├── <diseño>_guia.md            # Una sola guía para todo el conjunto
-└── img/<diseño>_*.png          # Captura del ensamblaje y de cada pieza
+└── <diseño>_ensamblaje.scad    # Todas las piezas y componentes en su lugar (no se exporta)
+simulation/<diseño>_<pieza>_fem.*   # Solo las piezas con carga (skill simulacion-freecad)
+exports/<diseño>_<pieza>.stl        # Un STL por pieza (el ensamblaje no se exporta)
+docs/<diseño>_guia.md               # Una sola guía para el conjunto (skill guia-produccion)
+docs/<diseño>_bom.csv               # Lista de materiales con precios (skills guia-produccion y web-armado)
+docs/img/<diseño>_*.png             # Capturas de cada pieza, del conjunto y de cada paso
 ```
 
-Puntos clave:
+- Cada pieza hace `include <<diseño>_parametros.scad>`: si cambia una medida compartida, cambia en
+  todas las piezas y siguen encajando. Si cambia, **regenerar todos los STL**.
+- Cada pieza se modela **en su orientación de impresión**; el ensamblaje la rota y la ubica.
+- El ensamblaje comprueba con `assert` que las piezas no se choquen y que las holguras sean
+  positivas, y dibuja los componentes comprados (rodamientos, tornillos, motores, placas) como
+  volúmenes simples.
 
-- Cada pieza hace `include <<diseño>_parametros.scad>`. Así, si cambia una medida compartida,
-  cambia en todas las piezas a la vez y siguen encajando.
-- Cada pieza se modela **en su orientación de impresión**. El archivo de ensamblaje se encarga de
-  rotarlas y moverlas a su lugar.
-- En el ensamblaje, usar `assert` para comprobar que las piezas no se superponen y que las
-  holguras son mayores que cero.
-- Si cambia un parámetro compartido, **regenerar todos los `.stl`**, no solo el de la pieza tocada.
+## 4. Tabla de pasos y vistas explotadas
 
----
+El ensamblaje es la fuente de las imágenes de armado de la web (skill `web-armado`). Modelo:
+`src/puntero_laser_ensamblaje.scad`.
 
-## 5. Paso a paso
+1. **Catálogo de elementos**: un módulo `elemento(nombre)` que dibuja cada pieza o componente en su
+   posición final. El conjunto completo y las vistas por paso lo usan los dos, así que hay una sola
+   fuente de posiciones. Cada tornillo o tuerca que nombre la guía tiene su elemento.
+2. **Tabla `pasos`**: una entrada por cada paso de "Instrucciones Paso a Paso" de la guía y en el
+   mismo orden. Cada entrada es una lista de `[elemento, desplazamiento, resaltar]`:
+   - `desplazamiento`: de dónde viene la pieza, es decir, el sentido contrario a como entra. Tiene
+     que coincidir con el texto (desde arriba, por la ventana lateral, desde abajo de la plataforma).
+   - `resaltar = false`: el elemento se dibuja transparente. Sirve para el contenedor donde entra
+     algo (para que se vea lo de adentro) y para un subconjunto ya armado que se mueve junto.
+   - Un paso sin piezas nuevas (cableado, puesta a punto) es una lista vacía y no tiene imagen.
+3. **Subconjuntos**: si partes del aparato se arman por separado y después se unen, asignar cada
+   elemento a un grupo y declarar en qué paso se unen. Así una vista no muestra piezas que todavía no
+   se montaron en ese subconjunto.
+4. **Anclas**: un punto por elemento (o uno por tornillo de un grupo) donde se dibuja la flecha.
+   Tiene que quedar **fuera** de cualquier pieza sólida, si no la flecha no se ve.
+5. Parámetro `paso_armado`: `0` dibuja el conjunto completo; `n` dibuja la vista del paso `n`; `-1`
+   lista los pasos con `echo("PASO;n;elementos")` para `scripts/capturas_armado.sh`.
+6. `assert(len(pasos) == <pasos de la guía>)` y que todo elemento de la tabla exista en el catálogo.
 
-1. **Entender el diseño.** Preguntar lo que falte: medidas, carga, tamaño de la cama de la
-   impresora, material, si se tiene que poder desarmar. Preguntar solo lo que no se puede
-   suponer; lo demás, suponerlo y anotarlo como supuesto en la especificación (sección 3 del
-   perfil).
-2. **Dividir.** Listar las piezas con el motivo de cada corte (sección 2) y el tipo de unión
-   (sección 3). Hacer un dibujo simple o una tabla de quién se une con quién.
-3. **Especificar y planificar** con Spec Kit: `/speckit-specify` → `/speckit-plan` →
-   `/speckit-tasks`. En el plan, dejar la lista de piezas, uniones y holguras.
-4. **Modelar** (fase 1): primero `_parametros.scad`, después cada pieza, al final `_ensamblaje.scad`.
-   Cada archivo pasa por el ciclo de verificación (sección 5 del perfil): validación estricta,
-   caja envolvente y capturas PNG. En el ensamblaje, mirar sobre todo frente, lateral y superior:
-   ahí se ven los choques y las holguras que faltan.
-5. **Simular** (fase 2): solo las piezas con carga. Para las demás, escribir en el plan por qué
-   no hace falta.
-6. **Exportar** (fase 3): un `.stl` por pieza en `exports/`.
-7. **Documentar** (fase 4): una guía en `docs/` con:
-   - Tabla de **piezas impresas**: nombre, cantidad, material, orientación, relleno, soportes.
-   - **Tornillería y extras** (BOM): cantidad y medida exacta (p. ej., `4 × Tornillo M3x12mm`).
-   - **Orden de armado** paso a paso, diciendo qué pieza va con cuál y con qué.
+## 5. Lista de control
 
----
-
-## 6. Lista de control antes de terminar
-
-- [ ] Cada corte entre piezas tiene un motivo de la sección 2.
-- [ ] Las medidas compartidas están en un solo archivo `_parametros.scad`.
-- [ ] Cada pieza tiene encabezado estándar y pasa la validación estricta sin advertencias.
-- [ ] Las holguras salen del perfil de impresora; si no está medido, la guía lo avisa.
-- [ ] Revisé las capturas del ensamblaje: todas las piezas encajan, sin choques.
-- [ ] Hay un `.stl` por pieza y todos coinciden con los parámetros actuales.
-- [ ] Las piezas con carga están simuladas (o hay justificación de por qué no).
-- [ ] La guía tiene la tabla de piezas, la BOM y el orden de armado.
+- [ ] Cada corte entre piezas tiene un motivo de la sección 1, anotado en la especificación.
+- [ ] Las medidas compartidas están en un solo `_parametros.scad`.
+- [ ] Las holguras salen de `holgura("…")`.
+- [ ] El ensamblaje no tiene choques y sus `assert` pasan.
+- [ ] Hay un STL por pieza y todos coinciden con los parámetros actuales.
+- [ ] La tabla `pasos` tiene un paso por cada instrucción de la guía y las vistas se revisaron.
