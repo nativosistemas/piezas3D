@@ -53,6 +53,18 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
 | Centro de masa de la parte giratoria | a ≈ 4 mm del eje |
 | Masa total estimada del aparato | ≈ 975 g |
 
+## Primeros pasos
+
+1. **Medir tus componentes** antes de imprimir nada: diámetro, largo y punto de equilibrio del láser,
+   y medidas del power bank y de las placas (sección 4.1). Si difieren de los valores del diseño
+   entregado, cargarlos en `src/puntero_laser_parametros.scad` y regenerar los STL (sección 4.3).
+2. **Imprimir la probeta del 608** y calibrar `ajuste_608` (sección 3.1). Si el valor cambia,
+   regenerar los 10 STL.
+3. **Imprimir el resto de las piezas** en PETG (sección 1).
+4. **Comprar los componentes** de la lista de materiales (sección 2). Con el relé, fijarse que sea
+   compatible con 3,3 V (sección 5.4).
+5. **Armar** siguiendo los pasos de la sección 2 y hacer la **puesta a punto** (sección 3).
+
 ## 1. Especificaciones de Impresión 3D
 
 > **Holguras por defecto, no medidas.** Este proyecto todavía no tiene un perfil de impresora medido
@@ -113,6 +125,7 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 
 ### Herrajes / Tornillería Requerida
 
+<!-- BOM:inicio (generado desde docs/puntero_laser_bom.csv con scripts/generar_web.py: no editar a mano) -->
 **Rodamientos, poleas y correas**
 
 * 4 × Rodamiento 608ZZ (22 × 8 × 7 mm)
@@ -144,8 +157,7 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 
 * 1 × ESP32 DevKit (30 o 38 pines)
 * 2 × Motor paso a paso 28BYJ-48 de 5 V con su placa driver ULN2003
-* 1 × Módulo relé de 1 canal **compatible con lógica de 3,3 V**: disparo por nivel alto, o con puente
-  "H/L" en H
+* 1 × Módulo relé de 1 canal **compatible con lógica de 3,3 V**: disparo por nivel alto, o con puente "H/L" en H
 * 1 × Puntero láser verde "303" con su batería
 * 1 × Power bank USB de 5 V y ≥ 2 A
 * 1 × Interruptor de palanca miniatura con rosca M6 (tipo MTS-102)
@@ -154,6 +166,7 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 * Cables Dupont hembra-hembra
 * Bridas de 3 mm
 * Una banda elástica o una tira de velcro para el power bank
+<!-- BOM:fin -->
 
 ### Instrucciones Paso a Paso
 
@@ -458,3 +471,30 @@ encandilar a pilotos.
 - La **llave del láser** sirve como corte manual de emergencia: girarla a OFF corta el láser aunque el
   relé esté cerrado.
 - No mirar nunca el haz ni sus reflejos en superficies brillantes.
+
+## 7. Consejos y buenas prácticas
+
+Resumen de las recomendaciones de esta guía, en el orden en que aparecen al construir:
+
+- **Medir antes de imprimir.** El diseño se adapta a tu láser y a tu power bank cambiando parámetros;
+  imprimir con medidas que no son las tuyas desperdicia filamento (sección 4).
+- **Calibrar el 608 primero.** Es el ajuste más importante del aparato: un 608 flojo en la base
+  inclina la plataforma con un error que la alineación no corrige (sección 3.1).
+- **Regenerar todos los STL** después de cualquier cambio de parámetros, no solo el de la pieza tocada
+  (sección 4.3).
+- **PETG, no PLA**, para las piezas definitivas: el PLA se ablanda a ~55 °C, por ejemplo dentro de un
+  auto al sol (sección 1).
+- **Sin alisado (ironing)** en las caras de apoyo de los rodamientos, y capa de 0,16 mm en las poleas
+  para que los dientes GT2 salgan definidos (sección 1).
+- **Limpiar los alojamientos** de restos de impresión antes de armar (sección 2).
+- **Tensar las correas con medida**: deben ceder ≈ 2 mm con un dedo. Floja agrega juego; muy tensa
+  frena el motor (sección 3.2).
+- **Equilibrar el láser con los motores sin energía** antes de fijarlo con los prisioneros (sección 3.3).
+- **Ningún cable debe tocar correas ni poleas**, y el del láser necesita su bucle de 40 mm para
+  acompañar el giro (paso 14 y 16).
+- **Relé compatible con 3,3 V**: con un módulo de 5 V por nivel bajo, el láser puede no apagarse
+  (sección 5.4).
+- **Usar la constante de pasos correcta** (45,2864 medios pasos por grado), no 4096 pasos por vuelta
+  (sección 5.1).
+- **La llave del láser es el corte de emergencia**: aprender a girarla a OFF antes de la primera
+  prueba (sección 6).

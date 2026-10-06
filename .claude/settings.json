@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(python3 -c \"import json,sys; print(json.load(sys.stdin).get(\\\"tool_input\\\",{}).get(\\\"file_path\\\",\\\"\\\"))\"); case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/src/*.scad) out=$(\"$CLAUDE_PROJECT_DIR\"/scripts/verificar_pieza.sh --rapido \"$f\" 2>&1) || { echo \"$out\" >&2; exit 2; } ;; esac",
+            "timeout": 60,
+            "statusMessage": "Validando el .scad…"
+          }
+        ]
+      }
+    ]
+  }
+}

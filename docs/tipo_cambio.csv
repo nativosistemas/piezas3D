@@ -1,0 +1,2 @@
+fecha;moneda;valor_ars;tipo;fuente;url
+2026-10-05;USD;1540;Dólar oficial (venta);DolarApi;https://dolarapi.com/v1/dolares/oficial
