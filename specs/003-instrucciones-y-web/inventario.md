@@ -122,6 +122,7 @@ Abreviaturas: **C** = constitución, **P** = perfil (`spec_kit_profile.md`), **S
 3. ✅ Partir el perfil en skills (`pieza-openscad`, `simulacion-freecad`, `guia-produccion`,
    `web-armado`) y recortar `disenio-multipieza`. El perfil queda como mapa de redirección hasta la
    etapa 4. Inconsistencia 1 resuelta: la tabla de uniones usa `holgura("…")`.
-4. Constitución 2.0.0 con `/speckit-constitution`.
+4. ✅ Constitución 2.0.0 con `/speckit-constitution`: cinco fases, puerta 5, convención de varias
+   piezas, organización de las instrucciones en Gobernanza y sin comandos ni plantillas.
 5. Reducir `CLAUDE.md` a un mapa.
 6. Probar en una sesión nueva con un diseño chico.
