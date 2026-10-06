@@ -124,5 +124,6 @@ Abreviaturas: **C** = constitución, **P** = perfil (`spec_kit_profile.md`), **S
    etapa 4. Inconsistencia 1 resuelta: la tabla de uniones usa `holgura("…")`.
 4. ✅ Constitución 2.0.0 con `/speckit-constitution`: cinco fases, puerta 5, convención de varias
    piezas, organización de las instrucciones en Gobernanza y sin comandos ni plantillas.
-5. Reducir `CLAUDE.md` a un mapa.
-6. Probar en una sesión nueva con un diseño chico.
+5. ✅ `CLAUDE.md` reducido a un mapa (fases → skills, datos, scripts y avisos de entorno);
+   `.github/spec_kit_profile.md` eliminado. Las specs 001 y 002 lo siguen citando como historial.
+6. Probar en una sesión nueva con un diseño chico (pendiente: lo hace el usuario).
