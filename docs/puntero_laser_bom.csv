@@ -1,0 +1,32 @@
+categoria;texto_cantidad;descripcion;cantidad;unidad;paquete;opcional;en_guia;precio;moneda;tienda;url;fecha;nota
+Rodamientos, poleas y correas;4 ×;Rodamiento 608ZZ (22 × 8 × 7 mm);4;u;1;no;si;700;ARS;e-LABShop;https://e-labshop.com/tienda/cnc-impresion-3d/mecanica-y-estructura/ruleman-608zz/;2026-10-06;Precio de oferta (lista: $1.300)
+Rodamientos, poleas y correas;2 ×;Polea GT2 20 dientes, agujero de 5 mm, para correa de 6 mm (con 2 prisioneros);2;u;1;no;si;3199;ARS;Tech Forge;https://techforge.com.ar/productos/polea-gt2-20-5/;2026-10-06;La página no aclara si trae los prisioneros
+Rodamientos, poleas y correas;2 ×;Correa GT2 cerrada de 200 mm × 6 mm (100 dientes);2;u;1;no;si;5209.60;ARS;Mecatronix;https://www.mecatronix.com.ar/productos/correa-cerrada-gt2-6mm-200mm/;2026-10-06;
+Pernos y tuercas M8 y del trípode;1 ×;Perno M8 × 50 mm cabeza hexagonal (eje de azimut);1;u;1;no;si;;;;;;
+Pernos y tuercas M8 y del trípode;1 ×;Perno M8 × 55 mm cabeza hexagonal (eje de altura, lado del motor: entra desde afuera por la polea);1;u;1;no;si;;;;;;
+Pernos y tuercas M8 y del trípode;1 ×;Perno M8 × 30 mm cabeza hexagonal (eje de altura, lado del cable);1;u;1;no;si;;;;;;
+Pernos y tuercas M8 y del trípode;2 ×;Tuerca autoblocante M8;2;u;1;no;si;;;;;;
+Pernos y tuercas M8 y del trípode;1 ×;Tuerca M8 común de 6,5 mm de alto (DIN 934), para el muñón +X de la cuna;1;u;1;no;si;;;;;;
+Pernos y tuercas M8 y del trípode;1 ×;Tuerca 3/8"-16 UNC (tornillo del trípode);1;u;1;no;si;;;;;;
+Pernos y tuercas M8 y del trípode;2–4 ×;Arandela M8 fina (solo si hace falta ajustar la horquilla a la plataforma, paso 8);4;u;1;si;si;;;;;;
+Pernos y tuercas M8 y del trípode;4 ×;Tuerca M8 extra como contrapeso (opcional, sección 3.4);4;u;1;si;si;;;;;;
+Tornillería M3;4 ×;Tornillo M3 × 12 mm + 4 × tuerca M3: pies de los brazos;4;u;1;no;si;;;;;;
+Tornillería M3;2 ×;Tornillo M3 × 10 mm + 2 × tuerca M3: carro de azimut;2;u;1;no;si;;;;;;
+Tornillería M3;2 ×;Tornillo M3 × 12 mm: carro de altura, autorroscante en los pilares;2;u;1;no;si;;;;;;
+Tornillería M3;4 ×;Tornillo M3 × 8 mm + 4 × arandela M3: orejas de los motores, autorroscante en el carro;4;u;1;no;si;;;;;;
+Tornillería M3;2 ×;Tornillo M3 × 16 mm: tensores, autorroscante en los topes;2;u;1;no;si;;;;;;
+Tornillería M3;6 ×;Prisionero M3 × 8 mm (DIN 916, punta plana): colimación del láser;6;u;1;no;si;;;;;;
+Tornillería M3;1 ×;Tornillo M3 × 12 mm para roscar previamente los agujeros de los prisioneros (se retira);1;u;1;no;si;;;;;;
+Tornillería M3;2 ×;Tornillo M3 × 10 mm + 2 × tuerca M3: tapa;2;u;1;no;si;;;;;;
+Electrónica;1 ×;ESP32 DevKit (30 o 38 pines);1;u;1;no;si;18199;ARS;Starware;https://tienda.starware.com.ar/producto/placa-wifi-iot-nodemcu-esp-wroom-32-devkit-v1/;2026-10-06;Modelo de 38 pines
+Electrónica;2 ×;Motor paso a paso 28BYJ-48 de 5 V con su placa driver ULN2003;2;u;1;no;si;5100;ARS;Arsumo;https://arsumo.com.ar/productos/motor-paso-a-paso-de-5-v-cc-28byj-48-modulo-de-prueba-del-controlador-uln2003/;2026-10-06;Incluye la placa ULN2003
+Electrónica;1 ×;Módulo relé de 1 canal **compatible con lógica de 3,3 V**: disparo por nivel alto, o con puente "H/L" en H;1;u;1;no;si;;;;;;
+Electrónica;1 ×;Puntero láser verde "303" con su batería;1;u;1;no;si;20500;ARS;Piensa Tecnología;https://piensatecnologia.com.ar/producto/puntero-laser-recargable-verde-303-alta-potencia-profesional-con-llave-de-seguridad/;2026-10-06;La página no da el diámetro del cuerpo: medirlo antes de imprimir la cuna (sección 4.1)
+Electrónica;1 ×;Power bank USB de 5 V y ≥ 2 A;1;u;1;no;si;20699;ARS;Suono;https://suono.com.ar/productos/power-bank-10000-mah-suono-usb/;2026-10-06;Sin stock al verificar. Mide 143 × 68 × 15,5 mm y el diseño espera 100 × 65 × 25 mm: ajustar powerbank_* (sección 4.1)
+Electrónica;1 ×;Interruptor de palanca miniatura con rosca M6 (tipo MTS-102);1;u;1;no;si;845;ARS;Electrocomponentes;https://www.electrocomponentes.com/tienda/componentes-electronicos/interruptores/llave-palanca-simple-inversora-mts-102;2026-10-06;La página no indica la rosca del buje: confirmar que sea M6
+Electrónica;1 ×;Cable USB-A con salida a bornes (o cable USB cortado);1;u;1;no;si;;;;;;
+Electrónica;40 cm de;cable de silicona de 2 × 26 AWG (relé → láser);40;cm;100;no;si;;;;;;
+Electrónica;;Cables Dupont hembra-hembra;1;paquete;1;no;si;2690;ARS;Oriel;https://oriel.com.ar/producto/cable-dupont-generico-hembra-hembra-40x-20cm/;2026-10-06;Paquete de 40 cables de 20 cm
+Electrónica;;Bridas de 3 mm;1;paquete;1;no;si;1119;ARS;Sodimac;https://www.sodimac.com.ar/sodimac-ar/product/1491156/pack-de-100-precintos-25-x-100-mm-negro/1491156/;2026-10-06;Paquete de 100 precintos de 2,5 × 100 mm
+Electrónica;;Una banda elástica o una tira de velcro para el power bank;1;u;1;no;si;;;;;;
+Filamento;420 g de;filamento PETG de 1,75 mm;420;g;1000;no;no;21100;ARS;Printalot;https://printalot.com.ar/productos/filamentos/pet-g/petg-1-75-mm-1-kg/;2026-10-06;Rollo de 1 kg. 420 g es la estimación de la guía; el laminador da el valor exacto

@@ -3,8 +3,10 @@
 // Componente: Cuna del láser
 // Descripción: Tubo donde el láser 303 se desliza para equilibrarlo sobre el eje de altura. Tiene
 //              un anillo de 3 prisioneros M3 a 120° en cada extremo para la colimación del haz y
-//              dos muñones laterales con la cabeza del perno M8 embutida (abierta hacia el interior
-//              del tubo). Se imprime de pie, con el eje del tubo vertical.
+//              dos muñones laterales: el −X aloja la cabeza del perno M8 del lado del cable y el +X
+//              una tuerca M8 donde se enrosca el perno del lado motor, que entra desde afuera por la
+//              polea. Los dos alojamientos se abren hacia el interior del tubo. Se imprime de pie, con
+//              el eje del tubo vertical.
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
@@ -79,11 +81,12 @@ module munon(s) {
     }
 }
 
-// Hexágono de la cabeza M8 abierto hacia el interior del tubo y paso del perno (U-08)
+// Hexágono abierto hacia el interior del tubo y paso del perno (U-08): tuerca M8 en +X, cabeza en −X
 module vaciado_munon(s) {
+    x_fondo = s > 0 ? x_tuerca_m8_cuna : x_cabeza_m8_cuna;
     mirror([s < 0 ? 1 : 0, 0, 0]) {
         translate([r_int_cuna - 2, 0, z_centro_cuna]) rotate([0, 90, 0])   // un vértice hacia arriba
-            alojamiento_hex(m8_cabeza_ec, x_cabeza_m8_cuna - r_int_cuna + 2);
+            alojamiento_hex(s > 0 ? m8_tuerca_ec : m8_cabeza_ec, x_fondo - r_int_cuna + 2);
         translate([(x_cara_munon + largo_anillo_contacto)/2, 0, z_centro_cuna])
             agujero_gota(rod608_d_int + holgura_perno_m8, x_cara_munon + largo_anillo_contacto);
     }

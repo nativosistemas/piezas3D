@@ -162,7 +162,7 @@ llama al módulo de la pieza.
 | `puntero_laser_plataforma_azimut.scad` | `pieza_plataforma_azimut()` | `placa_nervada`, `cubo_central`, `rebaje_brazo(lado)`, `asiento_carro`, `abertura_polea_azimut`, `bolsillo_powerbank`, `soporte_placa(l, a)`, `canal_cables`, `guias_tapa`, `alojamiento_contrapeso` | Cara inferior sobre la cama | `exports/puntero_laser_plataforma_azimut.stl` |
 | `puntero_laser_brazo_horquilla.scad` (`lado = "motor"` / `"cable"`) | `pieza_brazo_horquilla(lado)` | `cuerpo_brazo`, `alojamiento_608`, `pie_brazo`, `pilares_motor`, `ranuras_carro`, `canal_cable_laser` | Cara interior sobre la cama (los pilares hacia arriba) | `exports/puntero_laser_brazo_horquilla_motor.stl`, `exports/puntero_laser_brazo_horquilla_cable.stl` |
 | `puntero_laser_cuna_laser.scad` | `pieza_cuna_laser()` | `tubo`, `anillo_colimacion(z)`, `munon(lado)`, `ventana_pulsador`, `ranura_cable` | De pie, con el eje del tubo vertical; muñones con forma de gota | `exports/puntero_laser_cuna_laser.stl` |
-| `puntero_laser_polea_altitud.scad` | `pieza_polea_altitud()` | `dentado_gt2`, `pestanas_polea`, `cubo_largo`, `alojamiento_tuerca_m8` | Cubo hacia arriba | `exports/puntero_laser_polea_altitud.stl` |
+| `puntero_laser_polea_altitud.scad` | `pieza_polea_altitud()` | `dentado_gt2`, `pestanas_polea`, `cubo_largo`, alojamiento de la cabeza M8 | Cubo hacia arriba | `exports/puntero_laser_polea_altitud.stl` |
 | `puntero_laser_carro_motor.scad` | `pieza_carro_motor()` | `placa_carro`, `agujeros_orejas`, `ranuras_fijacion`, `oreja_tensor` | Plano | `exports/puntero_laser_carro_motor.stl` (imprimir 2) |
 | `puntero_laser_separador_azimut.scad` | `pieza_separador_azimut()` | — | De pie | `exports/puntero_laser_separador_azimut.stl` |
 | `puntero_laser_tapa_electronica.scad` | `pieza_tapa_electronica()` | `cascara`, `rejillas_ventilacion`, `abertura_usb`, `encastres` | Techo sobre la cama | `exports/puntero_laser_tapa_electronica.stl` |
@@ -186,8 +186,8 @@ perfil.
 | U-05 | Carro ↔ motor (×2) | 2 × M3 autorroscantes en las orejas | `diametro_autorroscante_m3` |
 | U-06 | Carro ↔ plataforma o pilares | 2 × M3 en ranuras ± `recorrido_tensor` + M3 de empuje | `holgura_tornillo_m3` |
 | U-07 | Brazos ↔ 608 (×2) | A presión desde la cara exterior, con labio interior | `ajuste_608` |
-| U-08 | Cuna ↔ ejes de altura | Cabeza M8 en el hexágono del muñón; anillo que toca solo el aro interior | `holgura_tuerca` |
-| U-09 | Polea de altura ↔ eje | Tuerca autoblocante M8 en el hexágono de la polea; cubo sobre el aro interior | `holgura_tuerca` |
+| U-08 | Cuna ↔ ejes de altura | Lado del cable: cabeza M8 en el hexágono del muñón −X. Lado del motor: tuerca M8 común en el hexágono del muñón +X, donde se enrosca el perno que entra desde afuera. Anillo que toca solo el aro interior | `holgura_tuerca`, `margen_punta_perno` |
+| U-09 | Polea de altura ↔ eje | Cabeza del perno M8 del lado motor en el hexágono de la polea (`prof_cabeza_polea_alt`); cubo sobre el aro interior | `holgura_tuerca` |
 | U-10 | Cuna ↔ láser | Deslizante + 6 × M3 radiales con tuerca embebida | `holgura_colimacion` |
 | U-11 | Tapa ↔ plataforma | Guías de encastre + 2 × M3 | `holgura_encastre` |
 | U-12 | Placas ↔ plataforma | Soportes con labio, a presión | `holgura_encastre` |

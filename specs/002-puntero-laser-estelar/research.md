@@ -50,7 +50,7 @@ sin anillo rozante (FR-007, FR-009). La horquilla permite equilibrar el láser s
 | 3 | `brazo_horquilla` (variante `motor`) | 1 | Se imprime plano: las capas no trabajan a flexión; los alojamientos del 608 salen redondos | Plataforma, carro de altura, cuna | M3 + tuerca embebida en el pie; 608ZZ a presión |
 | 4 | `brazo_horquilla` (variante `cable`) | 1 | Igual que el anterior; lleva el canal del cable del láser | Plataforma, cuna | Igual que el anterior |
 | 5 | `cuna_laser` | 1 | Parte móvil; colimación y equilibrado | Brazos (por los 608), polea de altura | Perno M8 con la cabeza embebida; 6 × M3 de colimación |
-| 6 | `polea_altitud` | 1 | Parte móvil; impresa plana para que los dientes salgan bien | Cuna (por el perno M8) | Tuerca M8 autoblocante en un alojamiento hexagonal (chaveta) |
+| 6 | `polea_altitud` | 1 | Parte móvil; impresa plana para que los dientes salgan bien | Cuna (por el perno M8) | Cabeza del perno M8 en un alojamiento hexagonal (chaveta) |
 | 7 | `carro_motor` | 2 | Repuesto común y tensor; **el mismo archivo** sirve para los 2 ejes | Motor 28BYJ-48; plataforma o pilares del brazo | M3 autorroscante en las orejas del motor; M3 en ranuras |
 | 8 | `separador_azimut` | 1 | Separa los aros interiores de los 2 rodamientos de azimut | Perno M8 | Ajuste deslizante |
 | 9 | `tapa_electronica` | 1 | Acceso a la electrónica y al power bank | Plataforma | Encastre con guías + 2 × M3 |
@@ -290,10 +290,18 @@ anillos de −0,1 a +0,3 mm, antes de imprimir las piezas grandes.
 
 - **Brazos**: cada brazo (10 mm de espesor y 36 mm de ancho) lleva un 608ZZ a presión desde la cara
   exterior, con un labio interior de 3 mm (agujero Ø 16, que apoya el aro exterior).
-- **Lado del motor**: la pila es cabeza M8 (en la cuna) | muñón | aro interior del 608 |
-  `polea_altitud` (cubo largo Ø 14 que solo toca el aro interior) | **tuerca autoblocante M8 en el
-  hexágono de la polea**. La cabeza en el hexágono de la cuna y la tuerca en el hexágono de la polea
+- **Lado del motor**: la pila es tuerca M8 común (en la cuna) | muñón | aro interior del 608 |
+  `polea_altitud` (cubo largo Ø 14 que solo toca el aro interior) | **cabeza del perno M8 en el
+  hexágono de la polea**. La tuerca en el hexágono de la cuna y la cabeza en el hexágono de la polea
   forman una cadena de chavetas que transmite el par.
+  *Corrección posterior (2026-10-07)*: la versión original ponía la cabeza del M8 × 55 en la cuna y la
+  tuerca en la polea, pero ese perno (60 mm con la cabeza) no se puede meter desde dentro de un tubo
+  de 34 mm. Ahora el perno entra desde afuera, por la polea, y se enrosca en la tuerca del muñón.
+  La profundidad del hexágono de la polea ajusta el largo comercial para que la punta quede
+  `margen_punta_perno` antes del interior del tubo.
+- **Orden de armado**: los anillos de contacto hacen que la cuna mida 60 mm entre brazos que, fijos,
+  quedan a 50 mm. La horquilla (brazos + cuna + polea) se arma con los brazos sueltos y después se
+  atornilla a la plataforma.
 - **Lado del cable**: cabeza M8 (en la cuna) | muñón | aro interior | arandela | tuerca autoblocante.
   Si la distancia entre muñones no coincide con la distancia entre brazos, se compensa con arandelas
   M8.

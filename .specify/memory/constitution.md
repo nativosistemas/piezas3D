@@ -1,24 +1,3 @@
-<!--
-Informe de Impacto de Sincronización
-- Versión: 1.0.1 → 1.1.0 (MENOR: se añaden reglas y una puerta de calidad; no se elimina ni
-  redefine ningún principio).
-- Origen: buenas prácticas adaptadas del skill comunitario andreahaku/openscad_claude_skill.
-- Principio I: orden fijo del archivo (parámetros → derivadas → cuerpo → añadidos → cortes →
-  ensamblaje), `eps` obligatorio en los cortes, validación con `assert()`, cotas relativas a
-  bordes y preferencia por perfiles 2D extruidos.
-- Principio IV: perfil de impresora único (`src/perfil_impresora.scad`) como fuente de holguras
-  y límites, con aviso obligatorio si no está medido; reglas FDM concretas.
-- Principio V: captura isométrica de la pieza en la guía (DEBERÍA).
-- Estructura: se permite `src/externos/` para STL de terceros que se modifican y `docs/img/`
-  para las capturas de las guías.
-- Puertas de calidad: la puerta 1 pasa a exigir validación estricta, chequeo numérico de
-  medidas y revisión visual de capturas PNG.
-- Plantillas afectadas: `.github/spec_kit_profile.md` (actualizada),
-  `.claude/skills/disenio-multipieza/SKILL.md` (actualizada), `CLAUDE.md` (actualizada).
-  `.specify/templates/plan-template.md` no requiere cambios (la sección Constitution Check se
-  deriva de este documento).
-- Pendiente: crear `src/perfil_impresora.scad` y el peine de calibración como diseño propio.
--->
 # Constitución de piezas3D
 
 ## Principios Fundamentales
@@ -29,106 +8,110 @@ Informe de Impacto de Sincronización
   archivo `.scad` dentro de `src/`.
 - Cada archivo `.scad` DEBE comenzar con el encabezado estándar (Proyecto, Componente,
   Descripción) seguido de la sección `// --- PARÁMETROS Y CONSTANTES ---`, donde se declaran
-  TODAS las dimensiones clave y `$fn`. No se permiten números mágicos dimensionales dentro
-  de los módulos.
-- El código DEBE ser limpio, ordenado y comentado, con la geometría organizada en módulos
+  TODAS las dimensiones clave y `$fn`. No se permiten números mágicos dimensionales dentro de
+  los módulos.
+- El archivo DEBE seguir este orden: parámetros → dimensiones derivadas → cuerpo principal →
+  elementos que suman material → elementos que restan material, **siempre al final** →
+  ensamblaje. El código DEBE ser limpio, ordenado y comentado, con la geometría en módulos
   nombrados y un módulo de ensamblaje principal (`ensamblaje_principal()` o equivalente).
-- Los nombres de variables y módulos DEBEN ser descriptivos y en español con `snake_case`
-  (p. ej., `espesor_pared`, `diametro_orificio`).
-- El archivo DEBE seguir este orden: parámetros → dimensiones derivadas (calculadas a partir
-  de los parámetros) → cuerpo principal → elementos que suman material (refuerzos, salientes)
-  → elementos que restan material (agujeros, ranuras, vaciados), **siempre al final** →
-  ensamblaje.
+- Los nombres de variables y módulos DEBEN ser descriptivos, en español y en `snake_case`.
 - DEBE declararse `eps = 0.01;` y usarse para que todo volumen que se resta sobresalga de la
   pieza. Ningún `difference()` DEBE dejar caras coplanarias.
 - Los parámetros DEBEN validarse con `assert()` y un mensaje en español: espesores mínimos,
-  holguras mayores que cero, pieza dentro de la cama y relaciones entre cotas (p. ej.,
-  `assert(diametro_saliente > diametro_orificio + 2 * espesor_min_pared, "...")`).
-- Las posiciones DEBEN definirse respecto de bordes o de otros elementos
-  (`x_orificio = largo - margen_borde`), no como coordenadas absolutas sueltas.
-- La geometría DEBERÍA construirse a partir de perfiles 2D (`polygon()` + `linear_extrude()`,
-  `offset(r = ...)` para redondear esquinas, `rotate_extrude()` para piezas de revolución) en
-  lugar de `hull()` de sólidos 3D o cilindros apilados.
+  holguras mayores que cero, pieza dentro de la cama y relaciones entre cotas.
+- Las posiciones DEBEN definirse respecto de bordes o de otros elementos, no como coordenadas
+  absolutas sueltas.
+- La geometría DEBERÍA construirse a partir de perfiles 2D extruidos en lugar de `hull()` de
+  sólidos 3D o cilindros apilados, salvo en las piezas que se simulan en FreeCAD, que DEBEN usar
+  solo primitivas que su importador CSG reconstruye (`cube`, `cylinder`, `polyhedron`).
 
-**Justificación:** los parámetros al inicio permiten modificar el diseño sin tocar la
-geometría y convierten cada pieza en un generador reutilizable. Un orden fijo y las
-validaciones con `assert()` hacen que un valor imposible falle al renderizar y no después de
-imprimir.
+**Justificación:** los parámetros al inicio permiten modificar el diseño sin tocar la geometría y
+convierten cada pieza en un generador reutilizable. Un orden fijo y las validaciones con
+`assert()` hacen que un valor imposible falle al renderizar y no después de imprimir.
 
-### II. Pipeline Lineal de Cuatro Fases (NO NEGOCIABLE)
+### II. Pipeline Lineal de Cinco Fases (NO NEGOCIABLE)
 
 Toda solicitud de diseño DEBE progresar en este orden, sin saltar fases:
 
 ```text
-[1. DISEÑO PARAMÉTRICO] ──> [2. SIMULACIÓN FEA] ──> [3. EXPORTACIÓN] ──> [4. DOCUMENTACIÓN]
-   (OpenSCAD .scad)            (Guía FreeCAD)           (.stl)           (Manual .md)
+[1. DISEÑO] ──> [2. SIMULACIÓN FEA] ──> [3. EXPORTACIÓN] ──> [4. DOCUMENTACIÓN] ──> [5. WEB DE ARMADO]
+ (.scad)          (FreeCAD)              (.stl)              (guía .md + .csv)     (specs/<NNN>/web/)
 ```
 
 - Una fase NO DEBE comenzar hasta que la anterior esté completa.
-- La fase 2 puede declararse "no aplica" solo con una justificación explícita registrada en
-  el plan (ver Principio III).
-- Las tareas generadas por `/speckit-tasks` DEBEN agruparse siguiendo estas cuatro fases.
+- La fase 2 puede declararse "no aplica" solo con una justificación explícita registrada en el
+  plan (Principio III).
+- Las tareas generadas por `/speckit-tasks` DEBEN agruparse siguiendo estas cinco fases.
 
-**Justificación:** un flujo predecible garantiza que cada pieza llegue validada, fabricable
-y documentada.
+**Justificación:** un flujo predecible garantiza que cada pieza llegue validada, fabricable,
+documentada y lista para que otra persona la construya.
 
 ### III. Validación y Simulación en FreeCAD (Cuando Aplique)
 
 - Si el diseño requiere evaluar esfuerzo mecánico, análisis de elementos finitos (FEA/FEM),
-  dinámica de fluidos, integridad estructural u otras pruebas que OpenSCAD no soporta de
-  forma nativa, DEBE incluirse una fase de simulación en **FreeCAD**.
-- El flujo DEBE indicar cómo exportar el modelo a un formato compatible con FreeCAD
-  (`.csg` o `.step`) y explicar paso a paso el banco de trabajo a usar (p. ej.,
-  *FEM Workbench*), el material asignado, las restricciones (fijaciones), las cargas
-  aplicadas y los criterios de aceptación.
-- Las notas y archivos de simulación (`.FCStd`) DEBEN guardarse en `simulation/`.
-- Si no se simula, la especificación o el plan DEBE justificar por qué no es necesario.
+  dinámica de fluidos, integridad estructural u otras pruebas que OpenSCAD no soporta, DEBE
+  incluirse una fase de simulación en **FreeCAD**.
+- Los criterios de aceptación (carga, material, factor de seguridad, deformación admisible) DEBEN
+  fijarse en la especificación antes de simular.
+- La documentación y los archivos de simulación DEBEN guardarse en `simulation/` y permitir
+  repetirla: exportación del modelo, material, restricciones, cargas, criterios, resultados y el
+  **rango de parámetros validado**, fuera del cual hay que simular de nuevo.
+- Si no se simula, la especificación o el plan DEBE justificar por qué no es necesario, con un
+  precálculo cuando haya cargas.
 
-**Justificación:** las piezas funcionales o sometidas a carga deben validarse antes de
-fabricarse para evitar fallos e impresiones desperdiciadas.
+**Justificación:** las piezas funcionales o sometidas a carga deben validarse antes de fabricarse
+para evitar fallos e impresiones desperdiciadas.
 
 ### IV. Diseño para Manufactura Aditiva
 
-- La geometría DEBE optimizarse para impresión 3D: minimizar voladizos y la necesidad de
-  soportes, y respetar espesores de pared y tolerancias realistas para FDM.
-- El modelo final renderizado DEBE exportarse en formato **`.stl`** dentro de `exports/`.
-- El `.stl` DEBE corresponder exactamente a los valores de parámetros documentados; si
-  cambian los parámetros, el `.stl` DEBE regenerarse.
-- Las holguras de encaje y los límites de impresión DEBEN salir de un único perfil de
-  impresora, `src/perfil_impresora.scad` (plantilla en la sección 4.C de
-  `.github/spec_kit_profile.md`), que las piezas incluyen con `include`. Mientras ese archivo no
-  exista o tenga `perfil_medido = false`, los valores son **por defecto, no medidos**, y la
-  especificación y la guía de producción DEBEN decirlo cuando la pieza dependa de un encaje.
-- Límites FDM de referencia (boquilla de 0,4 mm), salvo que el perfil diga otra cosa:
-  pared ≥ 1,2 mm, piso ≥ 0,8 mm, voladizo ≤ 45° respecto de la vertical sin soportes,
-  puentes ≤ 10 mm sin apoyo. La cara plana más grande DEBERÍA ir sobre la cama; en las caras
-  que miran hacia abajo DEBERÍAN usarse chaflanes en lugar de filetes.
-- Las curvas del `.stl` final DEBERÍAN tener `$fn ≥ 64`.
+- La geometría DEBE optimizarse para impresión 3D: minimizar voladizos y la necesidad de soportes,
+  y respetar espesores de pared y tolerancias realistas para FDM.
+- Cada pieza DEBE exportarse en formato **`.stl`** dentro de `exports/`, y el `.stl` DEBE
+  corresponder exactamente a los valores de parámetros documentados; si cambian, DEBE regenerarse.
+- Las holguras de encaje y los límites de impresión (pared, piso, voladizo, puente, cama) DEBEN
+  salir de un único perfil de impresora, `src/perfil_impresora.scad`, que las piezas incluyen con
+  `include`. Mientras tenga `perfil_medido = false`, los valores son **por defecto, no medidos**, y
+  la especificación y la guía DEBEN decirlo cuando la pieza dependa de un encaje.
+- La cara plana más grande DEBERÍA ir sobre la cama; en las caras que miran hacia abajo DEBERÍAN
+  usarse chaflanes en lugar de filetes. Las curvas del `.stl` final DEBERÍAN tener `$fn ≥ 64`.
 
-**Justificación:** el entregable final es una pieza física; el diseño debe pensarse
-desde el principio para fabricarse sin problemas. Las holguras genéricas son una suposición
-sobre la impresora de otra persona: medirlas una vez evita reimprimir cada pieza con encaje.
+**Justificación:** el entregable final es una pieza física; el diseño debe pensarse desde el
+principio para fabricarse sin problemas. Las holguras genéricas son una suposición sobre la
+impresora de otra persona: medirlas una vez evita reimprimir cada pieza con encaje.
 
-### V. Documentación de Producción Obligatoria
+### V. Documentación de Producción y Web de Armado
 
-Cada diseño DEBE incluir una guía de producción en `docs/<nombre_pieza>_guia.md` (plantilla de
-referencia: sección 4.B de `.github/spec_kit_profile.md`) con dos secciones críticas:
+Cada diseño DEBE incluir una guía de producción en `docs/<diseño>_guia.md` con dos secciones
+críticas:
 
-- **A. Guía de impresión 3D:**
-  - Orientación óptima (qué cara va sobre la cama) para minimizar soportes y maximizar
-    la resistencia estructural.
-  - Parámetros del laminador (slicer): porcentaje y patrón de relleno (infill), número de
-    perímetros (paredes), soportes (sí/no y ubicación) y adherencia (brim/raft).
-  - Material recomendado según la aplicación (PLA, PETG, ABS, TPU, etc.).
-- **B. Manual de ensamblaje y armado:**
-  - Lista de materiales (BOM) cuando el diseño tenga varias piezas o requiera tornillería
-    externa, con cantidades y especificaciones (p. ej., `Tornillo M3x12mm`).
-  - Instrucciones paso a paso, en orden cronológico, claras y concisas.
-- La guía DEBERÍA incluir una captura isométrica de la pieza (`docs/img/<nombre_pieza>.png`)
-  para reconocerla a simple vista.
+- **A. Guía de impresión 3D**: orientación óptima, parámetros del laminador (relleno, perímetros,
+  soportes, adherencia) y material recomendado.
+- **B. Manual de ensamblaje y armado**: lista de materiales con cantidades y medidas exactas
+  (p. ej., `Tornillo M3x12mm`) e instrucciones paso a paso en orden cronológico.
 
-**Justificación:** cualquier persona debe poder imprimir y montar la pieza sin
-conocimiento previo del diseño.
+Además:
+
+- La lista de materiales DEBE vivir en `docs/<diseño>_bom.csv`; la de la guía DEBE generarse desde
+  ese archivo y no editarse a mano.
+- La guía DEBERÍA incluir una captura isométrica de la pieza (`docs/img/<diseño>.png`).
+- Cada diseño DEBE tener una **web de armado** en `specs/<NNN-nombre>/web/index.html`, generada con
+  `scripts/generar_web.py` a partir de la guía, la lista de materiales y el tipo de cambio, con los
+  componentes, el precio en **ARS y USD**, los primeros pasos, el armado paso a paso y los consejos.
+- Cada precio DEBE tener tienda, enlace y fecha, y haberse verificado en la página de la tienda.
+  Un precio que no se pudo verificar DEBE quedar vacío, y la web DEBE indicar que el total es
+  parcial. Ningún precio DEBE estimarse ni inventarse.
+- En los diseños de varias piezas, cada paso de armado que agrega piezas DEBE tener su vista
+  explotada, generada desde el ensamblaje.
+- Cada diseño de varias piezas con ensamblaje DEBE tener un **visor 3D de armado** en
+  `specs/<NNN-nombre>/web/armado_3d.html`, generado desde su ensamblaje y su guía (no a mano), que
+  muestre cómo se coloca cada pieza en cada paso y funcione sin internet ni servidor. Las vistas
+  explotadas en PNG se mantienen: la guía impresa las necesita.
+
+**Justificación:** cualquier persona debe poder imprimir, comprar y montar la pieza sin
+conocimiento previo del diseño. Un precio sin fuente engaña más que un precio que falta. El visor
+3D muestra el recorrido de cada pieza y deja mirar desde cualquier lado, lo que resuelve dudas de
+armado que una captura fija no resuelve; como sale del mismo ensamblaje, no agrega trabajo por
+diseño.
 
 ## Estructura del Repositorio y Formatos
 
@@ -136,66 +119,83 @@ Los artefactos del diseño DEBEN ubicarse estrictamente en este árbol:
 
 ```text
 /
-├── .github/
-│   └── spec_kit_profile.md     # Perfil del agente: plantillas de salida (.scad y guía .md)
-├── src/                        # TODO el código nativo de OpenSCAD (.scad)
-│   ├── perfil_impresora.scad   # Holguras y límites medidos de la impresora
-│   └── externos/               # STL de terceros que se modifican (con origen y licencia)
-├── simulation/                 # Notas y pasos de simulación en FreeCAD (.FCStd)
-├── exports/                    # Archivos de manufactura listos para producción (.stl)
-└── docs/                       # Manuales de ensamblaje y guías de impresión (.md)
-    └── img/                    # Capturas de las piezas para las guías (.png)
+├── src/                          # TODO el código OpenSCAD (.scad)
+│   ├── perfil_impresora.scad     # Holguras y límites de la impresora
+│   └── externos/                 # STL de terceros que se modifican (con origen y licencia)
+├── simulation/                   # Simulaciones en FreeCAD
+├── exports/                      # Archivos listos para imprimir (.stl)
+├── docs/                         # Guías de producción (.md) y sus datos
+│   ├── <diseño>_bom.csv          # Lista de materiales con precios
+│   ├── tipo_cambio.csv           # Cotización del dólar con fuente y fecha
+│   └── img/                      # Capturas de piezas, conjuntos y pasos de armado (.png)
+├── scripts/                      # Automatización del pipeline
+└── specs/<NNN-nombre>/web/       # Web de armado y visor 3D generados
 ```
 
+- Un diseño de varias piezas DEBE usar `src/<diseño>_parametros.scad` para las medidas compartidas,
+  un archivo por pieza modelada en su orientación de impresión y `src/<diseño>_ensamblaje.scad`
+  (no se exporta), que comprueba los choques con `assert()` y define la tabla de pasos de armado.
 - Un STL de terceros que se modifica DEBE guardarse en `src/externos/` junto a un `.md` con su
-  origen (URL) y su licencia. La modificación se hace en un `.scad` normal de `src/` que lo
-  importa con `import()`, y el resultado pasa por el pipeline completo.
-
-- Excepciones permitidas: los artefactos de Spec Kit (`specs/`, `.specify/`), la
-  configuración del agente (`.claude/`, `CLAUDE.md`) y la carpeta local `.tools/` (excluida de
-  git: lanzadores de OpenSCAD y FreeCAD en `.tools/bin/` y salidas temporales de FreeCAD en
-  `.tools/tmp/`), que NO DEBEN contener artefactos del diseño.
-- Las plantillas de salida obligatorias (encabezado `.scad` y guía de producción) están
-  definidas en `.github/spec_kit_profile.md` y DEBEN seguirse.
-- Herramientas objetivo: OpenSCAD (diseño), FreeCAD (simulación) y un laminador 3D
-  (manufactura).
-- Toda la documentación, los comentarios del código y los artefactos de Spec Kit DEBEN
-  redactarse en español.
+  origen (URL) y su licencia; la modificación se hace en un `.scad` de `src/` que lo importa.
+- `scripts/` DEBE contener solo automatización (verificación, capturas, generación de la web y del
+  visor 3D, con su motor 3D en `scripts/vendor/`), no artefactos del diseño.
+- Excepciones al árbol: los artefactos de Spec Kit (`specs/`, `.specify/`), la configuración del
+  agente (`.claude/`, `CLAUDE.md`) y la carpeta local `.tools/` (excluida de git: lanzadores y
+  temporales), que NO DEBEN contener artefactos del diseño salvo la web y el visor generados en
+  `specs/<NNN-nombre>/web/`.
+- Las piezas y guías nuevas DEBEN partir de las plantillas de las skills `pieza-openscad` y
+  `guia-produccion`.
+- Herramientas objetivo: OpenSCAD (diseño), FreeCAD (simulación) y un laminador 3D (manufactura).
+- Toda la documentación, los comentarios del código y los artefactos de Spec Kit DEBEN redactarse
+  en español.
 
 ## Flujo de Trabajo y Puertas de Calidad
 
 Antes de dar un diseño por terminado DEBEN cumplirse estas puertas:
 
-1. **Diseño:** el `.scad` está en `src/`, tiene encabezado y sección de parámetros, y además:
-   - **Validación estricta:** renderiza sin errores ni advertencias con
-     `--hardwarnings --check-parameters=true --check-parameter-ranges=true` (comandos en la
-     sección 5 de `.github/spec_kit_profile.md`).
-   - **Chequeo numérico:** la caja envolvente del `.stl` coincide con las medidas pedidas y
-     entra en la cama de la impresora. Lo que se puede calcular se calcula; no se juzga a ojo.
-   - **Revisión visual:** se generan capturas PNG (isométrica, frente, lateral y superior) y
-     el agente las mira para confirmar la forma, las proporciones y que no haya geometría de
-     más, de menos o flotando. Si el entorno no puede generar capturas, se deja constancia y
-     se pide al usuario que revise el modelo en OpenSCAD.
-2. **Simulación:** existe la guía de FreeCAD en `simulation/` o una justificación
-   explícita de que no aplica.
-3. **Exportación:** el `.stl` está en `exports/` y coincide con los parámetros actuales.
-4. **Documentación:** la guía en `docs/` contiene las secciones A y B completas, sin
-   marcadores de plantilla sin rellenar.
+1. **Diseño:** el `.scad` está en `src/` con encabezado y sección de parámetros, y además:
+   - `scripts/verificar_pieza.sh` pasa: validación estricta sin errores ni advertencias, caja
+     envolvente coincidente con las medidas pedidas, apoyo en Z = 0 y pieza dentro de la cama.
+     Lo que se puede calcular se calcula; no se juzga a ojo.
+   - Se generan capturas PNG (isométrica, frente, lateral y superior) y el agente las mira para
+     confirmar la forma, las proporciones y que no haya geometría de más, de menos o flotando. Si
+     el entorno no puede generarlas, se deja constancia y se pide al usuario que revise el modelo.
+   - En diseños de varias piezas, el ensamblaje pasa sus comprobaciones de choque.
+2. **Simulación:** existe la documentación en `simulation/` o una justificación explícita de que no
+   aplica.
+3. **Exportación:** hay un `.stl` por pieza en `exports/` y coincide con los parámetros actuales.
+4. **Documentación:** la guía en `docs/` contiene las secciones A y B completas, sin marcadores de
+   plantilla, y su lista de materiales sale de `docs/<diseño>_bom.csv`.
+5. **Web de armado:** `scripts/generar_web.py --comprobar` termina sin errores (también para el
+   visor 3D, si el diseño tiene ensamblaje), los precios cargados tienen fuente y fecha, las vistas
+   explotadas se revisaron una por una y la página y el visor se revisaron en un navegador.
 
-La sección "Constitution Check" de cada `plan.md` DEBE verificar los cinco principios y
-estas cuatro puertas.
+La sección "Constitution Check" de cada `plan.md` DEBE verificar los cinco principios y estas
+cinco puertas.
 
 ## Gobernanza
 
 - Esta constitución prevalece sobre cualquier otra práctica del repositorio. Las
   especificaciones, planes y tareas que la contradigan DEBEN corregirse.
-- En este documento, **DEBE** equivale a *MUST* y **DEBERÍA** a *SHOULD* para las
-  herramientas de Spec Kit (`/speckit-analyze`, `/speckit-converge`).
-- Las enmiendas se realizan con `/speckit-constitution`, documentando el cambio y su
-  motivo en el Informe de Impacto de Sincronización.
-- Versionado semántico: MAYOR para eliminar o redefinir principios; MENOR para añadir
-  principios o secciones; PARCHE para aclaraciones y redacción.
+- En este documento, **DEBE** equivale a *MUST* y **DEBERÍA** a *SHOULD* para las herramientas de
+  Spec Kit (`/speckit-analyze`, `/speckit-converge`).
+- **Organización de las instrucciones**: cada regla DEBE estar en un solo lugar, elegido según
+  cuándo la necesita el agente; los demás documentos la enlazan.
+
+  | Cuándo se necesita | Dónde va |
+  |---|---|
+  | Siempre, en cada mensaje | `CLAUDE.md` (mapa del proyecto y avisos de entorno) |
+  | Al planificar una feature | Esta constitución (reglas verificables, sin comandos ni plantillas) |
+  | En una fase concreta | Una skill en `.claude/skills/<nombre>/`, con sus plantillas como archivos |
+  | Se puede comprobar con código | Un script de `scripts/` o un hook de `.claude/settings.json` |
+  | Es un dato del proyecto | Un archivo real (`src/perfil_impresora.scad`, `docs/<diseño>_bom.csv`) |
+
+- Las skills `speckit-*` las genera Spec Kit y NO DEBEN editarse a mano.
+- Las enmiendas se realizan con `/speckit-constitution`, documentando el cambio y su motivo en el
+  Informe de Impacto de Sincronización.
+- Versionado semántico: MAYOR para eliminar o redefinir principios; MENOR para añadir principios o
+  secciones; PARCHE para aclaraciones y redacción.
 - Toda revisión de un diseño DEBE verificar el cumplimiento de esta constitución. Cualquier
   complejidad adicional DEBE justificarse en el plan.
 
-**Versión**: 1.1.0 | **Ratificada**: 2026-10-04 | **Última enmienda**: 2026-10-04
+**Versión**: 2.1.0 | **Ratificada**: 2026-10-04 | **Última enmienda**: 2026-10-08

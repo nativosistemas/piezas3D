@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caja con tapa a presión para 4 pilas AA</title>
+<style>
+:root {
+  --fondo: #f6f5f1; --superficie: #ffffff; --texto: #1d1f21; --suave: #5b6168; --borde: #dcdad3;
+  --acento: #1f6f5c; --acento-suave: #e3f0ec; --aviso: #8a5a00; --aviso-fondo: #fff4dc;
+  --codigo: #f0eee8; --sombra: 0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fondo: #15171a; --superficie: #1d2024; --texto: #e7e6e2; --suave: #a3a8ae; --borde: #33373d;
+    --acento: #5cc4a6; --acento-suave: #1d3330; --aviso: #f0c46a; --aviso-fondo: #33291a;
+    --codigo: #24272c; --sombra: none;
+  }
+}
+:root[data-theme="dark"] {
+  --fondo: #15171a; --superficie: #1d2024; --texto: #e7e6e2; --suave: #a3a8ae; --borde: #33373d;
+  --acento: #5cc4a6; --acento-suave: #1d3330; --aviso: #f0c46a; --aviso-fondo: #33291a;
+  --codigo: #24272c; --sombra: none;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--fondo); color: var(--texto);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main, header .contenido, nav .contenido, footer { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+header { background: var(--superficie); border-bottom: 1px solid var(--borde); padding: 32px 0 24px; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.4rem); line-height: 1.15; margin: 0 0 12px; }
+.bajada { color: var(--suave); max-width: 70ch; margin: 0 0 20px; }
+img { max-width: 100%; height: auto; }
+img.principal { display: block; width: 100%; max-height: 420px; object-fit: contain;
+  background: var(--codigo); border-radius: 12px; }
+.datos { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 20px 0 0; }
+.datos li { background: var(--acento-suave); border-radius: 999px; padding: 4px 14px; font-size: .92rem; }
+nav { position: sticky; top: 0; z-index: 2; background: var(--fondo); border-bottom: 1px solid var(--borde); }
+nav .contenido { display: flex; gap: 6px 16px; flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px;
+  font-size: .9rem; }
+nav a { color: var(--suave); text-decoration: none; white-space: nowrap; }
+nav a:hover { color: var(--acento); }
+section { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px;
+  box-shadow: var(--sombra); padding: 8px 24px 24px; margin: 24px 0; }
+h2 { font-size: 1.5rem; margin: 20px 0 12px; scroll-margin-top: 64px; }
+h3 { font-size: 1.15rem; margin: 24px 0 8px; scroll-margin-top: 64px; }
+a { color: var(--acento); }
+code { background: var(--codigo); border-radius: 4px; padding: 1px 5px; font-size: .88em; }
+pre { background: var(--codigo); border-radius: 8px; padding: 12px 14px; overflow-x: auto; font-size: .82rem;
+  line-height: 1.35; }
+pre code { background: none; padding: 0; }
+blockquote { margin: 16px 0; padding: 4px 16px; background: var(--aviso-fondo);
+  border-left: 4px solid var(--aviso); border-radius: 0 8px 8px 0; }
+.tabla { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--borde); }
+thead th { font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: var(--suave); }
+td img { width: 140px; display: block; margin-bottom: 4px; }
+td small { display: block; color: var(--suave); font-size: .82rem; margin-top: 2px; }
+td.num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+tr.categoria th { background: var(--acento-suave); color: var(--texto); text-transform: none;
+  letter-spacing: 0; font-size: .95rem; }
+.etiqueta { font-size: .72rem; border: 1px solid var(--borde); border-radius: 999px; padding: 0 7px;
+  color: var(--suave); }
+.falta { color: var(--aviso); font-weight: 600; }
+.precio { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+.tarjeta { display: flex; flex-direction: column; border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; }
+.tarjeta.destacada { border-color: var(--acento); background: var(--acento-suave); }
+.rotulo { font-size: .85rem; color: var(--suave); }
+.importe { font-size: 1.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.importe-usd { font-weight: 600; color: var(--suave); }
+.detalle { font-size: .82rem; color: var(--suave); margin-top: 4px; }
+.aviso { background: var(--aviso-fondo); border-radius: 10px; padding: 4px 16px 12px; }
+.fuente { font-size: .85rem; color: var(--suave); }
+ol.pasos, ol.primeros { list-style: none; counter-reset: paso; padding: 0; }
+ol.pasos > li, ol.primeros > li { counter-increment: paso; position: relative; border: 1px solid var(--borde);
+  border-radius: 10px; padding: 12px 16px 12px 56px; margin: 10px 0; }
+ol.pasos > li::before, ol.primeros > li::before { content: counter(paso); position: absolute; left: 14px; top: 12px;
+  width: 30px; height: 30px; border-radius: 50%; background: var(--acento); color: var(--superficie);
+  display: grid; place-items: center; font-weight: 700; font-size: .9rem; }
+ol.pasos > li.hecho { opacity: .55; }
+ol.pasos label.marca { float: right; margin-left: 12px; font-size: .82rem; color: var(--suave); cursor: pointer; }
+.progreso { font-weight: 600; color: var(--acento); }
+.leyenda { font-size: .9rem; color: var(--suave); border-left: 4px solid #e8512c; padding-left: 12px; }
+figure.vista-paso { margin: 12px 0 0; }
+a.ver-3d { display: inline-block; margin-top: 6px; font-size: .9rem; }
+a.boton-3d { display: inline-block; background: var(--acento); color: var(--superficie); border-radius: 8px;
+  padding: 8px 14px; font-weight: 600; text-decoration: none; }
+figure.vista-paso img { display: block; width: 100%; max-width: 560px; border-radius: 8px;
+  border: 1px solid var(--borde); background: #f8f8f8; }
+ul.consejos { list-style: none; padding: 0; display: grid; gap: 10px; }
+ul.consejos li { border-left: 4px solid var(--acento); background: var(--acento-suave); border-radius: 0 8px 8px 0;
+  padding: 10px 14px; }
+details.ficha > summary { cursor: pointer; font-weight: 600; padding: 12px 0; }
+footer { color: var(--suave); font-size: .82rem; padding-top: 8px; padding-bottom: 40px; }
+@media (max-width: 600px) {
+  section { padding: 4px 14px 16px; border-radius: 10px; }
+  ol.pasos > li, ol.primeros > li { padding-left: 48px; }
+  ol.pasos > li::before, ol.primeros > li::before { left: 10px; }
+}
+@media print { nav, label.marca { display: none; } section { break-inside: auto; box-shadow: none; } }
+</style>
+</head>
+<body>
+<header><div class="contenido">
+  <h1>Caja con tapa a presión para 4 pilas AA</h1>
+  <p class="bajada">Estuche de bolsillo para llevar 4 pilas AA de repuesto sin que se mezclen ni se toquen entre sí. Son dos piezas impresas, sin tornillos ni imanes: una caja con un alojamiento por pila y una tapa que encastra a presión con dos pestañas flexibles. Cerrada mide 67,2 × 54,9 × 26,9 mm. Se cierra con el pulgar y se abre con la uña desde la muesca del borde.</p>
+  <img class="principal" src="../../../docs/img/caja_pilas.png" alt="Caja con las 4 pilas y la tapa (transparente) en su lugar">
+  <ul class="datos"><li><strong>2</strong> archivos STL</li><li><strong>≈ 40 g</strong> de filamento</li><li><strong>1</strong> componentes para comprar</li><li><strong>$ 21.100</strong> + 0 sin precio</li></ul>
+</div></header>
+<nav aria-label="Índice"><div class="contenido"><a href="#componentes">Lo que necesitás</a><a href="#primeros-pasos">Primeros pasos</a><a href="#1-especificaciones-de-impresion-3d">Especificaciones de Impresión 3D</a><a href="#2-ensamblaje-y-lista-de-materiales-bom">Ensamblaje y Lista de Materiales (BOM)</a><a href="#3-puesta-a-punto">Puesta a punto</a><a href="#4-adaptacion-a-tus-componentes">Adaptación a tus componentes</a><a href="#5-seguridad">Seguridad</a><a href="#6-consejos-y-buenas-practicas">Consejos y buenas prácticas</a></div></nav>
+<main>
+<section id="componentes">
+  <h2>Lo que necesitás y cuánto cuesta</h2>
+  
+<div class="precio">
+  <div class="tarjeta destacada">
+    <span class="rotulo">Componentes con precio verificado</span>
+    <span class="importe">$ 21.100</span>
+    <span class="importe-usd">US$ 13,70</span>
+    <span class="detalle">Comprando paquetes completos (1 de 1 componentes)</span>
+  </div>
+  <div class="tarjeta">
+    <span class="rotulo">Solo lo que se usa</span>
+    <span class="importe">$ 844</span>
+    <span class="importe-usd">US$ 0,55</span>
+    <span class="detalle">Si ya tenés el rollo y el resto de los paquetes</span>
+  </div>
+</div><p class="fuente">Todos los componentes tienen precio verificado.</p>
+<p class="fuente">Precios de tiendas argentinas, verificados entre 2026-10-06 y 2026-10-06.
+Tipo de cambio: US$ 1 = $ 1.540 (Dólar oficial (venta),
+<a href="https://dolarapi.com/v1/dolares/oficial" rel="noopener" target="_blank">DolarApi</a>,
+2026-10-05). Los precios cambian: confirmalos antes de comprar.</p><div class="tabla"><table class="componentes"><thead><tr><th>Cant.</th><th>Componente</th><th>Precio y fuente</th><th>Subtotal</th></tr></thead><tbody><tr class="categoria"><th colspan="5">Filamento</th></tr><tr><td class="num">40 g</td><td>filamento PETG de 1,75 mm (caja ≈ 25 g y tapa ≈ 12 g)<small>Rollo de 1 kg. La página no confirma el stock. 40 g es la estimación por volumen de los STL: el laminador da el valor exacto</small></td><td>$ 21.100 cada 1000 g<small><a href="https://printalot.com.ar/productos/filamentos/pet-g/petg-1-75-mm-1-kg/" rel="noopener" target="_blank">Printalot</a>, 2026-10-06</small></td><td class="num">$ 21.100<small>US$ 13,70</small></td></tr></tbody></table></div>
+</section>
+<section><h2 id="primeros-pasos">Primeros pasos</h2>
+<ol class="primeros"><li><strong>Imprimir la tapa</strong> (sección 1): es la pieza chica y la que lleva las pestañas.</li><li><strong>Imprimir la caja</strong> (sección 1).</li><li><strong>Probar el encastre</strong> sin pilas: cerrar y abrir la tapa un par de veces (sección 3).</li><li><strong>Cargar las pilas y cerrar</strong> siguiendo los pasos de la sección 2.</li></ol>
+</section><section><h2 id="1-especificaciones-de-impresion-3d">1. Especificaciones de Impresión 3D</h2>
+<div class="tabla"><table><thead><tr><th>Pieza</th><th>STL</th><th>Cant.</th><th>Orientación (cara sobre la cama)</th><th>Relleno</th><th>Perímetros</th><th>Soportes</th><th>Adherencia</th></tr></thead><tbody><tr><td>Caja</td><td><code>caja_pilas_caja.stl</code></td><td>1</td><td>Base (abertura hacia arriba), tal como viene el STL</td><td>20 % rejilla</td><td>3</td><td>No</td><td>Ninguna</td></tr><tr><td>Tapa</td><td><code>caja_pilas_tapa.stl</code></td><td>1</td><td>Cara exterior (pollera hacia arriba), tal como viene el STL</td><td>20 % rejilla</td><td>3</td><td>No</td><td>Ninguna</td></tr></tbody></table></div>
+<p><strong>Configuración común del laminador</strong>: capa de 0,2 mm, ancho de línea de 0,4–0,45 mm, 4 capas superiores y 4 inferiores. Con 2 mm de pared y 1,2 mm de pollera las piezas salen prácticamente macizas: el relleno solo afecta a una parte mínima. No hace falta borde (<em>brim</em>): los bordes de las dos caras sobre la cama tienen un chaflán de 0,6 mm que absorbe la "pata de elefante".</p>
+<p><strong>Material recomendado</strong>: <strong>PETG</strong> (boquilla 230–245 °C, cama 70–80 °C). Las pestañas se doblan 1,38 % al cerrar, por debajo del 1,5 % que el PETG admite en uso repetido. El <strong>PLA</strong> es más rígido y admite ≈ 1 %: si se imprime en PLA, bajar <code>saliente_reborde</code> a 0,35 mm antes de exportar (sección 4).</p>
+</section><section><h2 id="2-ensamblaje-y-lista-de-materiales-bom">2. Ensamblaje y Lista de Materiales (BOM)</h2>
+<h3 id="herrajes-tornilleria-requerida">Herrajes / Tornillería Requerida</h3>
+<p>La lista completa, con precios y dónde comprar, está en <a href="#componentes">Lo que necesitás y cuánto cuesta</a>.</p>
+<p>No lleva tornillería ni componentes comprados: las 4 pilas AA son lo que se guarda.</p>
+<h3 id="herramientas">Herramientas</h3>
+<ul><li>Ninguna. Si en las ranuras de las pestañas queda un hilo de plástico, cortarlo con un cúter.</li></ul>
+<h3 id="instrucciones-paso-a-paso">Instrucciones Paso a Paso</h3>
+<p class="leyenda">En cada imagen, las piezas de ese paso van en color y la flecha naranja muestra hacia dónde se mueven para colocarlas. Lo que ya está armado se ve transparente.</p><p><a class="boton-3d" href="armado_3d.html">Ver el armado en 3D</a> <span class="fuente">Las piezas se mueven hasta su lugar y se puede girar la vista.</span></p><ol class="pasos"><li><strong>Colocar las pilas.</strong> Apoyar la caja con la abertura hacia arriba y bajar una pila AA en cada alojamiento, acostada y desde arriba. Entran por su peso; si una no entra, ver la sección 3.<figure class="vista-paso"><a href="../../../docs/img/caja_pilas_paso_01.png" target="_blank"><img src="../../../docs/img/caja_pilas_paso_01.png" alt="Paso 1: cómo se colocan las piezas" loading="lazy"></a></figure><a class="ver-3d" href="armado_3d.html#paso-1">Ver en 3D</a></li><li><strong>Cerrar la tapa.</strong> Apoyar la tapa con la pollera hacia abajo sobre la boca de la caja (entra en cualquiera de sus dos orientaciones) y empujarla desde arriba con el pulgar, en el centro, hasta sentir el "clic" de las dos pestañas. La tapa queda al ras del borde.<figure class="vista-paso"><a href="../../../docs/img/caja_pilas_paso_02.png" target="_blank"><img src="../../../docs/img/caja_pilas_paso_02.png" alt="Paso 2: cómo se colocan las piezas" loading="lazy"></a></figure><a class="ver-3d" href="armado_3d.html#paso-2">Ver en 3D</a></li><li><strong>Abrir la caja.</strong> Meter la uña en la muesca de la pared corta, debajo del borde de la tapa, y levantar. Para vaciarla, dar vuelta la caja abierta sobre la mano: las pilas caen solas.</li></ol>
+</section><section><h2 id="3-puesta-a-punto">3. Puesta a punto</h2>
+<p>Probar el encastre con la caja vacía, cerrando y abriendo la tapa.</p>
+<div class="tabla"><table><thead><tr><th>Síntoma</th><th>Causa probable</th><th>Qué hacer</th></tr></thead><tbody><tr><td>La tapa cierra muy dura o una pestaña se marca de blanco</td><td>Reborde demasiado alto para esta impresora o material más rígido</td><td>Bajar <code>saliente_reborde</code> en 0,05 mm y regenerar <strong>los dos</strong> STL</td></tr><tr><td>La tapa no hace "clic" o se abre sola al sacudir</td><td>Reborde bajo o impresora que "adelgaza" las piezas</td><td>Subir <code>saliente_reborde</code> en 0,05 mm (hasta 0,55 mm en PETG) y regenerar los dos STL</td></tr><tr><td>La pollera no entra o roza todo el contorno</td><td>La impresora "engorda" las piezas</td><td>Medir la impresora con el peine de calibración y cargar los valores en <code>src/perfil_impresora.scad</code> (skill <code>pieza-openscad</code>, <code>calibracion.md</code>)</td></tr><tr><td>Una pila no entra en su alojamiento</td><td>Pila fuera de norma o caja que "engorda"</td><td>Medir la pila y subir <code>diametro_pila</code> o <code>largo_pila</code></td></tr></tbody></table></div>
+<p><code>saliente_reborde</code> cambia el reborde de la tapa <strong>y</strong> la ranura de la caja, por eso hay que reimprimir las dos piezas. El generador rechaza los valores que harían doblar la pestaña más de 1,5 %.</p>
+<p><strong>Prueba de aceptación</strong>: con las 4 pilas y la tapa cerrada, sacudir la caja con fuerza: la tapa no se abre y ninguna pila pasa al alojamiento de al lado.</p>
+</section><section><h2 id="4-adaptacion-a-tus-componentes">4. Adaptación a tus componentes</h2>
+<p>Editar <code>src/caja_pilas_parametros.scad</code> (o usar el Customizer de OpenSCAD) y regenerar <strong>los dos</strong> STL con los mismos valores:</p>
+<pre><code>.tools/bin/openscad -o exports/caja_pilas_caja.stl src/caja_pilas_caja.scad</code></pre>
+<pre><code>.tools/bin/openscad -o exports/caja_pilas_tapa.stl src/caja_pilas_tapa.scad</code></pre>
+<div class="tabla"><table><thead><tr><th>Parámetro</th><th>Por defecto</th><th>Rango</th><th>Para qué</th></tr></thead><tbody><tr><td><code>cantidad_pilas</code></td><td>4</td><td>1 – 10</td><td>Otra cantidad de pilas en la fila (6 pilas: 99,4 mm de largo)</td></tr><tr><td><code>diametro_pila</code>, <code>largo_pila</code></td><td>14,5 / 50,5 mm</td><td>8 – 20 / 30 – 70 mm</td><td>Otro tamaño: AAA = 10,5 / 44,5 mm</td></tr><tr><td><code>espesor_pared</code>, <code>espesor_piso</code></td><td>2,0 / 2,0 mm</td><td>1,6 – 4 / 1,2 – 4 mm</td><td>Una caja más robusta</td></tr><tr><td><code>saliente_reborde</code></td><td>0,5 mm</td><td>0,3 – 0,8 mm</td><td>Dureza del encastre (sección 3)</td></tr><tr><td><code>alto_tabique</code></td><td>10 mm</td><td>4 – 20 mm</td><td>Tiene que superar el juego vertical de la pila (8,4 mm por defecto)</td></tr></tbody></table></div>
+<p>Si una combinación es imposible, OpenSCAD se detiene con un mensaje que nombra el parámetro y su límite: pared demasiado fina para la ranura, pestaña que se doblaría de más, tabique que la pila podría saltar o caja que no entra en la cama.</p>
+</section><section><h2 id="5-seguridad">5. Seguridad</h2>
+<p>Los tabiques separan las pilas, así que sus bornes no se tocan entre sí. La caja no es estanca: no guardar pilas hinchadas, golpeadas o con pérdidas.</p>
+</section><section><h2 id="6-consejos-y-buenas-practicas">6. Consejos y buenas prácticas</h2>
+<ul class="consejos"><li><strong>Imprimir en PETG.</strong> Las pestañas trabajan cerca del límite del PLA; en PLA, bajar <code>saliente_reborde</code> a 0,35 mm (sección 1).</li><li><strong>Imprimir la tapa primero y probar el encastre vacío.</strong> Así se ajusta <code>saliente_reborde</code> antes de cargar pilas (Primeros pasos y sección 3).</li><li><strong>Regenerar siempre las dos piezas juntas.</strong> La ranura de la caja y el reborde de la tapa salen del mismo parámetro (secciones 3 y 4).</li><li><strong>Cerrar empujando en el centro de la tapa.</strong> Las dos pestañas están en el centro de los lados largos y enganchan a la vez (sección 2, paso 2).</li><li><strong>Vaciar dando vuelta la caja.</strong> Es más rápido que sacar las pilas de a una (sección 2, paso 3).</li></ul></section>
+<section>
+  <details class="ficha"><summary>Ficha técnica del diseño</summary><blockquote><p>⚠️ <strong>Holguras por defecto, no medidas.</strong> El encastre usa valores genéricos para FDM con boquilla de 0,4 mm (<code>perfil_medido = false</code> en <code>src/perfil_impresora.scad</code>). Si la tapa sale dura o floja, ajustar como indica la sección 3.</p></blockquote>
+<div class="tabla"><table><thead><tr><th>Archivo</th><th>Uso</th></tr></thead><tbody><tr><td><code>exports/caja_pilas_caja.stl</code> y <code>exports/caja_pilas_tapa.stl</code></td><td>Piezas listas para el laminador (valores por defecto)</td></tr><tr><td><code>src/caja_pilas_parametros.scad</code></td><td>Medidas compartidas: el único archivo que hay que editar para adaptar el diseño (sección 4)</td></tr><tr><td><code>src/caja_pilas_caja.scad</code> y <code>src/caja_pilas_tapa.scad</code></td><td>Una pieza por archivo</td></tr><tr><td><code>src/caja_pilas_ensamblaje.scad</code></td><td>Vista del conjunto con comprobaciones del encastre (no se imprime)</td></tr></tbody></table></div></details>
+</section>
+</main>
+<footer>Página generada con <code>scripts/generar_web.py</code> a partir de <code>docs/caja_pilas_guia.md</code> y
+<code>docs/caja_pilas_bom.csv</code>. Para cambiarla, editar esos archivos y volver a generarla.</footer>
+<script>
+(function () {
+  var clave = "pasos-caja_pilas", hechos = {};
+  try { hechos = JSON.parse(localStorage.getItem(clave) || "{}"); } catch (e) {}
+  var lista = document.querySelector("ol.pasos");
+  if (!lista) return;
+  var items = lista.querySelectorAll(":scope > li");
+  var progreso = document.createElement("p");
+  progreso.className = "progreso";
+  lista.parentNode.insertBefore(progreso, lista);
+  function actualizar() {
+    var n = 0;
+    items.forEach(function (li, i) { if (hechos[i]) n++; li.classList.toggle("hecho", !!hechos[i]); });
+    progreso.textContent = n + " de " + items.length + " pasos hechos";
+  }
+  items.forEach(function (li, i) {
+    var label = document.createElement("label"), caja = document.createElement("input");
+    label.className = "marca";
+    caja.type = "checkbox";
+    caja.checked = !!hechos[i];
+    caja.addEventListener("change", function () {
+      hechos[i] = caja.checked;
+      try { localStorage.setItem(clave, JSON.stringify(hechos)); } catch (e) {}
+      actualizar();
+    });
+    label.appendChild(caja);
+    label.appendChild(document.createTextNode(" hecho"));
+    li.insertBefore(label, li.firstChild);
+  });
+  actualizar();
+})();
+</script>
+</body>
+</html>

@@ -3,8 +3,10 @@
 // Componente: Ensamblaje (solo revisión, NO se exporta)
 // Descripción: Coloca todas las piezas en su posición del conjunto, dibuja los componentes
 //              comprados como volúmenes simplificados (motores, poleas 20T, correas, 608ZZ, pernos,
-//              placas, power bank y láser) y comprueba con asserts los choques y alineaciones que
-//              no se pueden ver en una pieza sola (V-07, V-09 y separaciones entre piezas).
+//              tornillería, placas, power bank y láser) y comprueba con asserts los choques y
+//              alineaciones que no se pueden ver en una pieza sola (V-07, V-09 y separaciones entre
+//              piezas). Las vistas explotadas y los datos del visor 3D salen de la tabla de pasos con la
+//              biblioteca común armado_comun.scad.
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
@@ -17,11 +19,16 @@ use <puntero_laser_polea_altitud.scad>
 use <puntero_laser_carro_motor.scad>
 use <puntero_laser_separador_azimut.scad>
 use <puntero_laser_tapa_electronica.scad>
+include <armado_comun.scad>
 
 // Ángulo de altura del láser en la vista previa
 angulo_altura = 45; // [-10:1:95]
 // Dibujar la tapa (transparente)
 ver_tapa = true;
+// Paso de armado de la guía (0 = conjunto completo; -1 = datos de los pasos con echo)
+paso_armado = 0; // [-1:1:18]
+// Dibujar solo este elemento, en su posición final y sin color (para exportar mallas al visor 3D)
+solo_elemento = "";
 
 /* [Hidden] */
 z_sup = z_plataforma_sup;
@@ -33,6 +40,79 @@ matriz_brazo_cable = [[0, 0, -1, -semiancho_interior_horquilla], [-1, 0, 0, 0], 
 // Carro y motor de altura: Z propio → +X, X propio → −Z (hacia el pie), Y → Y
 matriz_motor_alt = [[0, 0, 1, x_cara_int_carro_alt], [0, 1, 0, 0], [-1, 0, 0, z_eje_motor_alt], [0, 0, 0, 1]];
 matriz_polea20_alt = [[0, 0, -1, x_inicio_cubo20_alt], [0, 1, 0, 0], [1, 0, 0, z_eje_motor_alt], [0, 0, 0, 1]];
+
+// Tornillería M3 simplificada (cabeza cilíndrica)
+alto_cabeza_m3 = 3;
+espesor_oreja_motor = 1;   // las orejas del 28BYJ-48 se dibujan de 1 mm
+x_pie_brazo = semiancho_interior_horquilla + espesor_brazo/2;
+x_tapa_c = (x_tapa0 + x_tapa1)/2;
+y_orejas_tapa = [y_tapa0 - largo_oreja_tapa/2, y_tapa1 + largo_oreja_tapa/2];
+
+// Vista explotada: transparencia de lo ya armado, color y grosor de las flechas
+alfa_contexto = 0.22;
+color_flecha = "OrangeRed";
+diametro_flecha = 2.4;
+// Dirección del láser al entrar en la cuna (desde atrás, a lo largo de su eje)
+v_laser = [0, -cos(angulo_altura), -sin(angulo_altura)];
+// La polea y su perno se enroscan en la tuerca del muñón +X: dos vueltas alrededor del eje de altura
+// (solo el visor 3D muestra el giro)
+giro_enroscar = [[0, 0, z_eje_altura], [1, 0, 0], 720];
+
+// Pasos de armado de la guía (docs/puntero_laser_guia.md, sección 2): por cada paso, la lista de
+// [elemento, desplazamiento de la vista explotada, resaltar, origen (opcional), giro (opcional)]
+// (formato en armado_comun.scad). "resaltar = false" mueve o muestra un elemento sin destacarlo; el
+// origen es el desplazamiento de la pieza que lo recibe (una tuerca que entra de costado en un brazo
+// que baja). Un paso sin elementos (cableado, puesta a punto) no tiene vista.
+// Subconjuntos: la base, la horquilla (brazos + cuna + polea) y la plataforma se arman por separado.
+// La horquilla se atornilla a la plataforma (paso 8), la plataforma se monta sobre la base (paso 11) y
+// el carro del motor de altura, armado en el banco, va al brazo motor en el paso 13.
+grupo_base = ["base", "tuerca_tripode", "608_base_sup", "608_base_inf", "arandela_sup", "arandela_inf",
+              "separador", "perno_az", "autoblocante_az"];
+grupo_horquilla = ["brazo_motor", "brazo_cable", "608_brazo_motor", "608_brazo_cable", "cuna", "tuerca_munon",
+                   "perno_alt_motor", "perno_alt_cable", "arandela_cable", "autoblocante_cable", "polea_alt"];
+grupo_motor_alt = ["carro_alt", "motor_alt", "tornillos_orejas_alt"];
+paso_union_horquilla = 8;   // la horquilla armada se atornilla a la plataforma
+paso_union_base = 11;       // la plataforma se monta sobre la base
+paso_union_motor_alt = 13;  // el carro del motor de altura se monta en el brazo motor
+subconjunto_plataforma = concat(grupo_horquilla,
+                                ["plataforma", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_pie",
+                                 "carro_az", "motor_az", "tornillos_orejas_az", "tuercas_carro_az",
+                                 "tornillos_carro_az", "polea20_az"]);
+pasos = [
+    /* 1 */ [["base", [0, 0, 0], false], ["tuerca_tripode", [0, 0, 70], true]],
+    /* 2 */ [["608_base_sup", [0, 0, 60], true], ["608_base_inf", [0, -60, 0], true]],
+    /* 3 */ [["cuna", [0, 0, 0], false], ["perno_alt_cable", -130*v_laser, true]],
+    /* 4 */ [["brazo_motor", [0, 0, 0], true], ["brazo_cable", [0, 0, 0], true],
+             ["608_brazo_motor", [45, 0, 0], true], ["608_brazo_cable", [-45, 0, 0], true]],
+    /* 5 */ [["brazo_motor", [50, 0, 0], true], ["brazo_cable", [-50, 0, 0], true],
+             ["608_brazo_motor", [50, 0, 0], false], ["608_brazo_cable", [-50, 0, 0], false]],
+    /* 6 */ [["arandela_cable", [-30, 0, 0], true], ["autoblocante_cable", [-50, 0, 0], true]],
+    /* 7 */ [["tuerca_munon", -130*v_laser, true],
+             ["polea_alt", [45, 0, 0], true, undef, giro_enroscar],
+             ["perno_alt_motor", [45, 0, 0], true, undef, giro_enroscar]],
+    /* 8 */ concat([["plataforma", [0, 0, 0], false]],
+                   [for (e = grupo_horquilla) [e, [0, 0, 50], e == "brazo_motor" || e == "brazo_cable"]],
+                   [["tuercas_pie_motor", [35, 0, 50], true, [0, 0, 50]],
+                    ["tuercas_pie_cable", [-35, 0, 50], true, [0, 0, 50]], ["tornillos_pie", [0, 0, -35], true]]),
+    /* 9 */ [["carro_az", [0, 0, 0], true], ["carro_alt", [0, 0, 0], true],
+             ["motor_az", [0, 0, 40], true], ["tornillos_orejas_az", [0, 0, 70], true],
+             ["motor_alt", [-30, 0, 0], true], ["tornillos_orejas_alt", [-55, 0, 0], true]],
+    /* 10 */ [["tuercas_carro_az", [0, 0, -30], true], ["carro_az", [0, 0, 35], true], ["motor_az", [0, 0, 35], true],
+              ["tornillos_orejas_az", [0, 0, 35], false], ["tornillos_carro_az", [0, 0, 65], true],
+              ["polea20_az", [0, 0, -45], true]],
+    /* 11 */ concat([for (e = subconjunto_plataforma) [e, [0, 0, 110], false]],
+                    [["arandela_sup", [0, 0, 45], true], ["perno_az", [0, 0, 150], true],
+                     ["separador", [0, -60, 0], true], ["arandela_inf", [0, -80, 0], true],
+                     ["autoblocante_az", [0, -100, 0], true]]),
+    /* 12 */ [["correa_az", [0, 0, -30], true]],
+    /* 13 */ [["carro_alt", [45, 0, 0], true], ["motor_alt", [45, 0, 0], true], ["tornillos_orejas_alt", [45, 0, 0], false],
+              ["tornillos_carro_alt", [80, 0, 0], true], ["polea20_alt", [65, 0, 0], true], ["correa_alt", [25, 0, 0], true]],
+    /* 14 */ [["laser", 150*v_laser, true]],
+    /* 15 */ [["placas", [0, 0, 70], true], ["powerbank", [0, 0, 100], true]],
+    /* 16 */ [],
+    /* 17 */ [["tapa", [0, 0, 50], true], ["tornillos_tapa", [0, 0, 80], true], ["tuercas_tapa", [0, 0, -30], true]],
+    /* 18 */ []
+];
 
 // --- COMPROBACIONES DEL CONJUNTO ---
 // V-09: planos de correa alineados
@@ -61,30 +141,188 @@ assert(y_conducto + ancho_canal/2 + pared_canal + distancia_min_cable_correa
 assert(altura_max_canal < altura_libre_central, "altura_max_canal: el conducto invade la altura libre central");
 // La parte ancha del brazo del motor no se mete en la tapa
 assert(x_cara_ext_brazo < x_tapa0, "espesor_brazo: el brazo del motor se mete en la tapa");
+// Tabla de pasos: un paso por cada instrucción de la guía (los elementos los comprueba armado())
+assert(len(pasos) == 18, "pasos: la guía tiene 18 pasos de armado");
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
-ensamblaje_principal();
+armado();
 
 module ensamblaje_principal() {
-    // Piezas impresas
-    color("SlateGray") pieza_adaptador_tripode();
-    color("DarkSeaGreen") translate([0, 0, z_plataforma_inf]) pieza_plataforma_azimut();
-    color("SteelBlue") multmatrix(matriz_brazo_motor) pieza_brazo_horquilla("motor");
-    color("SteelBlue") multmatrix(matriz_brazo_cable) pieza_brazo_horquilla("cable");
-    color("Peru") laser_en(angulo_altura) cuna_en_conjunto();
-    color("Goldenrod") translate([x_ext_polea_alt, 0, z_eje_altura]) rotate([angulo_altura, 0, 0])
-        rotate([0, -90, 0]) pieza_polea_altitud();
-    color("Khaki") translate([0, distancia_centros, z_sup]) rotate([0, 0, 90]) pieza_carro_motor();
-    color("Khaki") multmatrix(matriz_motor_alt) pieza_carro_motor();
-    color("Wheat") separador_y_arandelas();
-    if (ver_tapa) %translate([0, 0, z_sup]) tapa_en_posicion();
-    // Componentes comprados
-    componentes_comprados();
-    color("LimeGreen") laser_en(angulo_altura) laser();
+    for (e = elementos) if (e != "tapa") color(color_elemento(e)) elemento(e);
+    if (ver_tapa) %elemento("tapa");
     %laser_en(-10) laser();
     %laser_en(95) laser();
 }
 
+// Subconjunto al que pertenece un elemento en el paso n
+function grupo(e, n) =
+    let (g = contiene(grupo_base, e) ? "base" : contiene(grupo_horquilla, e) ? "horquilla"
+             : contiene(grupo_motor_alt, e) ? "motor_alt" : "plataforma")
+    g == "motor_alt" ? (n >= paso_union_motor_alt ? "conjunto" : g)
+    : n >= paso_union_base ? "conjunto"
+    : n >= paso_union_horquilla && g == "horquilla" ? "plataforma" : g;
+
+// --- CATÁLOGO DE ELEMENTOS (posición final en el conjunto) ---
+elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_alt", "carro_az", "carro_alt",
+             "separador", "arandela_sup", "arandela_inf", "arandela_cable", "tapa",
+             "tuerca_tripode", "608_base_sup", "608_base_inf", "608_brazo_motor", "608_brazo_cable",
+             "perno_az", "autoblocante_az", "tuerca_munon", "perno_alt_motor", "perno_alt_cable",
+             "autoblocante_cable", "motor_az", "motor_alt", "polea20_az", "polea20_alt", "correa_az", "correa_alt",
+             "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
+             "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
+             "placas", "powerbank", "laser"];
+
+function color_elemento(e) =
+    e == "base" ? "SlateGray" : e == "plataforma" ? "DarkSeaGreen" :
+    e == "brazo_motor" || e == "brazo_cable" ? "SteelBlue" : e == "cuna" ? "Peru" :
+    e == "polea_alt" ? "Goldenrod" : e == "carro_az" || e == "carro_alt" ? "Khaki" :
+    e == "separador" || e == "arandela_sup" || e == "arandela_inf" || e == "arandela_cable" ? "Wheat" :
+    e == "tapa" ? "LightGray" : e == "motor_az" || e == "motor_alt" ? "Gold" :
+    e == "correa_az" || e == "correa_alt" ? "Black" : e == "placas" ? "ForestGreen" :
+    e == "powerbank" ? "DarkBlue" : e == "laser" ? "LimeGreen" :
+    e == "608_base_sup" || e == "608_base_inf" || e == "608_brazo_motor" || e == "608_brazo_cable"
+        || e == "polea20_az" || e == "polea20_alt" ? "Silver" : "DimGray";
+
+module elemento(e) {
+    // Piezas impresas
+    if (e == "base") pieza_adaptador_tripode();
+    if (e == "plataforma") translate([0, 0, z_plataforma_inf]) pieza_plataforma_azimut();
+    if (e == "brazo_motor") multmatrix(matriz_brazo_motor) pieza_brazo_horquilla("motor");
+    if (e == "brazo_cable") multmatrix(matriz_brazo_cable) pieza_brazo_horquilla("cable");
+    if (e == "cuna") laser_en(angulo_altura) cuna_en_conjunto();
+    if (e == "polea_alt") translate([x_ext_polea_alt, 0, z_eje_altura]) rotate([angulo_altura, 0, 0])
+        rotate([0, -90, 0]) pieza_polea_altitud();
+    if (e == "carro_az") translate([0, distancia_centros, z_sup]) rotate([0, 0, 90]) pieza_carro_motor();
+    if (e == "carro_alt") multmatrix(matriz_motor_alt) pieza_carro_motor();
+    if (e == "separador") translate([0, 0, z_resalte_inf]) cylinder(d = d_contacto_aro, h = largo_separador_azimut);
+    if (e == "arandela_sup") translate([0, 0, z_tope_base]) cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
+    if (e == "arandela_inf") translate([0, 0, z_camara_sup - alto_arandela_contacto])
+        cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
+    if (e == "arandela_cable") translate([-x_cara_ext_brazo - alto_arandela_contacto, 0, z_eje_altura])
+        rotate([0, 90, 0]) cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
+    if (e == "tapa") translate([0, 0, z_sup]) tapa_en_posicion();
+    // Rodamientos, pernos y tuercas M8, tuerca del trípode
+    if (e == "tuerca_tripode") translate([0, 0, piso_base]) tuerca(tuerca_3_8_ec, tuerca_3_8_alto);
+    if (e == "608_base_sup") translate([0, 0, z_resalte_sup]) rodamiento_608();
+    if (e == "608_base_inf") translate([0, 0, z_camara_sup]) rodamiento_608();
+    if (e == "608_brazo_motor") translate([x_cara_ext_brazo - rod608_ancho, 0, z_eje_altura]) rotate([0, 90, 0])
+        rodamiento_608();
+    if (e == "608_brazo_cable") translate([-(x_cara_ext_brazo - rod608_ancho), 0, z_eje_altura]) rotate([0, 90, 0])
+        translate([0, 0, -rod608_ancho]) rodamiento_608();
+    if (e == "perno_az") translate([0, 0, z_plataforma_inf + espesor_cubo_plataforma - 0.3 - m8_cabeza_alto]) {
+        tuerca(m8_cabeza_ec, m8_cabeza_alto);
+        translate([0, 0, -largo_perno_azimut]) cylinder(d = rod608_d_int, h = largo_perno_azimut);
+    }
+    if (e == "autoblocante_az") translate([0, 0, z_camara_sup - alto_arandela_contacto - m8_autoblocante_alto])
+        tuerca(m8_tuerca_ec, m8_autoblocante_alto);
+    // Lado motor: tuerca en el muñón +X y perno desde afuera, con la cabeza en el hexágono de la polea
+    if (e == "tuerca_munon") laser_en(angulo_altura) translate([diametro_interior_cuna/2, 0, 0]) rotate([0, 90, 0])
+        tuerca(m8_tuerca_ec, m8_tuerca_alto);
+    if (e == "perno_alt_motor") translate([0, 0, z_eje_altura]) rotate([0, 90, 0]) {
+        translate([0, 0, x_punta_perno_alt_motor]) cylinder(d = rod608_d_int, h = largo_perno_alt_motor);
+        translate([0, 0, x_punta_perno_alt_motor + largo_perno_alt_motor]) tuerca(m8_cabeza_ec, m8_cabeza_alto);
+    }
+    if (e == "perno_alt_cable") laser_en(angulo_altura) translate([-x_cabeza_m8_cuna, 0, 0]) {
+        rotate([0, -90, 0]) cylinder(d = rod608_d_int, h = largo_perno_alt_cable);
+        rotate([0, 90, 0]) tuerca(m8_cabeza_ec, m8_cabeza_alto);   // cabeza en el muñón −X
+    }
+    if (e == "autoblocante_cable") translate([-(x_cara_ext_brazo + alto_arandela_contacto), 0, z_eje_altura])
+        rotate([0, -90, 0]) tuerca(m8_tuerca_ec, m8_autoblocante_alto);
+    // Motores, poleas 20T y correas
+    if (e == "motor_az") translate([0, distancia_centros, z_sup + espesor_carro]) rotate([0, 0, 90]) rotate([180, 0, 0])
+        motor_28byj();
+    if (e == "motor_alt") multmatrix(matriz_motor_alt) motor_28byj();
+    if (e == "polea20_az") translate([0, distancia_centros, z_sup]) polea20();
+    if (e == "polea20_alt") multmatrix(matriz_polea20_alt) polea20();
+    if (e == "correa_az") translate([0, 0, z_dientes_polea20_az - ancho_correa/2]) linear_extrude(height = ancho_correa)
+        correa_2d();
+    if (e == "correa_alt") translate([plano_correa_altura - ancho_correa/2, 0, z_eje_altura]) rotate([0, 90, 0])
+        linear_extrude(height = ancho_correa) rotate([0, 0, -90]) correa_2d();
+    // Tornillería M3
+    if (e == "tornillos_pie") for (s = [-1, 1], t = [-1, 1])
+        translate([s*x_pie_brazo, t*separacion_tornillos_pie/2, z_plataforma_inf]) rotate([180, 0, 0])
+            tornillo_m3(12);
+    // Tuercas del pie: en la ranura de cada brazo, que se abre hacia su cara exterior
+    if (e == "tuercas_pie_motor" || e == "tuercas_pie_cable") let (s = e == "tuercas_pie_motor" ? 1 : -1)
+        for (t = [-1, 1])
+            translate([s*x_pie_brazo, t*separacion_tornillos_pie/2, z_sup + dist_tuerca_pie - m3_tuerca_alto/2])
+                tuerca(m3_tuerca_ec, m3_tuerca_alto);
+    if (e == "tornillos_carro_az") for (s = [-1, 1])
+        translate([s*ranura_carro_y, distancia_centros + ranura_carro_x, z_sup + espesor_carro]) tornillo_m3(10);
+    if (e == "tuercas_carro_az") for (s = [-1, 1])
+        translate([s*ranura_carro_y, distancia_centros + ranura_carro_x, z_plataforma_inf])
+            tuerca(m3_tuerca_ec, m3_tuerca_alto);
+    if (e == "tornillos_orejas_az") for (s = [-1, 1])
+        translate([s*motor_entre_orejas/2, distancia_centros + motor_desplazamiento_eje,
+                   z_sup + espesor_carro + espesor_oreja_motor]) tornillo_m3(8);
+    if (e == "tornillos_orejas_alt") multmatrix(matriz_motor_alt) for (s = [-1, 1])
+        translate([motor_desplazamiento_eje, s*motor_entre_orejas/2, -espesor_oreja_motor]) rotate([180, 0, 0])
+            tornillo_m3(8);
+    if (e == "tornillos_carro_alt") multmatrix(matriz_motor_alt) for (s = [-1, 1])
+        translate([ranura_carro_x, s*ranura_carro_y, espesor_carro]) tornillo_m3(12);
+    if (e == "tornillos_tapa") for (y = y_orejas_tapa)
+        translate([x_tapa_c, y, z_sup + espesor_oreja_tapa]) tornillo_m3(10);
+    if (e == "tuercas_tapa") for (y = y_orejas_tapa)
+        translate([x_tapa_c, y, z_plataforma_inf]) tuerca(m3_tuerca_ec, m3_tuerca_alto);
+    // Electrónica y láser
+    if (e == "placas") {
+        placa(x_col_a0, y_uln_alt0, uln2003_ancho, uln2003_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
+        placa(x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
+        placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, alto_modulo_esp32 + espesor_pcb);
+        placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
+    }
+    if (e == "powerbank")
+        translate([x_pb1 + pared_bolsillo + holgura_encastre, y_pb0 + pared_bolsillo + holgura_encastre, z_sup])
+            cube([powerbank_alto, powerbank_largo, powerbank_ancho]);
+    if (e == "laser") laser_en(angulo_altura) laser();
+}
+
+// Puntos de cada elemento donde se dibuja la flecha de la vista explotada
+function anclas(e) =
+    e == "base" || e == "tuerca_tripode" ? [[0, 0, piso_base + tuerca_3_8_alto/2]] :
+    e == "608_base_sup" ? [[0, 0, z_resalte_sup + rod608_ancho/2]] :
+    e == "608_base_inf" ? [[0, 0, z_camara_sup + rod608_ancho/2]] :
+    e == "tuerca_munon" ? [[diametro_interior_cuna/2 + m8_tuerca_alto/2, 0, z_eje_altura]] :
+    e == "perno_alt_motor" ? [[x_punta_perno_alt_motor, 0, z_eje_altura]] :
+    e == "perno_alt_cable" ? [[-x_cabeza_m8_cuna - largo_perno_alt_cable/2, 0, z_eje_altura]] :
+    e == "608_brazo_motor" ? [[x_cara_ext_brazo, 0, z_eje_altura]] :
+    e == "608_brazo_cable" ? [[-x_cara_ext_brazo, 0, z_eje_altura]] :
+    e == "brazo_motor" ? [[x_pie_brazo, 0, z_sup], [x_pie_brazo, 0, z_eje_altura]] :   // pie y eje
+    e == "brazo_cable" ? [[-x_pie_brazo, 0, z_sup], [-x_pie_brazo, 0, z_eje_altura]] :
+    e == "tornillos_pie" ? [for (s = [-1, 1]) [s*x_pie_brazo, 0, z_plataforma_inf - alto_cabeza_m3]] :
+    e == "tuercas_pie_motor" ? [[x_pie_brazo, 0, z_sup + dist_tuerca_pie]] :
+    e == "tuercas_pie_cable" ? [[-x_pie_brazo, 0, z_sup + dist_tuerca_pie]] :
+    e == "motor_az" || e == "carro_az" ? [[0, distancia_centros + motor_desplazamiento_eje, z_sup + espesor_carro]] :
+    e == "tornillos_orejas_az" ? [for (s = [-1, 1]) [s*motor_entre_orejas/2, distancia_centros + motor_desplazamiento_eje, z_sup + 10]] :
+    e == "motor_alt" || e == "carro_alt" ? [[x_cara_int_carro_alt, 0, z_eje_motor_alt - motor_desplazamiento_eje]] :
+    e == "tornillos_orejas_alt" ? [for (s = [-1, 1]) [x_cara_int_carro_alt - 10, s*motor_entre_orejas/2, z_eje_motor_alt - motor_desplazamiento_eje]] :
+    e == "tornillos_carro_az" ? [for (s = [-1, 1]) [s*ranura_carro_y, distancia_centros + ranura_carro_x, z_sup + 10]] :
+    e == "tuercas_carro_az" ? [for (s = [-1, 1]) [s*ranura_carro_y, distancia_centros + ranura_carro_x, z_plataforma_inf]] :
+    e == "tornillos_carro_alt" ? [for (s = [-1, 1]) [x_cara_int_carro_alt + espesor_carro, s*ranura_carro_y, z_eje_motor_alt - ranura_carro_x]] :
+    e == "polea20_az" ? [[0, distancia_centros, z_sup - polea20_alto_total]] :
+    e == "polea20_alt" ? [[x_inicio_cubo20_alt + polea20_alto_total, 0, z_eje_motor_alt]] :
+    e == "correa_az" ? [[0, distancia_centros/2, z_dientes_polea20_az]] :
+    e == "correa_alt" ? [[plano_correa_altura, 0, z_eje_altura - distancia_centros/2]] :
+    e == "arandela_sup" ? [[0, 0, z_tope_base]] :
+    e == "perno_az" ? [[0, 0, z_plataforma_inf + espesor_cubo_plataforma]] :
+    e == "separador" ? [[0, 0, z_resalte_inf]] :
+    e == "arandela_inf" || e == "autoblocante_az" ? [[0, 0, z_camara_sup - alto_arandela_contacto]] :
+    e == "cuna" ? [[0, 0, z_eje_altura]] :
+    e == "arandela_cable" || e == "autoblocante_cable" ? [[-(x_cara_ext_brazo + alto_arandela_contacto), 0, z_eje_altura]] :
+    e == "polea_alt" ? [[x_cara_ext_brazo, 0, z_eje_altura + d_exterior_conducida/3]] :   // sobre el perno
+    e == "laser" ? [[0, 0, z_eje_altura] + (l_trasero + 130)*v_laser] :   // detrás del láser, no dentro
+    e == "placas" ? let (m = pared_soporte + holgura_encastre)   // centro de cada placa, bajo su apoyo
+        [[x_col_a0 + m + uln2003_ancho/2, y_uln_alt0 + m + uln2003_largo/2, z_sup],
+         [x_col_a0 + m + uln2003_ancho/2, y_uln_az0 + m + uln2003_largo/2, z_sup],
+         [x_col_b0 + m + esp32_ancho/2, y_esp32_0 + m + esp32_largo/2, z_sup],
+         [x_col_b0 + m + rele_ancho/2, y_rele_0 + m + rele_largo/2, z_sup]] :
+    e == "powerbank" ? [[x_pb1 + pared_bolsillo + holgura_encastre + powerbank_alto/2, y_pb0 + powerbank_largo/2, z_sup]] :
+    e == "tapa" ? [[x_tapa_c, (y_tapa0 + y_tapa1)/2, z_sup + alto_tapa]] :
+    e == "tornillos_tapa" ? [for (y = y_orejas_tapa) [x_tapa_c, y, z_sup + 10]] :
+    e == "tuercas_tapa" ? [for (y = y_orejas_tapa) [x_tapa_c, y, z_plataforma_inf]] :
+    [[0, 0, 0]];
+
+// --- UTILIDADES ---
 // Gira un objeto definido en el sistema del láser (eje del láser sobre +Y, eje de altura en el origen)
 module laser_en(a) {
     translate([0, 0, z_eje_altura]) rotate([a, 0, 0]) children();
@@ -96,64 +334,6 @@ module laser() {
     rotate([-90, 0, 0]) translate([0, 0, -l_trasero]) cylinder(d = diametro_laser, h = largo_laser);
 }
 
-module separador_y_arandelas() {
-    translate([0, 0, z_resalte_inf]) cylinder(d = d_contacto_aro, h = largo_separador_azimut);
-    translate([0, 0, z_tope_base]) cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
-    translate([0, 0, z_camara_sup - alto_arandela_contacto]) cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
-    translate([-x_cara_ext_brazo - alto_arandela_contacto, 0, z_eje_altura]) rotate([0, 90, 0])
-        cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
-}
-
-module componentes_comprados() {
-    // 608ZZ
-    color("Silver") {
-        for (z = [z_camara_sup, z_resalte_sup]) translate([0, 0, z]) rodamiento_608();
-        for (s = [-1, 1])
-            translate([s*(x_cara_ext_brazo - rod608_ancho), 0, z_eje_altura]) rotate([0, 90, 0])
-                translate([0, 0, s < 0 ? -rod608_ancho : 0]) rodamiento_608();
-    }
-    // Pernos M8 y tuercas
-    color("DimGray") {
-        translate([0, 0, z_plataforma_inf + espesor_cubo_plataforma - 0.3 - m8_cabeza_alto]) {
-            cylinder(d = m8_cabeza_ec/cos(30), h = m8_cabeza_alto, $fn = 6);
-            translate([0, 0, -largo_perno_azimut]) cylinder(d = rod608_d_int, h = largo_perno_azimut);
-        }
-        translate([0, 0, z_camara_sup - alto_arandela_contacto - m8_autoblocante_alto])
-            cylinder(d = m8_tuerca_ec/cos(30), h = m8_autoblocante_alto, $fn = 6);
-        laser_en(angulo_altura) {
-            translate([x_cabeza_m8_cuna, 0, 0]) rotate([0, 90, 0]) cylinder(d = rod608_d_int, h = largo_perno_alt_motor);
-            translate([-x_cabeza_m8_cuna, 0, 0]) rotate([0, -90, 0]) cylinder(d = rod608_d_int, h = largo_perno_alt_cable);
-        }
-        translate([-(x_cara_ext_brazo + alto_arandela_contacto), 0, z_eje_altura]) rotate([0, -90, 0])
-            cylinder(d = m8_tuerca_ec/cos(30), h = m8_autoblocante_alto, $fn = 6);
-    }
-    // Motores 28BYJ-48
-    color("Gold") {
-        translate([0, distancia_centros, z_sup + espesor_carro]) rotate([0, 0, 90]) rotate([180, 0, 0]) motor_28byj();
-        multmatrix(matriz_motor_alt) motor_28byj();
-    }
-    // Poleas 20T
-    color("Silver") {
-        translate([0, distancia_centros, z_sup]) polea20();
-        multmatrix(matriz_polea20_alt) polea20();
-    }
-    // Correas
-    color("Black") {
-        translate([0, 0, z_dientes_polea20_az - ancho_correa/2]) linear_extrude(height = ancho_correa) correa_2d();
-        translate([plano_correa_altura - ancho_correa/2, 0, z_eje_altura]) rotate([0, 90, 0])
-            linear_extrude(height = ancho_correa) rotate([0, 0, -90]) correa_2d();
-    }
-    // Electrónica
-    color("DarkBlue") translate([x_pb1 + pared_bolsillo + holgura_encastre, y_pb0 + pared_bolsillo + holgura_encastre, z_sup])
-        cube([powerbank_alto, powerbank_largo, powerbank_ancho]);
-    color("ForestGreen") {
-        placa(x_col_a0, y_uln_alt0, uln2003_ancho, uln2003_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
-        placa(x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
-        placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, alto_modulo_esp32 + espesor_pcb);
-        placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
-    }
-}
-
 module rodamiento_608() {
     difference() {
         cylinder(d = rod608_d_ext, h = rod608_ancho);
@@ -161,13 +341,24 @@ module rodamiento_608() {
     }
 }
 
+// Tuerca o cabeza hexagonal: entre caras "ec", base en z = 0
+module tuerca(ec, alto) {
+    cylinder(d = ec/cos(30), h = alto, $fn = 6);
+}
+
+// Tornillo M3: cabeza sobre z = 0, vástago hacia −Z
+module tornillo_m3(largo) {
+    cylinder(d = m3_cabeza_d, h = alto_cabeza_m3, $fn = 20);
+    translate([0, 0, -largo]) cylinder(d = m3_d, h = largo, $fn = 16);
+}
+
 // Sistema del motor: eje sobre +Z desde la cara de las orejas (z = 0); cuerpo hacia −Z y +X.
 module motor_28byj() {
     translate([motor_desplazamiento_eje, 0, -motor_alto_cuerpo]) cylinder(d = motor_d_cuerpo, h = motor_alto_cuerpo);
     translate([motor_desplazamiento_eje + motor_d_cuerpo/2 - 2, -motor_tapa_ancho/2, -motor_alto_cuerpo])
         cube([motor_tapa_saliente + 2, motor_tapa_ancho, motor_alto_cuerpo]);
-    translate([motor_desplazamiento_eje, 0, -1]) hull()
-        for (s = [-1, 1]) translate([0, s*motor_entre_orejas/2, 0]) cylinder(d = motor_d_oreja, h = 1);
+    translate([motor_desplazamiento_eje, 0, -espesor_oreja_motor]) hull()
+        for (s = [-1, 1]) translate([0, s*motor_entre_orejas/2, 0]) cylinder(d = motor_d_oreja, h = espesor_oreja_motor);
     cylinder(d = motor_d_resalte, h = motor_alto_resalte);
     cylinder(d = motor_d_eje, h = motor_largo_eje);
 }
