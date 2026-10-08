@@ -102,9 +102,16 @@ Además:
   parcial. Ningún precio DEBE estimarse ni inventarse.
 - En los diseños de varias piezas, cada paso de armado que agrega piezas DEBE tener su vista
   explotada, generada desde el ensamblaje.
+- Cada diseño de varias piezas con ensamblaje DEBE tener un **visor 3D de armado** en
+  `specs/<NNN-nombre>/web/armado_3d.html`, generado desde su ensamblaje y su guía (no a mano), que
+  muestre cómo se coloca cada pieza en cada paso y funcione sin internet ni servidor. Las vistas
+  explotadas en PNG se mantienen: la guía impresa las necesita.
 
 **Justificación:** cualquier persona debe poder imprimir, comprar y montar la pieza sin
-conocimiento previo del diseño. Un precio sin fuente engaña más que un precio que falta.
+conocimiento previo del diseño. Un precio sin fuente engaña más que un precio que falta. El visor
+3D muestra el recorrido de cada pieza y deja mirar desde cualquier lado, lo que resuelve dudas de
+armado que una captura fija no resuelve; como sale del mismo ensamblaje, no agrega trabajo por
+diseño.
 
 ## Estructura del Repositorio y Formatos
 
@@ -122,7 +129,7 @@ Los artefactos del diseño DEBEN ubicarse estrictamente en este árbol:
 │   ├── tipo_cambio.csv           # Cotización del dólar con fuente y fecha
 │   └── img/                      # Capturas de piezas, conjuntos y pasos de armado (.png)
 ├── scripts/                      # Automatización del pipeline
-└── specs/<NNN-nombre>/web/       # Web de armado generada
+└── specs/<NNN-nombre>/web/       # Web de armado y visor 3D generados
 ```
 
 - Un diseño de varias piezas DEBE usar `src/<diseño>_parametros.scad` para las medidas compartidas,
@@ -130,11 +137,11 @@ Los artefactos del diseño DEBEN ubicarse estrictamente en este árbol:
   (no se exporta), que comprueba los choques con `assert()` y define la tabla de pasos de armado.
 - Un STL de terceros que se modifica DEBE guardarse en `src/externos/` junto a un `.md` con su
   origen (URL) y su licencia; la modificación se hace en un `.scad` de `src/` que lo importa.
-- `scripts/` DEBE contener solo automatización (verificación, capturas, generación de la web), no
-  artefactos del diseño.
+- `scripts/` DEBE contener solo automatización (verificación, capturas, generación de la web y del
+  visor 3D, con su motor 3D en `scripts/vendor/`), no artefactos del diseño.
 - Excepciones al árbol: los artefactos de Spec Kit (`specs/`, `.specify/`), la configuración del
   agente (`.claude/`, `CLAUDE.md`) y la carpeta local `.tools/` (excluida de git: lanzadores y
-  temporales), que NO DEBEN contener artefactos del diseño salvo la web generada en
+  temporales), que NO DEBEN contener artefactos del diseño salvo la web y el visor generados en
   `specs/<NNN-nombre>/web/`.
 - Las piezas y guías nuevas DEBEN partir de las plantillas de las skills `pieza-openscad` y
   `guia-produccion`.
@@ -159,9 +166,9 @@ Antes de dar un diseño por terminado DEBEN cumplirse estas puertas:
 3. **Exportación:** hay un `.stl` por pieza en `exports/` y coincide con los parámetros actuales.
 4. **Documentación:** la guía en `docs/` contiene las secciones A y B completas, sin marcadores de
    plantilla, y su lista de materiales sale de `docs/<diseño>_bom.csv`.
-5. **Web de armado:** `scripts/generar_web.py --comprobar` termina sin errores, los precios cargados
-   tienen fuente y fecha, las vistas explotadas se revisaron una por una y la página se revisó en un
-   navegador.
+5. **Web de armado:** `scripts/generar_web.py --comprobar` termina sin errores (también para el
+   visor 3D, si el diseño tiene ensamblaje), los precios cargados tienen fuente y fecha, las vistas
+   explotadas se revisaron una por una y la página y el visor se revisaron en un navegador.
 
 La sección "Constitution Check" de cada `plan.md` DEBE verificar los cinco principios y estas
 cinco puertas.
@@ -191,4 +198,4 @@ cinco puertas.
 - Toda revisión de un diseño DEBE verificar el cumplimiento de esta constitución. Cualquier
   complejidad adicional DEBE justificarse en el plan.
 
-**Versión**: 2.0.0 | **Ratificada**: 2026-10-04 | **Última enmienda**: 2026-10-06
+**Versión**: 2.1.0 | **Ratificada**: 2026-10-04 | **Última enmienda**: 2026-10-08
