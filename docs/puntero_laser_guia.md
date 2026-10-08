@@ -135,11 +135,12 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 **Pernos y tuercas M8 y del trípode**
 
 * 1 × Perno M8 × 50 mm cabeza hexagonal (eje de azimut)
-* 1 × Perno M8 × 55 mm cabeza hexagonal (eje de altura, lado del motor)
+* 1 × Perno M8 × 55 mm cabeza hexagonal (eje de altura, lado del motor: entra desde afuera por la polea)
 * 1 × Perno M8 × 30 mm cabeza hexagonal (eje de altura, lado del cable)
-* 3 × Tuerca autoblocante M8
+* 2 × Tuerca autoblocante M8
+* 1 × Tuerca M8 común de 6,5 mm de alto (DIN 934), para el muñón +X de la cuna
 * 1 × Tuerca 3/8"-16 UNC (tornillo del trípode)
-* 2–4 × Arandela M8 fina (solo si hace falta ajustar la cuna entre los brazos, paso 9)
+* 2–4 × Arandela M8 fina (solo si hace falta ajustar la horquilla a la plataforma, paso 8)
 * 4 × Tuerca M8 extra como contrapeso (opcional, sección 3.4)
 
 **Tornillería M3**
@@ -179,39 +180,47 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
    el segundo 608 por la ventana lateral y prensarlo hacia arriba en el alojamiento inferior: se puede
    tirar de él con el perno M8 × 50, arandelas y una tuerca. Los dos quedan apoyados contra el resalte
    central.
-3. **Cuna: pernos del eje de altura.** Antes de colocar el láser, meter desde **dentro del tubo** la
-   cabeza del perno M8 × 55 en el hexágono del muñón +X y la del M8 × 30 en el muñón −X. Los pernos
-   quedan apuntando hacia afuera.
+3. **Cuna: perno del lado del cable.** Antes de colocar el láser, meter el perno M8 × 30 desde
+   **dentro del tubo**, con la punta primero, por el muñón −X (el que está junto a la ranura del cable),
+   hasta que la cabeza entre en su hexágono. El perno queda apuntando hacia afuera.
 4. **Brazos: rodamientos.** Prensar un 608ZZ en cada brazo desde la cara exterior, hasta que quede
    enrasado y apoyado en el labio interior.
-5. **Brazos a la plataforma.** Colocar una tuerca M3 en cada ranura del pie de los brazos. Encajar
-   cada brazo en su marco de la plataforma: el **brazo motor** en +X (lado de la tapa) y el **brazo
-   cable** en −X (lado del power bank), con la cara interior hacia el centro. Fijar cada uno con
-   2 × M3 × 12 desde abajo de la plataforma.
-6. **Motores a los carros.** Atornillar cada 28BYJ-48 a un carro con 2 × M3 × 8 y arandela,
+5. **Cuna entre los brazos.** La horquilla se arma con los brazos **sueltos**: atornillados a la
+   plataforma quedan a 50 mm, y la cuna con sus anillos de contacto mide 60 mm. Calzar el **brazo
+   cable** sobre el perno M8 × 30 hasta que el anillo de contacto del muñón −X apoye en el aro interior
+   del 608. Del otro lado, calzar el **brazo motor** sobre el anillo del muñón +X. Las caras interiores
+   de los brazos miran hacia la cuna.
+6. **Lado del cable.** Poner una arandela de contacto impresa y una tuerca autoblocante M8 en el perno
+   M8 × 30. Apretar sin frenar el giro.
+7. **Polea de altura.** Meter la tuerca M8 común por un extremo del tubo y encajarla en el hexágono del
+   muñón +X; sostenerla con un dedo. Pasar el perno M8 × 55 por la polea 80T desde la cara exterior,
+   con la cabeza en el hexágono, y llevarlo con el cubo de la polea hacia el brazo motor: atraviesa el
+   608 y el muñón y llega a la tuerca. Enroscarlo **girando la polea** mientras se sostiene la cuna,
+   hasta que apriete; no hace falta llave. La cabeza hace de chaveta: la polea, el perno y la cuna
+   giran juntos. La punta queda 0,5 mm antes del interior del tubo y no toca el láser.
+8. **Horquilla a la plataforma.** Colocar una tuerca M3 en cada ranura del pie de los brazos,
+   entrándola por la cara exterior del brazo. Bajar la horquilla armada (brazos, cuna y polea) a los
+   marcos de la plataforma: el **brazo motor** en +X (lado de la tapa) y el **brazo cable** en −X (lado
+   del power bank). Fijar cada brazo con 2 × M3 × 12 desde abajo de la plataforma. Si para que los pies
+   entren en los marcos hay que separar los brazos, la cuna queda corta: retirar el brazo cable, poner
+   arandelas M8 finas en el perno entre el muñón y el 608, y volver a armar ese lado.
+9. **Motores a los carros.** Atornillar cada 28BYJ-48 a un carro con 2 × M3 × 8 y arandela,
    autorroscantes en los agujeros de las orejas. El cuerpo del motor queda hacia +X del carro, del
    lado contrario al agujero del eje.
-7. **Motor de azimut.** Colocar las 2 tuercas M3 en los hexágonos de la cara inferior de la plataforma,
-   bajo el asiento del carro (+Y). Apoyar el carro con el motor encima y el eje hacia abajo, a través
-   de la abertura alargada, con la cara del tensor hacia el tope. Fijarlo con 2 × M3 × 10 sin apretar.
-   Desde abajo, calzar la polea 20T en el eje, con el cubo hacia arriba metido en la abertura, y
-   apretar sus prisioneros sobre la cara plana del eje.
-8. **Plataforma sobre la base.** Colocar una arandela de contacto impresa sobre el aro interior del 608
-   superior. Bajar la plataforma con el perno M8 × 50 pasado por el cubo central: la cabeza queda en
-   el hexágono, enrasada. Antes de que el perno salga por el 608 inferior, poner el **separador**
-   entre los dos rodamientos. Por la ventana lateral, poner la segunda arandela de contacto y la
-   tuerca autoblocante M8, y apretar con una llave de 13 mm hasta que **desaparezca el juego** y la
-   plataforma gire suave, sin frenarse.
-9. **Correa de azimut.** Pasar la correa de 200 mm alrededor de la polea fija de la base y de la polea
-   20T. Tensar con el tornillo M3 × 16 del tope (sección 3.2) y apretar los 2 M3 del carro.
-10. **Cuna entre los brazos.** Pasar los pernos de la cuna por los 608 de los brazos. El anillo de
-    contacto de cada muñón apoya en el aro interior del rodamiento. Si la cuna queda floja o aprieta
-    los brazos hacia adentro, compensar con arandelas M8 finas.
-11. **Lado del cable.** Poner la tercera arandela de contacto y una tuerca autoblocante M8 en el perno
-    M8 × 30. Apretar sin frenar el giro.
-12. **Polea de altura.** Calzar la polea 80T en el perno M8 × 55, con el cubo hacia el brazo, y apretar
-    la tuerca autoblocante M8 en el hexágono de su cara exterior. La tuerca hace de chaveta: la polea
-    gira con la cuna.
+10. **Motor de azimut.** Colocar las 2 tuercas M3 en los hexágonos de la cara inferior de la
+    plataforma, bajo el asiento del carro (+Y). Apoyar el carro con el motor encima y el eje hacia
+    abajo, a través de la abertura alargada, con la cara del tensor hacia el tope. Fijarlo con
+    2 × M3 × 10 sin apretar. Desde abajo, calzar la polea 20T en el eje, con el cubo hacia arriba metido
+    en la abertura, y apretar sus prisioneros sobre la cara plana del eje.
+11. **Plataforma sobre la base.** Colocar una arandela de contacto impresa sobre el aro interior del 608
+    superior. Con la cuna horizontal, meter el perno M8 × 50 entre los brazos, por debajo de la cuna, y
+    pasarlo por el cubo central: la cabeza queda en el hexágono, enrasada. Sosteniéndolo, bajar la
+    plataforma sobre la base. Antes de que el perno salga por el 608 inferior, poner el **separador**
+    entre los dos rodamientos. Por la ventana lateral, poner la segunda arandela de contacto y la
+    tuerca autoblocante M8, y apretar con una llave de 13 mm hasta que **desaparezca el juego** y la
+    plataforma gire suave, sin frenarse.
+12. **Correa de azimut.** Pasar la correa de 200 mm alrededor de la polea fija de la base y de la polea
+    20T. Tensar con el tornillo M3 × 16 del tope (sección 3.2) y apretar los 2 M3 del carro.
 13. **Motor de altura.** Atornillar el carro con su motor sobre los 2 pilares del brazo motor con
     2 × M3 × 12 autorroscantes, sin apretar. El motor queda entre el carro y el brazo, con el eje hacia
     afuera. Calzar la polea 20T (cubo hacia el carro), pasar la correa, tensar con el tornillo del tope

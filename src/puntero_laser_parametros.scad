@@ -109,6 +109,7 @@ m8_cabeza_ec = 13;
 m8_cabeza_alto = 5.3;
 m8_tuerca_ec = 13;
 m8_autoblocante_alto = 8;
+m8_tuerca_alto = 6.5;          // tuerca común DIN 934 (la del muñón del lado motor)
 // M3
 m3_d = 3;
 m3_tuerca_ec = 5.5;
@@ -151,6 +152,7 @@ medios_pasos_motor = 64;
 // ---------- Constantes internas de diseño ----------
 espesor_carro = 3;
 piso_munon = 2.2;              // piso que retiene la cabeza M8 dentro del muñón
+margen_punta_perno = 0.5;      // la punta del perno del lado motor queda antes del interior del tubo
 holgura_munon_brazo = 0.5;
 labio_608_min = 3;             // labio interior mínimo que apoya el aro exterior del 608 en el brazo
 d_labio_608 = 16;              // agujero del labio (no toca el aro interior)
@@ -337,9 +339,17 @@ z_polea20_az_inf = z_plataforma_sup - polea20_alto_total;
 z_eje_altura = z_plataforma_sup + altura_eje;
 largo_separador_azimut = separacion_608_azimut - 0.1;   // 0,1 mm menos que el resalte: precarga
 
-// Pernos del eje de altura
+// Pernos del eje de altura. Lado del cable: cabeza M8 en el muñón −X, metida desde dentro del tubo.
+// Lado del motor: tuerca M8 común en el muñón +X (entra por el tubo) y perno desde afuera, con la cabeza
+// en el hexágono de la polea; un perno de cabeza adentro no entra en el tubo. La profundidad del
+// hexágono de la polea ajusta el largo comercial para que la punta llegue a margen_punta_perno del tubo:
+// la cabeza puede sobresalir de la polea, alcanza con que el hexágono tome la mitad de su altura.
 x_cabeza_m8_cuna = diametro_interior_cuna/2 + m8_cabeza_alto + holgura_tuerca;
-largo_perno_alt_motor = largo_estandar(x_ext_polea_alt - x_cabeza_m8_cuna);
+x_tuerca_m8_cuna = diametro_interior_cuna/2 + m8_tuerca_alto;   // fondo del alojamiento (abierto al tubo)
+x_punta_perno_alt_motor = diametro_interior_cuna/2 + margen_punta_perno;
+largo_perno_alt_motor = largo_estandar(x_ext_polea_alt - x_punta_perno_alt_motor - m8_cabeza_alto);
+prof_cabeza_polea_alt = x_ext_polea_alt - x_punta_perno_alt_motor - largo_perno_alt_motor;
+rosca_tuerca_munon = x_tuerca_m8_cuna - x_punta_perno_alt_motor;
 largo_perno_alt_cable = largo_estandar(x_cara_ext_brazo + alto_arandela_contacto + m8_autoblocante_alto + 2 - x_cabeza_m8_cuna);
 
 // Topes tensores (distancia desde el eje conducido)
@@ -504,6 +514,7 @@ error_peor_caso = sum_lista([for (e = presupuesto_error) e[1]]);
 espesores_minimos = [   // [parámetro principal, valor, pared, espesor]
     ["pared_tubo_cuna", pared_tubo_cuna, "pared del tubo de la cuna", pared_tubo_cuna],
     ["holgura_tuerca", holgura_tuerca, "piso del muñón", piso_munon],
+    ["piso_munon", piso_munon, "piso del muñón bajo la tuerca M8", semiancho_interior_horquilla - holgura_munon_brazo - x_tuerca_m8_cuna],
     ["holgura_perno_m8", holgura_perno_m8, "pared del separador", (d_contacto_aro - rod608_d_int - holgura_perno_m8)/2],
     ["holgura_perno_m8", holgura_perno_m8, "pared de la arandela de contacto", (d_contacto_aro - rod608_d_int - holgura_perno_m8)/2],
     ["holgura_perno_m8", holgura_perno_m8, "pared del cubo de la polea de altura", (d_cubo_polea_alt - rod608_d_int - holgura_perno_m8)/2],
@@ -521,7 +532,7 @@ espesores_minimos = [   // [parámetro principal, valor, pared, espesor]
     ["pared_canal", pared_canal, "pared del conducto", pared_canal],
     ["espesor_carro", espesor_carro, "espesor del carro", espesor_carro],
     ["material_min_aligerado", material_min_aligerado, "material junto a los aligerados de la polea", material_min_aligerado]];
-espesores_bajos = [for (e = espesores_minimos) if (e[3] < espesor_min_pared)
+espesores_bajos = [for (e = espesores_minimos) if (e[3] < espesor_min_pared - 1e-6)   // 1e-6: redondeo
     str(e[0], "=", e[1], ": ", e[2], " = ", e[3], " mm")];
 
 // --- VALIDACIÓN DE PARÁMETROS ---
@@ -605,6 +616,16 @@ assert(len(choques_barrido) == 0,
 assert(eje_en_cubo20 >= 5,
     str("espesor_plataforma=", espesor_plataforma, ": el eje del motor entra solo ", eje_en_cubo20,
         " mm en el cubo de la polea 20T (mín. 5)"));
+// Pernos del eje de altura: se pueden colocar y agarran lo suficiente
+assert(largo_perno_alt_cable + m8_cabeza_alto <= x_cabeza_m8_cuna + diametro_interior_cuna/2,
+    str("diametro_laser=", diametro_laser, ": el perno M8 × ", largo_perno_alt_cable,
+        " del lado del cable no se puede meter desde dentro del tubo"));
+assert(prof_cabeza_polea_alt >= m8_cabeza_alto/2,
+    str("margen_punta_perno=", margen_punta_perno, ": el hexágono de la polea toma solo ", prof_cabeza_polea_alt,
+        " mm de la cabeza del perno M8 × ", largo_perno_alt_motor, " (mín. ", m8_cabeza_alto/2, ")"));
+assert(rosca_tuerca_munon >= 0.75*rod608_d_int,
+    str("margen_punta_perno=", margen_punta_perno, ": el perno del lado motor agarra solo ", rosca_tuerca_munon,
+        " mm de la tuerca del muñón (mín. ", 0.75*rod608_d_int, ")"));
 // V-11: holguras, brazo y espesores mínimos
 assert(min([holgura_encastre, holgura_tornillo_m3, holgura_tuerca, holgura_perno_m8, holgura_barrido]) > 0,
     "holgura_encastre: todas las holguras deben ser > 0");

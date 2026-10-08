@@ -84,7 +84,12 @@ El ensamblaje es la fuente de las imágenes de armado de la web (skill `web-arma
      que coincidir con el texto (desde arriba, por la ventana lateral, desde abajo de la plataforma).
    - `resaltar = false`: el elemento se dibuja transparente. Sirve para el contenedor donde entra
      algo (para que se vea lo de adentro) y para un subconjunto ya armado que se mueve junto.
+   - Cuarto campo opcional, `origen`: el desplazamiento de la pieza que recibe al elemento. La
+     flecha sale de ahí y no de la posición final. Sirve para algo que entra de costado en una pieza
+     que a su vez baja: la tuerca va en la ranura del brazo y no queda escondida adentro.
    - Un paso sin piezas nuevas (cableado, puesta a punto) es una lista vacía y no tiene imagen.
+   - `vista_paso` dibuja primero lo opaco y después lo transparente: en la vista previa de OpenSCAD
+     una pieza transparente tapa lo que se dibuja después detrás de ella.
 3. **Subconjuntos**: si partes del aparato se arman por separado y después se unen, asignar cada
    elemento a un grupo y declarar en qué paso se unen. Así una vista no muestra piezas que todavía no
    se montaron en ese subconjunto.
