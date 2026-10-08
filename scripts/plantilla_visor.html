@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{titulo}}</title>
+<!-- Visor 3D de armado generado por scripts/generar_visor.py desde el ensamblaje y la guía del
+     diseño. No editar a mano: se regenera con scripts/generar_web.py. -->
+<style>
+  :root {
+    --fondo: #f4f3ef; --escena: #f7f7f5; --panel: #ffffff; --texto: #1f2328; --suave: #5b636b;
+    --acento: #1f6f5c; --borde: #dcdad3;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--fondo); color: var(--texto); font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; height: 100vh; }
+  #escena { position: relative; min-height: 0; background: var(--escena); }
+  #escena canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #ayuda { position: absolute; left: 12px; bottom: 10px; right: 12px; color: var(--suave); font-size: 12px; }
+  #sin3d { position: absolute; inset: 0; display: none; place-content: center; text-align: center; padding: 24px; }
+  aside { background: var(--panel); border-left: 1px solid var(--borde); padding: 18px 20px;
+          display: flex; flex-direction: column; gap: 12px; overflow: auto; }
+  .arriba { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; }
+  a { color: var(--acento); }
+  select { font: inherit; padding: 6px 8px; border: 1px solid var(--borde); border-radius: 8px;
+           background: #fff; color: var(--texto); width: 100%; }
+  .numero { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 15px;
+            background: var(--acento); color: #fff; font-weight: 600; margin-right: 8px; padding: 0 6px; }
+  h1 { font-size: 17px; margin: 0; display: flex; align-items: center; }
+  .texto { margin: 0; white-space: pre-line; }
+  .controles { display: flex; gap: 8px; }
+  .controles button { flex: 1; }
+  button { padding: 9px 10px; border: 1px solid var(--borde); border-radius: 8px; min-height: 42px;
+           background: #fff; color: var(--texto); font: inherit; cursor: pointer; }
+  button.principal { background: var(--acento); border-color: var(--acento); color: #fff; }
+  button:disabled { opacity: .4; cursor: default; }
+  input[type=range] { width: 100%; accent-color: var(--acento); }
+  .piezas { margin: 0; padding-left: 18px; color: var(--suave); font-size: 13px; }
+  .leyenda { font-size: 12px; color: var(--suave); border-top: 1px solid var(--borde); padding-top: 10px;
+             margin: auto 0 0; }
+  @media (max-width: 760px) {
+    main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55vh auto; height: auto; }
+    aside { border-left: 0; border-top: 1px solid var(--borde); }
+    #ayuda { display: none; }
+  }
+</style>
+<script type="importmap">/*IMPORTMAP*/</script>
+<script type="application/json" id="datos-visor">/*DATOS*/</script>
+</head>
+<body>
+<main>
+  <div id="escena">
+    <div id="sin3d"><p>Este navegador no puede mostrar el visor 3D.<br>
+      <a href="index.html#instrucciones-paso-a-paso">Ver el armado con imágenes en la web</a></p></div>
+    <div id="ayuda">Arrastrar: girar · Rueda: acercar · Botón derecho o Mayús: desplazar</div>
+  </div>
+  <aside>
+    <div class="arriba">
+      <a href="index.html#instrucciones-paso-a-paso">← Volver a la guía</a>
+      <span id="progreso"></span>
+    </div>
+    <select id="selector" aria-label="Ir a un paso"></select>
+    <h1><span class="numero" id="numero"></span><span id="titulo"></span></h1>
+    <p class="texto" id="texto"></p>
+    <input type="range" id="tiempo" min="0" max="1" step="0.001" value="0" aria-label="Avance del movimiento">
+    <div class="controles">
+      <button id="anterior">◀ Anterior</button>
+      <button id="repetir">↻ Repetir</button>
+      <button id="siguiente" class="principal">Siguiente ▶</button>
+    </div>
+    <button id="inicial">Vista inicial</button>
+    <div>
+      <strong style="font-size:13px" id="titulo-piezas">Piezas de este paso</strong>
+      <ul class="piezas" id="piezas"></ul>
+    </div>
+    <p class="leyenda">Las piezas nuevas van en color y se mueven hasta su lugar; lo que ya está armado se
+      ve transparente. Teclado: ← → para cambiar de paso, Espacio para repetir, Inicio para la vista inicial.</p>
+  </aside>
+</main>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const DATOS = JSON.parse(document.getElementById("datos-visor").textContent);
+const DURACION = 1.8;      // segundos del movimiento de cada paso
+const ALFA_ARMADO = 0.22;  // transparencia de lo ya armado (como en las capturas de la guía)
+const $ = id => document.getElementById(id);
+
+// --- Escena ---
+const contenedor = $("escena");
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+} catch (error) {
+  $("sin3d").style.display = "grid";
+  $("ayuda").style.display = "none";
+  throw error;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+contenedor.appendChild(renderer.domElement);
+const escena = new THREE.Scene();
+escena.background = new THREE.Color("#f7f7f5");
+const camara = new THREE.PerspectiveCamera(30, 1, 1, 20000);
+camara.up.set(0, 0, 1);   // OpenSCAD usa Z hacia arriba
+const controles = new OrbitControls(camara, renderer.domElement);
+controles.enableDamping = true;
+escena.add(new THREE.HemisphereLight(0xffffff, 0x8a8a80, 1.6));
+const sol = new THREE.DirectionalLight(0xffffff, 1.6);
+sol.position.set(300, -400, 600);
+escena.add(sol);
+
+// --- Piezas: posiciones de los triángulos en Float32 (x, y, z), sin índices; sombreado plano ---
+function float32(b64) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  return new Float32Array(bytes.buffer);
+}
+const piezas = {};
+for (const [nombre, el] of Object.entries(DATOS.elementos)) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(float32(el.malla), 3));
+  geo.computeVertexNormals();
+  geo.computeBoundingBox();   // en la posición final del conjunto
+  const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setStyle(el.color.toLowerCase()),
+                                               roughness: 0.65, metalness: 0.05 });
+  const malla = new THREE.Mesh(geo, mat);
+  malla.visible = false;
+  escena.add(malla);
+  piezas[nombre] = malla;
+}
+
+// Encuadre: lo que se ve en el paso (lo ya armado y las piezas nuevas, en su lugar y separadas)
+function cajaDelPaso(paso) {
+  const caja = new THREE.Box3();
+  for (const nombre of paso.contexto) caja.union(piezas[nombre].geometry.boundingBox);
+  for (const en of paso.entradas) {
+    const c = piezas[en.e].geometry.boundingBox.clone();
+    caja.union(c).union(c.clone().translate(new THREE.Vector3(...en.d)));
+  }
+  return caja;
+}
+// Misma dirección que la cámara por defecto de OpenSCAD (rotación 55°, 0°, 25°), como las capturas
+const direccion = new THREE.Vector3(Math.sin(55 * Math.PI / 180) * Math.sin(25 * Math.PI / 180),
+                                    -Math.sin(55 * Math.PI / 180) * Math.cos(25 * Math.PI / 180),
+                                    Math.cos(55 * Math.PI / 180));
+const esquinas = caja => [caja.min.x, caja.max.x].flatMap(x => [caja.min.y, caja.max.y].flatMap(
+  y => [caja.min.z, caja.max.z].map(z => new THREE.Vector3(x, y, z))));
+
+// Encuadra la caja mirando desde "desde" (dirección hacia la cámara): distancia mínima para que sus 8
+// esquinas entren en el campo de visión, con 6 % de margen
+function encuadrar(caja, desde) {
+  const centro = caja.getCenter(new THREE.Vector3());
+  const atras = desde.clone().normalize();
+  const derecha = new THREE.Vector3().crossVectors(camara.up, atras).normalize();
+  const arriba = new THREE.Vector3().crossVectors(atras, derecha);
+  const tanV = Math.tan(camara.fov * Math.PI / 360), tanH = tanV * camara.aspect;
+  let distancia = 0;
+  for (const esquina of esquinas(caja)) {
+    const p = esquina.sub(centro);
+    const hacia = p.dot(atras);
+    distancia = Math.max(distancia, Math.abs(p.dot(derecha)) / tanH + hacia, Math.abs(p.dot(arriba)) / tanV + hacia);
+  }
+  controles.target.copy(centro);
+  camara.position.copy(centro).addScaledVector(atras, distancia * 1.06);
+  controles.update();
+}
+const vistaInicial = () => encuadrar(cajaDelPaso(DATOS.pasos[indice]), direccion);
+
+// ¿Entra la caja en la vista actual? Si no, al cambiar de paso se reencuadra con el ángulo que eligió
+// la persona (las piezas del paso nuevo pueden estar en otra parte del diseño)
+function enCuadro(caja) {
+  camara.updateMatrixWorld();
+  return esquinas(caja).every(p => {
+    const v = p.project(camara);
+    return Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && Math.abs(v.z) <= 1;
+  });
+}
+
+function redimensionar() {
+  const { clientWidth: w, clientHeight: h } = contenedor;
+  renderer.setSize(w, h, false);
+  camara.aspect = w / h;
+  camara.updateProjectionMatrix();
+}
+addEventListener("resize", redimensionar);
+redimensionar();
+
+// --- Movimiento de cada entrada (data-model.md, sección 3) ---
+let indice = 0, t = 0, reproduciendo = false, camaraLista = false;
+const suave = x => x * x * (3 - 2 * x);
+const vec = a => new THREE.Vector3(...a);
+
+// Desplazamiento de una entrada en el instante t (0 = explotado, 1 = en su lugar)
+function desplazamiento(en, t, hayOrigen) {
+  if (!hayOrigen) return vec(en.d).multiplyScalar(1 - suave(t));
+  if (en.o) return t < 0.5 ? vec(en.d).lerp(vec(en.o), suave(t / 0.5))
+                           : vec(en.o).multiplyScalar(1 - suave((t - 0.5) / 0.5));
+  return t < 0.5 ? vec(en.d) : vec(en.d).multiplyScalar(1 - suave((t - 0.5) / 0.5));
+}
+
+// Giro de una entrada (g = [punto, eje, grados]): de "grados" a 0 alrededor del eje que pasa por
+// "punto" (en la posición final), al mismo ritmo que la llegada de la pieza a su lugar
+function girar(m, en, t, hayOrigen) {
+  const [punto, eje, grados] = en.g;
+  const llegada = !hayOrigen ? suave(t) : t < 0.5 ? 0 : suave((t - 0.5) / 0.5);
+  m.quaternion.setFromAxisAngle(vec(eje).normalize(), grados * (1 - llegada) * Math.PI / 180);
+  const p = vec(punto);
+  m.position.add(p).sub(p.applyQuaternion(m.quaternion));
+}
+
+function mostrarComo(m, opaco) {
+  m.visible = true;
+  m.material.transparent = !opaco;
+  m.material.opacity = opaco ? 1 : ALFA_ARMADO;
+  m.material.depthWrite = opaco;
+}
+
+function aplicar() {
+  const paso = DATOS.pasos[indice];
+  const hayOrigen = paso.entradas.some(en => en.o);
+  for (const m of Object.values(piezas)) {
+    m.visible = false;
+    m.position.set(0, 0, 0);
+    m.quaternion.identity();
+  }
+  for (const nombre of paso.contexto) mostrarComo(piezas[nombre], false);
+  for (const en of paso.entradas) {
+    const m = piezas[en.e];
+    mostrarComo(m, en.r);
+    m.position.copy(desplazamiento(en, t, hayOrigen));
+    if (en.g) girar(m, en, t, hayOrigen);
+  }
+  $("tiempo").value = t;
+}
+
+// --- Pasos ---
+const legible = nombre => nombre.replaceAll("_", " ");
+const conNegritas = texto => texto
+  .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c])
+  .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+for (const [i, p] of DATOS.pasos.entries()) {
+  const op = document.createElement("option");
+  op.value = i;
+  op.textContent = `${p.n}. ${p.titulo}`;
+  $("selector").appendChild(op);
+}
+
+function mostrarPaso(i, reproducir = true) {
+  indice = Math.max(0, Math.min(DATOS.pasos.length - 1, i));
+  const paso = DATOS.pasos[indice];
+  $("numero").textContent = paso.n;
+  $("titulo").textContent = paso.titulo;
+  $("texto").innerHTML = conNegritas(paso.texto);
+  $("progreso").textContent = `Paso ${paso.n} de ${DATOS.pasos.length}`;
+  $("selector").value = indice;
+  const nuevas = paso.entradas.filter(en => en.r);
+  $("titulo-piezas").style.display = nuevas.length ? "" : "none";
+  $("piezas").innerHTML = nuevas.map(en => `<li>${legible(en.e)}</li>`).join("");
+  $("anterior").disabled = indice === 0;
+  $("siguiente").disabled = indice === DATOS.pasos.length - 1;
+  $("repetir").disabled = $("tiempo").disabled = paso.entradas.length === 0;
+  t = reproducir && paso.entradas.length ? 0 : 1;
+  reproduciendo = reproducir && paso.entradas.length > 0;
+  aplicar();
+  const caja = cajaDelPaso(paso);
+  if (camaraLista && !enCuadro(caja)) encuadrar(caja, camara.position.clone().sub(controles.target));
+}
+
+const indiceDePaso = n => DATOS.pasos.findIndex(p => p.n === n);
+$("anterior").onclick = () => mostrarPaso(indice - 1);
+$("siguiente").onclick = () => mostrarPaso(indice + 1);
+$("selector").onchange = e => mostrarPaso(+e.target.value);
+$("repetir").onclick = () => { t = 0; reproduciendo = true; };
+$("inicial").onclick = vistaInicial;
+$("tiempo").oninput = e => { t = +e.target.value; reproduciendo = false; aplicar(); };
+addEventListener("keydown", e => {
+  if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowRight") mostrarPaso(indice + 1);
+  else if (e.key === "ArrowLeft") mostrarPaso(indice - 1);
+  else if (e.key === " ") { t = 0; reproduciendo = DATOS.pasos[indice].entradas.length > 0; }
+  else if (e.key === "Home") vistaInicial();
+  else return;
+  e.preventDefault();
+});
+addEventListener("hashchange", () => {
+  const m = location.hash.match(/^#paso-(\d+)$/);
+  if (m && indiceDePaso(+m[1]) >= 0) mostrarPaso(indiceDePaso(+m[1]));
+});
+
+// Paso inicial: #paso-N (enlaces de la web) o ?paso=N&t=0.5 (revisión: congela ese momento)
+const consulta = new URLSearchParams(location.search);
+const hash = location.hash.match(/^#paso-(\d+)$/);
+const pedido = consulta.has("paso") ? +consulta.get("paso") : hash ? +hash[1] : 1;
+mostrarPaso(Math.max(0, indiceDePaso(pedido)));
+vistaInicial();
+camaraLista = true;
+if (consulta.has("t")) { t = Math.min(1, Math.max(0, +consulta.get("t"))); reproduciendo = false; aplicar(); }
+
+const reloj = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = reloj.getDelta();
+  if (reproduciendo) {
+    t = Math.min(1, t + dt / DURACION);
+    if (t >= 1) reproduciendo = false;
+    aplicar();
+  }
+  controles.update();
+  renderer.render(escena, camara);
+});
+</script>
+</body>
+</html>

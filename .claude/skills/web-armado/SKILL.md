@@ -1,6 +1,6 @@
 ---
 name: web-armado
-description: Fase 5 del pipeline de piezas3D. Generar la web de armado de un diseño en specs/<NNN>/web/ (componentes con precio en ARS y USD, primeros pasos, armado paso a paso con vistas explotadas, consejos), buscar y verificar precios de componentes. Usar cuando la guía está terminada, al actualizar precios o cuando el usuario pide la web, el costo o el precio del producto.
+description: Fase 5 del pipeline de piezas3D. Generar la web de armado de un diseño en specs/<NNN>/web/ (componentes con precio en ARS y USD, primeros pasos, armado paso a paso con vistas explotadas, consejos) y su visor 3D de armado, buscar y verificar precios de componentes. Usar cuando la guía está terminada, al actualizar precios o cuando el usuario pide la web, el visor 3D, el costo o el precio del producto.
 ---
 
 # Web de armado
@@ -62,8 +62,35 @@ scripts/generar_web.py <diseño> specs/<NNN-nombre>
 scripts/generar_web.py --comprobar <diseño> specs/<NNN-nombre>
 ```
 
-La segunda falla si la guía o la web no están al día con sus fuentes. Es la comprobación de la
-puerta 5.
+La segunda falla si la guía, la web o el visor 3D no están al día con sus fuentes. Es la
+comprobación de la puerta 5.
+
+### Visor 3D
+
+Si el diseño tiene `src/<diseño>_ensamblaje.scad`, `generar_web.py` también genera
+`specs/<NNN-nombre>/web/armado_3d.html` con `scripts/generar_visor.py` y lo enlaza desde la web ("Ver
+el armado en 3D" y "Ver en 3D" en cada paso). Sale de la misma tabla de pasos que las capturas
+(convención en la skill `disenio-multipieza`, sección 4); no se edita a mano.
+
+- La primera vez, o cuando cambia algún `.scad` del diseño, exporta cada pieza con OpenSCAD (unos
+  20 s para 43 piezas; funciona dentro del sandbox). Si las fuentes no cambiaron, reutiliza las mallas
+  de la página. `scripts/generar_visor.py --reexportar <diseño> specs/<NNN-nombre>` fuerza la
+  exportación.
+- Es un solo archivo con todo adentro (three.js de `scripts/vendor/`): funciona sin internet y con
+  doble clic. Máximo 10 MB.
+
+**Revisarlo** en el Edge sin ventana, fuera del sandbox y sin red. `?paso=N&t=0.5` congela el paso N
+en la mitad del movimiento (`t=0`: piezas separadas, como la captura):
+
+```bash
+"/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" --headless=new --host-resolver-rules="MAP * ~NOTFOUND" --use-angle=swiftshader --enable-unsafe-swiftshader --hide-scrollbars --window-size=1280,800 --virtual-time-budget=10000 --screenshot="$(wslpath -w "$PWD/.tools/tmp/visor.png")" "file:///$(wslpath -w "$PWD/specs/<NNN-nombre>/web/armado_3d.html" | tr '\\' '/')?paso=8&t=0"
+```
+
+- En cada paso con piezas, `t=0` debe mostrar las mismas piezas, colores y desplazamientos que su
+  captura de `docs/img/`.
+- En los pasos con origen, `t=0.25` y `t=0.75` muestran los dos tramos del movimiento.
+- Las capturas solo muestran un paso abierto directamente; para probar la navegación (el
+  reencuadre al cambiar de paso), pedirle al usuario que lo recorra en su navegador.
 
 Revisar la página en un navegador. Captura sin abrir ventanas (fuera del sandbox, con el Edge de
 Windows):
@@ -83,4 +110,6 @@ Windows):
 - [ ] Los componentes sin precio están vacíos en el CSV, no estimados.
 - [ ] El tipo de cambio es del mismo período que los precios.
 - [ ] Las vistas explotadas se revisaron una por una.
+- [ ] Si el diseño tiene ensamblaje, el visor 3D se generó y se revisó sin red (`t=0` contra cada
+  captura y los pasos con origen).
 - [ ] La página se revisó en un navegador.

@@ -2,28 +2,33 @@
 // Proyecto: piezas3D – Caja de pilas
 // Componente: Ensamblaje (solo revisión, NO se exporta)
 // Descripción: Coloca la caja, las pilas y la tapa en su posición del conjunto, comprueba con
-//              asserts el encastre y los choques (U-01) y, con paso_armado > 0, dibuja la vista
-//              explotada de ese paso de la guía.
+//              asserts el encastre y los choques (U-01). Las vistas explotadas y los datos del visor
+//              3D salen de la tabla de pasos con la biblioteca común armado_comun.scad.
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
 include <caja_pilas_parametros.scad>
 use <caja_pilas_caja.scad>
 use <caja_pilas_tapa.scad>
+include <armado_comun.scad>
 
 // Dibujar la tapa (transparente) en el conjunto completo
 ver_tapa = true;
-// Paso de armado de la guía (0 = conjunto completo; -1 = listar los pasos con echo)
+// Paso de armado de la guía (0 = conjunto completo; -1 = datos de los pasos con echo)
 paso_armado = 0; // [-1:1:3]
+// Dibujar solo este elemento, en su posición final y sin color (para exportar mallas al visor 3D)
+solo_elemento = "";
 
 /* [Hidden] */
-// Vista explotada: transparencia del contexto, distancia de entrada y color de las flechas
+// Vista explotada: transparencia del contexto, distancia de entrada, color y grosor de las flechas
 alfa_contexto = 0.25;
 distancia_explosion = 40;
 color_flecha = "OrangeRed";
+diametro_flecha = 1.6;
 
 // Pasos de armado de la guía (docs/caja_pilas_guia.md, sección 2): por cada paso, la lista de
-// [elemento, desplazamiento de la vista explotada, resaltar]. Lo armado antes se dibuja transparente.
+// [elemento, desplazamiento de la vista explotada, resaltar] (formato en armado_comun.scad). Lo
+// armado antes se dibuja transparente.
 pasos = [
     /* 1 */ [["caja", [0, 0, 0], false], ["pilas", [0, 0, distancia_explosion], true]],
     /* 2 */ [["tapa", [0, 0, distancia_explosion], true]],
@@ -51,43 +56,24 @@ assert(z_punta_pollera > espesor_piso + alto_tabique,
 assert(z_punta_pollera > espesor_piso + diametro_pila,
     "alto_pollera: la punta de la pollera toca las pilas");
 assert(ancho_pestana <= largo_ranura, "largo_ranura: el reborde es más largo que la ranura");
-// Tabla de pasos: un paso por cada instrucción de la guía y solo elementos conocidos
+// Tabla de pasos: un paso por cada instrucción de la guía (los elementos los comprueba armado())
 assert(len(pasos) == 3, "pasos: la guía tiene 3 pasos de armado");
-for (p = pasos, e = p)
-    assert(contiene(elementos, e[0]), str("pasos: elemento desconocido '", e[0], "'"));
 
 echo(str("CONJUNTO cerrada=", alto_cerrada, ", reborde_z=", z_centro_reborde, ", ranura_z=", z_centro_ranura));
 
 // --- ENSAMBLAJE ---
-if (paso_armado == -1)
-    for (n = [1:len(pasos)]) echo(str("PASO;", n, ";", len(pasos[n - 1])));
-else if (paso_armado == 0)
-    ensamblaje_principal();
-else
-    vista_paso(paso_armado);
+armado();
 
 module ensamblaje_principal() {
     for (e = elementos) if (e != "tapa") color(color_elemento(e)) elemento(e);
     if (ver_tapa) %elemento("tapa");
 }
 
-// Vista explotada del paso n: lo armado antes, transparente; lo nuevo, desplazado y con una flecha
-module vista_paso(n) {
-    assert(n >= 1 && n <= len(pasos), str("paso_armado=", n, ": la guía tiene ", len(pasos), " pasos"));
-    actual = pasos[n - 1];
-    nombres_actual = [for (e = actual) e[0]];
-    previos = unicos([for (k = [0:1:n - 2]) for (e = pasos[k]) e[0]]);
-    for (e = previos) if (!contiene(nombres_actual, e)) color(color_elemento(e), alfa_contexto) elemento(e);
-    for (e = actual) {
-        if (e[2]) color(color_elemento(e[0])) translate(e[1]) elemento(e[0]);
-        else color(color_elemento(e[0]), alfa_contexto) translate(e[1]) elemento(e[0]);
-        if (e[2] && norm(e[1]) > 0)
-            for (p = anclas(e[0])) color(color_flecha) flecha(p + 0.85*e[1], p + 0.2*e[1]);
-    }
-}
-
 // --- CATÁLOGO DE ELEMENTOS (posición final en el conjunto) ---
 elementos = ["caja", "pilas", "tapa"];
+
+// Sin subconjuntos: todo se arma sobre la caja
+function grupo(e, n) = "conjunto";
 
 function color_elemento(e) = e == "caja" ? "SteelBlue" : e == "tapa" ? "LightSkyBlue" : "DimGray";
 
@@ -108,19 +94,3 @@ function anclas(e) =
         [espesor_pared + i*paso_alojamiento + ancho_alojamiento/2, centro_y, espesor_piso]] :
     e == "tapa" ? [[centro_x, centro_y, z_punta_pollera]] :
     [[centro_x, centro_y, alto_caja]];
-
-// --- UTILIDADES ---
-function contiene(lista, x) = len([for (e = lista) if (e == x) 0]) > 0;
-function unicos(lista) = [for (i = [0:1:len(lista) - 1]) if (!contiene([for (j = [0:1:i - 1]) lista[j]], lista[i])) lista[i]];
-
-// Flecha de la vista explotada, de "desde" a "hasta"
-module flecha(desde, hasta) {
-    v = hasta - desde;
-    largo = norm(v);
-    punta = min(6, largo/2);
-    if (largo > 1)
-        translate(desde) rotate([0, acos(v[2]/largo), atan2(v[1], v[0])]) {
-            cylinder(d = 1.6, h = largo - punta, $fn = 16);
-            translate([0, 0, largo - punta]) cylinder(d1 = 4, d2 = 0, h = punta, $fn = 16);
-        }
-}

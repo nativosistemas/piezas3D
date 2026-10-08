@@ -4,7 +4,7 @@
 
 **Creada**: 2026-10-08
 
-**Estado**: Borrador
+**Estado**: Implementada (pendiente la prueba en un celular real: quickstart, escenario 7)
 
 **Entrada**: Descripción del usuario: "Visor 3D de armado paso a paso como parte de la fase 5 (web de
 armado) del pipeline de piezas3D, para todos los diseños de varias piezas con ensamblaje. A partir de
@@ -192,9 +192,11 @@ visor la muestra girando mientras avanza hasta su lugar; los demás pasos no cam
 - **FR-015**: La persona DEBE poder pasar al paso siguiente o al anterior, ir directo a un paso,
   repetir el movimiento y recorrerlo con un deslizador que lo deja quieto en el punto elegido.
 - **FR-016**: La persona DEBE poder girar, acercar y desplazar la vista con mouse, teclado o tacto, y
-  volver a una vista inicial que encuadra todo el diseño.
+  volver a una vista inicial que encuadra todo lo que se ve en el paso actual (lo ya armado y las
+  piezas nuevas, en su lugar y separadas).
 - **FR-017**: Al cambiar de paso, el movimiento DEBE reproducirse solo una vez; la vista que eligió la
-  persona NO DEBE cambiar.
+  persona NO DEBE cambiar, salvo que las piezas del paso nuevo queden fuera de cuadro: en ese caso se
+  reencuadran conservando el ángulo de la vista.
 
 **Acceso**
 

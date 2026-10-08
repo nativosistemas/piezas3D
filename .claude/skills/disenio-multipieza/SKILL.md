@@ -70,34 +70,44 @@ docs/img/<diseño>_*.png             # Capturas de cada pieza, del conjunto y de
   positivas, y dibuja los componentes comprados (rodamientos, tornillos, motores, placas) como
   volúmenes simples.
 
-## 4. Tabla de pasos y vistas explotadas
+## 4. Tabla de pasos, vistas explotadas y visor 3D
 
-El ensamblaje es la fuente de las imágenes de armado de la web (skill `web-armado`). Modelo:
-`src/puntero_laser_ensamblaje.scad`.
+El ensamblaje es la fuente de las imágenes de armado de la web y del visor 3D (skill `web-armado`).
+La maquinaria común está en `src/armado_comun.scad`; el contrato completo, en
+`specs/005-visor-armado-3d/contracts/ensamblaje.md`. Modelos: `src/puntero_laser_ensamblaje.scad`
+(con subconjuntos, origen y giro) y `src/caja_pilas_ensamblaje.scad` (el caso mínimo).
 
-1. **Catálogo de elementos**: un módulo `elemento(nombre)` que dibuja cada pieza o componente en su
-   posición final. El conjunto completo y las vistas por paso lo usan los dos, así que hay una sola
-   fuente de posiciones. Cada tornillo o tuerca que nombre la guía tiene su elemento.
-2. **Tabla `pasos`**: una entrada por cada paso de "Instrucciones Paso a Paso" de la guía y en el
-   mismo orden. Cada entrada es una lista de `[elemento, desplazamiento, resaltar]`:
+1. **Biblioteca común**: `include <armado_comun.scad>` y, al final de la sección de ensamblaje,
+   `armado();`. No copiar `vista_paso`, `flecha` ni las utilidades: están en la biblioteca.
+2. **Lo que define el diseño**: los parámetros `paso_armado` (`0` conjunto, `n` vista del paso `n`,
+   `-1` datos de los pasos) y `solo_elemento` (`""`); `alfa_contexto`, `color_flecha` y
+   `diametro_flecha`; `elementos`, `color_elemento(e)`, `elemento(e)`, `anclas(e)`, `grupo(e, n)` y
+   `ensamblaje_principal()`.
+3. **Catálogo de elementos**: `elemento(nombre)` dibuja cada pieza o componente en su posición
+   final. El conjunto, las vistas por paso y el visor lo usan, así que hay una sola fuente de
+   posiciones. Cada tornillo o tuerca que nombre la guía tiene su elemento.
+4. **Tabla `pasos`**: una entrada por cada paso de "Instrucciones Paso a Paso" de la guía y en el
+   mismo orden. Cada entrada es `[elemento, desplazamiento, resaltar, origen?, giro?]`:
    - `desplazamiento`: de dónde viene la pieza, es decir, el sentido contrario a como entra. Tiene
      que coincidir con el texto (desde arriba, por la ventana lateral, desde abajo de la plataforma).
    - `resaltar = false`: el elemento se dibuja transparente. Sirve para el contenedor donde entra
      algo (para que se vea lo de adentro) y para un subconjunto ya armado que se mueve junto.
-   - Cuarto campo opcional, `origen`: el desplazamiento de la pieza que recibe al elemento. La
-     flecha sale de ahí y no de la posición final. Sirve para algo que entra de costado en una pieza
-     que a su vez baja: la tuerca va en la ranura del brazo y no queda escondida adentro.
-   - Un paso sin piezas nuevas (cableado, puesta a punto) es una lista vacía y no tiene imagen.
-   - `vista_paso` dibuja primero lo opaco y después lo transparente: en la vista previa de OpenSCAD
-     una pieza transparente tapa lo que se dibuja después detrás de ella.
-3. **Subconjuntos**: si partes del aparato se arman por separado y después se unen, asignar cada
-   elemento a un grupo y declarar en qué paso se unen. Así una vista no muestra piezas que todavía no
-   se montaron en ese subconjunto.
-4. **Anclas**: un punto por elemento (o uno por tornillo de un grupo) donde se dibuja la flecha.
+   - `origen` (opcional): el desplazamiento de la pieza que recibe al elemento. La flecha sale de ahí
+     y el visor mueve el elemento en dos tramos (primero entra en la pieza, después bajan juntos).
+     Sirve para una tuerca que entra de costado en un brazo que baja.
+   - `giro` (opcional, solo para el visor): `[punto, eje, grados]`, un punto del eje en la posición
+     final, su dirección y el ángulo total. La pieza llega girando (una polea que se enrosca). Para
+     usarlo sin origen, el cuarto campo es `undef`.
+   - Un paso sin piezas nuevas (cableado, puesta a punto) es una lista vacía y no tiene imagen; el
+     visor muestra el conjunto armado.
+5. **Subconjuntos**: si partes del aparato se arman por separado y después se unen, `grupo(e, n)`
+   devuelve el subconjunto del elemento en el paso `n` y `"conjunto"` después de la unión. Así ni las
+   vistas ni el visor muestran piezas que todavía no se montaron en ese subconjunto. Sin
+   subconjuntos: `function grupo(e, n) = "conjunto";`.
+6. **Anclas**: un punto por elemento (o uno por tornillo de un grupo) donde se dibuja la flecha.
    Tiene que quedar **fuera** de cualquier pieza sólida, si no la flecha no se ve.
-5. Parámetro `paso_armado`: `0` dibuja el conjunto completo; `n` dibuja la vista del paso `n`; `-1`
-   lista los pasos con `echo("PASO;n;elementos")` para `scripts/capturas_armado.sh`.
-6. `assert(len(pasos) == <pasos de la guía>)` y que todo elemento de la tabla exista en el catálogo.
+7. `assert(len(pasos) == <pasos de la guía>)`. La biblioteca comprueba que cada elemento de la tabla
+   exista y que los campos tengan el formato correcto.
 
 ## 5. Lista de control
 
@@ -106,4 +116,5 @@ El ensamblaje es la fuente de las imágenes de armado de la web (skill `web-arma
 - [ ] Las holguras salen de `holgura("…")`.
 - [ ] El ensamblaje no tiene choques y sus `assert` pasan.
 - [ ] Hay un STL por pieza y todos coinciden con los parámetros actuales.
-- [ ] La tabla `pasos` tiene un paso por cada instrucción de la guía y las vistas se revisaron.
+- [ ] El ensamblaje usa `armado_comun.scad` y la tabla `pasos` tiene un paso por cada instrucción de
+  la guía; las vistas explotadas y el visor 3D se revisaron.

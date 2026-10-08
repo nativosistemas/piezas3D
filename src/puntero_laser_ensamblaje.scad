@@ -5,7 +5,8 @@
 //              comprados como volúmenes simplificados (motores, poleas 20T, correas, 608ZZ, pernos,
 //              tornillería, placas, power bank y láser) y comprueba con asserts los choques y
 //              alineaciones que no se pueden ver en una pieza sola (V-07, V-09 y separaciones entre
-//              piezas). Con paso_armado > 0 dibuja la vista explotada de ese paso de la guía.
+//              piezas). Las vistas explotadas y los datos del visor 3D salen de la tabla de pasos con la
+//              biblioteca común armado_comun.scad.
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
@@ -18,12 +19,13 @@ use <puntero_laser_polea_altitud.scad>
 use <puntero_laser_carro_motor.scad>
 use <puntero_laser_separador_azimut.scad>
 use <puntero_laser_tapa_electronica.scad>
+include <armado_comun.scad>
 
 // Ángulo de altura del láser en la vista previa
 angulo_altura = 45; // [-10:1:95]
 // Dibujar la tapa (transparente)
 ver_tapa = true;
-// Paso de armado de la guía (0 = conjunto completo; -1 = listar los pasos con echo)
+// Paso de armado de la guía (0 = conjunto completo; -1 = datos de los pasos con echo)
 paso_armado = 0; // [-1:1:18]
 // Dibujar solo este elemento, en su posición final y sin color (para exportar mallas al visor 3D)
 solo_elemento = "";
@@ -46,18 +48,21 @@ x_pie_brazo = semiancho_interior_horquilla + espesor_brazo/2;
 x_tapa_c = (x_tapa0 + x_tapa1)/2;
 y_orejas_tapa = [y_tapa0 - largo_oreja_tapa/2, y_tapa1 + largo_oreja_tapa/2];
 
-// Vista explotada: transparencia de lo ya armado, distancia y color de las flechas
+// Vista explotada: transparencia de lo ya armado, color y grosor de las flechas
 alfa_contexto = 0.22;
 color_flecha = "OrangeRed";
+diametro_flecha = 2.4;
 // Dirección del láser al entrar en la cuna (desde atrás, a lo largo de su eje)
 v_laser = [0, -cos(angulo_altura), -sin(angulo_altura)];
+// La polea y su perno se enroscan en la tuerca del muñón +X: dos vueltas alrededor del eje de altura
+// (solo el visor 3D muestra el giro)
+giro_enroscar = [[0, 0, z_eje_altura], [1, 0, 0], 720];
 
 // Pasos de armado de la guía (docs/puntero_laser_guia.md, sección 2): por cada paso, la lista de
-// [elemento, desplazamiento de la vista explotada, resaltar, origen de la flecha (opcional)]. Los
-// elementos de pasos anteriores del mismo subconjunto se dibujan transparentes. "resaltar = false" mueve
-// o muestra un elemento sin destacarlo. El origen opcional es el desplazamiento de la pieza que lo recibe:
-// la flecha va de la pieza a ese punto (una tuerca que entra de costado en un brazo que baja). Un paso
-// sin elementos (cableado, puesta a punto) no tiene vista.
+// [elemento, desplazamiento de la vista explotada, resaltar, origen (opcional), giro (opcional)]
+// (formato en armado_comun.scad). "resaltar = false" mueve o muestra un elemento sin destacarlo; el
+// origen es el desplazamiento de la pieza que lo recibe (una tuerca que entra de costado en un brazo
+// que baja). Un paso sin elementos (cableado, puesta a punto) no tiene vista.
 // Subconjuntos: la base, la horquilla (brazos + cuna + polea) y la plataforma se arman por separado.
 // La horquilla se atornilla a la plataforma (paso 8), la plataforma se monta sobre la base (paso 11) y
 // el carro del motor de altura, armado en el banco, va al brazo motor en el paso 13.
@@ -82,7 +87,9 @@ pasos = [
     /* 5 */ [["brazo_motor", [50, 0, 0], true], ["brazo_cable", [-50, 0, 0], true],
              ["608_brazo_motor", [50, 0, 0], false], ["608_brazo_cable", [-50, 0, 0], false]],
     /* 6 */ [["arandela_cable", [-30, 0, 0], true], ["autoblocante_cable", [-50, 0, 0], true]],
-    /* 7 */ [["tuerca_munon", -130*v_laser, true], ["polea_alt", [45, 0, 0], true], ["perno_alt_motor", [45, 0, 0], true]],
+    /* 7 */ [["tuerca_munon", -130*v_laser, true],
+             ["polea_alt", [45, 0, 0], true, undef, giro_enroscar],
+             ["perno_alt_motor", [45, 0, 0], true, undef, giro_enroscar]],
     /* 8 */ concat([["plataforma", [0, 0, 0], false]],
                    [for (e = grupo_horquilla) [e, [0, 0, 50], e == "brazo_motor" || e == "brazo_cable"]],
                    [["tuercas_pie_motor", [35, 0, 50], true, [0, 0, 50]],
@@ -134,50 +141,17 @@ assert(y_conducto + ancho_canal/2 + pared_canal + distancia_min_cable_correa
 assert(altura_max_canal < altura_libre_central, "altura_max_canal: el conducto invade la altura libre central");
 // La parte ancha del brazo del motor no se mete en la tapa
 assert(x_cara_ext_brazo < x_tapa0, "espesor_brazo: el brazo del motor se mete en la tapa");
-// Tabla de pasos: un paso por cada instrucción de la guía y solo elementos conocidos
+// Tabla de pasos: un paso por cada instrucción de la guía (los elementos los comprueba armado())
 assert(len(pasos) == 18, "pasos: la guía tiene 18 pasos de armado");
-for (p = pasos, e = p)
-    assert(contiene(elementos, e[0]), str("pasos: elemento desconocido '", e[0], "'"));
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
-if (solo_elemento != "")
-    elemento(solo_elemento);
-else if (paso_armado == -1) {
-    for (n = [1:len(pasos)]) echo(str("PASO;", n, ";", len(pasos[n - 1])));
-    // Datos para el visor 3D: tabla de pasos y color de cada elemento
-    echo(str("PASOS;", pasos));
-    for (e = elementos) echo(str("COLOR;", e, ";", color_elemento(e)));
-}
-else if (paso_armado == 0)
-    ensamblaje_principal();
-else
-    vista_paso(paso_armado);
+armado();
 
 module ensamblaje_principal() {
     for (e = elementos) if (e != "tapa") color(color_elemento(e)) elemento(e);
     if (ver_tapa) %elemento("tapa");
     %laser_en(-10) laser();
     %laser_en(95) laser();
-}
-
-// Vista explotada del paso n: lo armado antes, transparente; lo nuevo, desplazado y con una flecha
-module vista_paso(n) {
-    assert(n >= 1 && n <= len(pasos), str("paso_armado=", n, ": la guía tiene ", len(pasos), " pasos"));
-    actual = pasos[n - 1];
-    nombres_actual = [for (e = actual) e[0]];
-    grupos_actual = [for (e = actual) grupo(e[0], n)];
-    previos = unicos([for (k = [0:1:n - 2]) for (e = pasos[k]) e[0]]);
-    // Lo opaco primero: en la vista previa, una pieza transparente tapa lo que se dibuja después detrás de ella
-    for (e = actual) if (e[2]) {
-        color(color_elemento(e[0])) translate(e[1]) elemento(e[0]);
-        origen = len(e) > 3 ? e[3] : [0, 0, 0];
-        if (norm(e[1] - origen) > 0)
-            for (p = anclas(e[0])) color(color_flecha) flecha(p + origen + 0.85*(e[1] - origen),
-                                                              p + origen + 0.2*(e[1] - origen));
-    }
-    for (e = actual) if (!e[2]) color(color_elemento(e[0]), alfa_contexto) translate(e[1]) elemento(e[0]);
-    for (e = previos) if (!contiene(nombres_actual, e) && contiene(grupos_actual, grupo(e, n)))
-        color(color_elemento(e), alfa_contexto) elemento(e);
 }
 
 // Subconjunto al que pertenece un elemento en el paso n
@@ -349,9 +323,6 @@ function anclas(e) =
     [[0, 0, 0]];
 
 // --- UTILIDADES ---
-function contiene(lista, x) = len([for (e = lista) if (e == x) 0]) > 0;
-function unicos(lista) = [for (i = [0:1:len(lista) - 1]) if (!contiene([for (j = [0:1:i - 1]) lista[j]], lista[i])) lista[i]];
-
 // Gira un objeto definido en el sistema del láser (eje del láser sobre +Y, eje de altura en el origen)
 module laser_en(a) {
     translate([0, 0, z_eje_altura]) rotate([a, 0, 0]) children();
@@ -361,18 +332,6 @@ module cuna_en_conjunto() {
 }
 module laser() {
     rotate([-90, 0, 0]) translate([0, 0, -l_trasero]) cylinder(d = diametro_laser, h = largo_laser);
-}
-
-// Flecha de la vista explotada, de "desde" a "hasta"
-module flecha(desde, hasta) {
-    v = hasta - desde;
-    largo = norm(v);
-    punta = min(8, largo/2);
-    if (largo > 1)
-        translate(desde) rotate([0, acos(v[2]/largo), atan2(v[1], v[0])]) {
-            cylinder(d = 2.4, h = largo - punta, $fn = 16);
-            translate([0, 0, largo - punta]) cylinder(d1 = 6, d2 = 0, h = punta, $fn = 16);
-        }
 }
 
 module rodamiento_608() {

@@ -11,13 +11,15 @@ Lee (fuentes únicas):
     docs/tipo_cambio.csv       cotización del dólar con fuente y fecha
     docs/img/                  capturas de las piezas
     exports/<diseño>_*.stl     para contar las piezas impresas
+    src/<diseño>_ensamblaje.scad   si existe, el diseño tiene visor 3D (scripts/generar_visor.py)
 
 Escribe:
     docs/<diseño>_guia.md      el bloque entre <!-- BOM:inicio --> y <!-- BOM:fin -->
     <carpeta_de_la_spec>/web/index.html
+    <carpeta_de_la_spec>/web/armado_3d.html   visor 3D, si el diseño tiene ensamblaje
 
-Con --comprobar no escribe nada y termina con 1 si la guía o la web no están al día.
-Solo usa la biblioteca estándar de Python.
+Con --comprobar no escribe nada y termina con 1 si la guía, la web o el visor no están al día.
+Solo usa la biblioteca estándar de Python (el visor usa además OpenSCAD).
 """
 import argparse
 import csv
@@ -28,6 +30,8 @@ import os
 import re
 import sys
 import unicodedata
+
+import generar_visor
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 COLUMNAS_BOM = ["categoria", "texto_cantidad", "descripcion", "cantidad", "unidad", "paquete",
@@ -383,9 +387,10 @@ Tipo de cambio: US$ 1 = {ars(ars_por_usd)} ({html.escape(tc['tipo'])},
     return resumen + tabla, total_compra, len(sin_precio)
 
 
-def vistas_de_pasos(html_txt, diseno, docs, prefijo):
+def vistas_de_pasos(html_txt, diseno, docs, prefijo, visor):
     """Agrega a cada paso de armado su vista explotada (docs/img/<diseño>_paso_NN.png, generada por
-    scripts/capturas_armado.sh). Los pasos sin imagen quedan solo con texto."""
+    scripts/capturas_armado.sh). Los pasos sin imagen quedan solo con texto. Si el diseño tiene visor
+    3D, cada vista lleva un enlace a ese paso del visor y la lista, uno al visor completo."""
     apertura = '<ol class="pasos">'
     inicio = html_txt.find(apertura)
     if inicio < 0:
@@ -406,13 +411,18 @@ def vistas_de_pasos(html_txt, diseno, docs, prefijo):
                 src = html.escape(f"{prefijo}/img/{nombre}")
                 inserciones.append((pos, f'<figure class="vista-paso"><a href="{src}" target="_blank">'
                                          f'<img src="{src}" alt="Paso {numero}: cómo se colocan las piezas" '
-                                         f'loading="lazy"></a></figure>'))
+                                         f'loading="lazy"></a></figure>'
+                                         + (f'<a class="ver-3d" href="armado_3d.html#paso-{numero}">Ver en 3D</a>'
+                                            if visor else "")))
     if not inserciones:
         return html_txt
     for pos, texto in reversed(inserciones):
         html_txt = html_txt[:pos] + texto + html_txt[pos:]
     leyenda = ('<p class="leyenda">En cada imagen, las piezas de ese paso van en color y la flecha naranja '
                "muestra hacia dónde se mueven para colocarlas. Lo que ya está armado se ve transparente.</p>")
+    if visor:
+        leyenda += ('<p><a class="boton-3d" href="armado_3d.html">Ver el armado en 3D</a> '
+                    "<span class=\"fuente\">Las piezas se mueven hasta su lugar y se puede girar la vista.</span></p>")
     return html_txt[:inicio] + leyenda + html_txt[inicio:]
 
 
@@ -469,7 +479,7 @@ def generar(diseno, carpeta_spec):
 
     html_cuerpo = clase_lista(html_cuerpo, "primeros-pasos", "primeros")
     html_cuerpo = clase_lista(html_cuerpo, "instrucciones-paso-a-paso", "pasos")
-    html_cuerpo = vistas_de_pasos(html_cuerpo, diseno, docs, md.prefijo_img)
+    html_cuerpo = vistas_de_pasos(html_cuerpo, diseno, docs, md.prefijo_img, tiene_visor(diseno))
     html_cuerpo = re.sub(r'(<h2 id="[^"]*consejos[^"]*">.*?</h2>\s*(?:<p>.*?</p>\s*)*)<ul',
                          r'\1<ul class="consejos"', html_cuerpo, count=1, flags=re.S)
     # Cada h2 abre una sección
@@ -525,6 +535,8 @@ def main():
             sys.exit("Desactualizado: " + ", ".join(desactualizados)
                      + f". Ejecutar: scripts/generar_web.py {a.diseno} {a.carpeta_spec}")
         print("✓ La guía y la web están al día")
+        if tiene_visor(a.diseno):
+            sys.exit(generar_visor.ejecutar(a.diseno, a.carpeta_spec, comprobar_solo=True))
         return
     if guia != guia_actual:
         with open(ruta_guia, "w", encoding="utf-8") as f:
@@ -534,6 +546,12 @@ def main():
     with open(ruta_web, "w", encoding="utf-8") as f:
         f.write(pagina)
     print(f"✓ Web generada: {rel(ruta_web)}")
+    if tiene_visor(a.diseno):
+        sys.exit(generar_visor.ejecutar(a.diseno, a.carpeta_spec))
+
+
+def tiene_visor(diseno):
+    return os.path.isfile(os.path.join(RAIZ, "src", f"{diseno}_ensamblaje.scad"))
 
 
 PLANTILLA = r"""<!doctype html>
@@ -621,6 +639,9 @@ ol.pasos label.marca { float: right; margin-left: 12px; font-size: .82rem; color
 .progreso { font-weight: 600; color: var(--acento); }
 .leyenda { font-size: .9rem; color: var(--suave); border-left: 4px solid #e8512c; padding-left: 12px; }
 figure.vista-paso { margin: 12px 0 0; }
+a.ver-3d { display: inline-block; margin-top: 6px; font-size: .9rem; }
+a.boton-3d { display: inline-block; background: var(--acento); color: var(--superficie); border-radius: 8px;
+  padding: 8px 14px; font-weight: 600; text-decoration: none; }
 figure.vista-paso img { display: block; width: 100%; max-width: 560px; border-radius: 8px;
   border: 1px solid var(--borde); background: #f8f8f8; }
 ul.consejos { list-style: none; padding: 0; display: grid; gap: 10px; }

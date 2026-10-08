@@ -14,13 +14,14 @@ Responder y redactar siempre en español, incluidos los mensajes cortos de avanc
 | 1. Diseño y 3. Exportación | `pieza-openscad` | `src/<pieza>.scad` verificado y `exports/<pieza>.stl` |
 | 2. Simulación (si aplica) | `simulacion-freecad` | `simulation/<pieza>_fem.*` o justificación en el plan |
 | 4. Documentación | `guia-produccion` | `docs/<diseño>_guia.md` y `docs/<diseño>_bom.csv` |
-| 5. Web de armado | `web-armado` | `specs/<NNN-nombre>/web/index.html` |
+| 5. Web de armado | `web-armado` | `specs/<NNN-nombre>/web/index.html` y `armado_3d.html` (visor 3D) |
 | Diseños de varias piezas | `disenio-multipieza` | `_parametros.scad`, `_ensamblaje.scad` y tabla de pasos |
 
 - **Datos del proyecto**: `src/perfil_impresora.scad` (holguras y cama), `docs/<diseño>_bom.csv`
   (materiales y precios) y `docs/tipo_cambio.csv`.
-- **Automatización** en `scripts/`: `verificar_pieza.sh`, `capturas_armado.sh` y `generar_web.py`.
-  Un hook valida cada `src/*.scad` al editarlo y devuelve las advertencias.
+- **Automatización** en `scripts/`: `verificar_pieza.sh`, `capturas_armado.sh`, `generar_web.py` y
+  `generar_visor.py` (lo llama `generar_web.py`). Las vistas explotadas y el visor salen de
+  `src/armado_comun.scad`. Un hook valida cada `src/*.scad` al editarlo y devuelve las advertencias.
 - **Flujo de Spec Kit**: `/speckit-specify` → `/speckit-clarify` (opcional) → `/speckit-plan` →
   `/speckit-tasks` → `/speckit-implement`.
 
