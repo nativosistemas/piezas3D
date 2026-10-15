@@ -574,6 +574,7 @@ PLANTILLA = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{titulo}}</title>
+<link rel="icon" href="data:,">
 <style>
 :root {
   --fondo: #f6f5f1; --superficie: #ffffff; --texto: #1d1f21; --suave: #5b6168; --borde: #dcdad3;
