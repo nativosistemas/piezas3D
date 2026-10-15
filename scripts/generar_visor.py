@@ -10,7 +10,9 @@ Normalmente no se llama a mano: lo llama scripts/generar_web.py cuando el diseñ
 
 Lee (fuentes únicas):
     src/<diseño>_ensamblaje.scad   tabla de pasos, colores, contexto y cada elemento (vía OpenSCAD,
-                                   con la biblioteca src/armado_comun.scad)
+                                   con la biblioteca src/armado_comun.scad); si declara
+                                   articulaciones, también la simulación de funcionamiento (ejes,
+                                   motores, emisores, objetivos y fotogramas de los deformables)
     docs/<diseño>_guia.md          título y texto de cada paso
     scripts/plantilla_visor.html   la página
     scripts/vendor/three-0.160.0/  motor 3D, incrustado para funcionar sin internet
@@ -21,7 +23,9 @@ Escribe:
 La página guarda una huella de las fuentes del ensamblaje: si no cambiaron, se reutilizan sus mallas
 y no se ejecuta OpenSCAD. Con --comprobar no escribe nada y termina con 1 si el visor no está al día
 (tampoco ejecuta OpenSCAD). Con --reexportar exporta todo aunque la huella coincida.
-Contrato: specs/005-visor-armado-3d/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
+Con simulación, comprueba que cada articulación gire sus piezas como OpenSCAD en los extremos del rango.
+Contratos: specs/005-visor-armado-3d/contracts/scripts.md y
+specs/007-simulacion-funcionamiento/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
 """
 import argparse
 import base64
@@ -29,6 +33,7 @@ import concurrent.futures
 import glob
 import hashlib
 import json
+import math
 import os
 import re
 import struct
@@ -40,9 +45,10 @@ RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 OPENSCAD = os.path.join(RAIZ, ".tools", "bin", "openscad")
 PLANTILLA = os.path.join(RAIZ, "scripts", "plantilla_visor.html")
 MOTOR = os.path.join(RAIZ, "scripts", "vendor", "three-0.160.0")
-VERSION = 1             # formato de los datos incrustados
+VERSION = 2             # formato de los datos incrustados (2: simulación de funcionamiento)
 FN_VISOR = 32           # resolución de las curvas en el visor (las STL de impresión usan 64)
 TAMANO_MAXIMO = 10e6    # bytes por diseño (FR-005)
+TOLERANCIA_PIVOTE = 0.5  # mm entre la pieza girada por el visor y la de OpenSCAD (007, SC-002)
 RE_DATOS = re.compile(r'<script type="application/json" id="datos-visor">(.*?)</script>', re.S)
 
 
@@ -105,16 +111,14 @@ def openscad(ensamblaje, salida, *definiciones):
         args += ["-D", d]
     r = subprocess.run(args + ["-o", salida, ensamblaje], capture_output=True, text=True)
     avisos = [l for l in r.stderr.splitlines() if l.startswith(("ERROR", "WARNING"))]
-    return r.returncode == 0 and not avisos, "\n".join(avisos) or r.stderr[-500:]
+    return r.returncode == 0 and not avisos, "\n".join(avisos) or r.stderr[-500:], r.stderr
 
 
 def datos_del_ensamblaje(ensamblaje, carpeta):
-    eco = os.path.join(carpeta, "pasos.echo")
-    ok, error = openscad(ensamblaje, eco, "paso_armado=-1")
+    # Se exporta CSG y se leen los echo de la consola: con salida .echo, OpenSCAD no evalúa los assert
+    ok, error, texto = openscad(ensamblaje, os.path.join(carpeta, "pasos.csg"), "paso_armado=-1")
     if not ok:
         raise Fallo(f"{rel(ensamblaje)} falló con paso_armado=-1:\n{error}")
-    with open(eco, encoding="utf-8") as f:
-        texto = f.read()
     vector = lambda s: json.loads(re.sub(r"\bundef\b", "null", s.replace('\\"', '"')))
     m = re.search(r'^ECHO: "PASOS;(.*)"$', texto, re.M)
     if not m:
@@ -128,40 +132,170 @@ def datos_del_ensamblaje(ensamblaje, carpeta):
                            for en in entradas],
               "contexto": contextos.get(n, [])}
              for n, entradas in enumerate(tabla, start=1)]
-    return pasos, colores
+    lista = lambda clave: vector(m.group(1)) if (m := re.search(rf'^ECHO: "{clave};(.*)"$', texto, re.M)) else []
+    return pasos, colores, simulacion_declarada(lista)
+
+
+def simulacion_declarada(lista):
+    """Las listas de la simulación (contrato 007) como objetos; None si no hay articulaciones.
+    Los fotogramas de los deformables se agregan al exportar. `variable` solo la usa el generador."""
+    arts = lista("ARTICULACIONES")
+    if not arts:
+        return None
+    return {
+        "articulaciones": [{"nombre": a[0], "etiqueta": a[1], "elementos": a[2], "punto": a[3], "eje": a[4],
+                            "rango": a[5], "reposo": a[6], "padre": a[7], "velocidad": a[8], "variable": a[9],
+                            "pasos_por_grado": a[10]} for a in arts],
+        "motores": [{"nombre": m[0], "etiqueta": m[1], "elementos": m[2], "punto": m[3], "eje": m[4],
+                     "articulacion": m[5], "relacion": m[6], "montado_en": m[7]} for m in lista("MOTORES")],
+        "emisores": [{"nombre": e[0], "etiqueta": e[1], "punto": e[2], "direccion": e[3], "color": e[4],
+                      "articulacion": e[5], "largo": e[6]} for e in lista("EMISORES")],
+        "objetivos": [{"nombre": o[0], "valores": o[1]} for o in lista("OBJETIVOS")],
+        "deformables": {d[0]: {"articulacion": d[1], "angulos": d[2]} for d in lista("DEFORMABLES")},
+        "transparentes": lista("TRANSPARENTES"),
+    }
+
+
+def elementos_de_simulacion(sim):
+    """Elementos rígidos que la simulación necesita además de los de los pasos."""
+    return ({e for a in sim["articulaciones"] for e in a["elementos"]}
+            | {e for m in sim["motores"] for e in m["elementos"]} | set(sim["transparentes"]))
+
+
+def vertices(ensamblaje, carpeta, nombre, *definiciones):
+    """Exporta un elemento (con definiciones extra, p. ej. el ángulo de una articulación) y devuelve
+    las coordenadas x, y, z de sus triángulos, o (None, error)."""
+    sufijo = "".join("_" + re.sub(r"\W", "", d.replace("-", "m")) for d in definiciones)
+    stl = os.path.join(carpeta, f"{nombre}{sufijo}.stl")
+    ok, error, _ = openscad(ensamblaje, stl, f'solo_elemento="{nombre}"', f"$fn={FN_VISOR}", *definiciones)
+    if not ok or not os.path.isfile(stl):
+        return None, error
+    with open(stl, encoding="utf-8") as f:
+        coords = [float(v) for linea in f if linea.lstrip().startswith("vertex") for v in linea.split()[1:4]]
+    return (coords, None) if coords else (None, "la malla está vacía")
+
+
+def base64_de(coords):
+    return base64.b64encode(struct.pack(f"<{len(coords)}f", *coords)).decode()
 
 
 def malla(ensamblaje, carpeta, nombre):
     """Exporta un elemento y devuelve las posiciones de sus triángulos en Float32, en base64."""
-    stl = os.path.join(carpeta, f"{nombre}.stl")
-    ok, error = openscad(ensamblaje, stl, f'solo_elemento="{nombre}"', f"$fn={FN_VISOR}")
-    if not ok or not os.path.isfile(stl):
-        return nombre, None, error
-    with open(stl, encoding="utf-8") as f:
-        coords = [float(v) for linea in f if linea.lstrip().startswith("vertex") for v in linea.split()[1:4]]
-    if not coords:
-        return nombre, None, "la malla está vacía"
-    return nombre, base64.b64encode(struct.pack(f"<{len(coords)}f", *coords)).decode(), None
+    coords, error = vertices(ensamblaje, carpeta, nombre)
+    return nombre, base64_de(coords) if coords else None, error
+
+
+# --- Simulación: giros como los hace el visor ---
+def girar(coords, punto, eje, grados):
+    """Gira puntos (lista plana x, y, z) alrededor de la recta (punto, eje), regla de la mano derecha."""
+    n = math.sqrt(sum(c * c for c in eje))
+    kx, ky, kz = (c / n for c in eje)
+    c, s = math.cos(math.radians(grados)), math.sin(math.radians(grados))
+    px, py, pz = punto
+    salida = []
+    for i in range(0, len(coords), 3):
+        x, y, z = coords[i] - px, coords[i + 1] - py, coords[i + 2] - pz
+        punto_eje = kx * x + ky * y + kz * z
+        cx, cy, cz = ky * z - kz * y, kz * x - kx * z, kx * y - ky * x
+        salida += [x * c + cx * s + kx * punto_eje * (1 - c) + px,
+                   y * c + cy * s + ky * punto_eje * (1 - c) + py,
+                   z * c + cz * s + kz * punto_eje * (1 - c) + pz]
+    return salida
+
+
+def cadena(sim, nombre):
+    """Articulaciones de una a la raíz (la propia primero)."""
+    arts = {a["nombre"]: a for a in sim["articulaciones"]}
+    resultado = []
+    while nombre:
+        resultado.append(arts[nombre])
+        nombre = arts[nombre]["padre"]
+    return resultado
+
+
+def marco_de(sim, elemento):
+    """Articulación cuyo marco lleva al elemento ("" si es fijo)."""
+    for a in sim["articulaciones"]:
+        if elemento in a["elementos"]:
+            return a["nombre"]
+    for m in sim["motores"]:
+        if elemento in m["elementos"]:
+            return m["montado_en"]
+    return ""
+
+
+def comprobar_pivotes(ensamblaje, carpeta, sim, mallas, hilos):
+    """Para cada articulación con variable, exporta en los extremos del rango los elementos rígidos que
+    lleva (directa o indirectamente) y compara sus cajas con las mallas del catálogo giradas como en el
+    visor. El giro propio de los motores no se compara: OpenSCAD no lo dibuja."""
+    tareas = []
+    for a in sim["articulaciones"]:
+        if not a["variable"] or not a["rango"]:
+            continue
+        for e in sorted(mallas):
+            m = marco_de(sim, e)
+            if m and a in cadena(sim, m):
+                for angulo in a["rango"]:
+                    tareas.append((a, e, angulo, m))
+    if not tareas:
+        return
+    caja = lambda c: [f(c[i::3]) for f in (min, max) for i in range(3)]
+    resultados = hilos.map(lambda t: vertices(ensamblaje, carpeta, t[1], f"{t[0]['variable']}={t[2]}"), tareas)
+    for (a, e, angulo, m), (coords, error) in zip(tareas, resultados):
+        if error:
+            raise Fallo(f"No se pudo exportar '{e}' con {a['variable']}={angulo}: {error}")
+        crudo = base64.b64decode(mallas[e])
+        girada = list(struct.unpack(f"<{len(crudo) // 4}f", crudo))
+        for b in cadena(sim, m):
+            if b["nombre"] == a["nombre"]:
+                girada = girar(girada, b["punto"], b["eje"], angulo - b["reposo"])
+        diferencia = max(abs(x - y) for x, y in zip(caja(girada), caja(coords)))
+        if diferencia > TOLERANCIA_PIVOTE:
+            raise Fallo(f"La articulación '{a['nombre']}' no coincide con OpenSCAD: '{e}' a {angulo:g}° difiere "
+                        f"{diferencia:.1f} mm (revisar punto, eje y reposo)")
 
 
 def exportar(ensamblaje):
     with tempfile.TemporaryDirectory(prefix="visor_") as carpeta:
-        pasos, colores = datos_del_ensamblaje(ensamblaje, carpeta)
-        nombres = sorted({en["e"] for p in pasos for en in p["entradas"]} | {e for p in pasos for e in p["contexto"]})
+        pasos, colores, sim = datos_del_ensamblaje(ensamblaje, carpeta)
+        de_pasos = {en["e"] for p in pasos for en in p["entradas"]} | {e for p in pasos for e in p["contexto"]}
+        solo_simulacion = elementos_de_simulacion(sim) - de_pasos if sim else set()
+        nombres = sorted(de_pasos | solo_simulacion)
         donde = {}
         for n, p in enumerate(pasos, start=1):
             for e in [en["e"] for en in p["entradas"]] + p["contexto"]:
                 donde.setdefault(e, n)
+        fotogramas = [(e, a, d) for e, d in (sim["deformables"].items() if sim else [])
+                      for a in d["angulos"]]
+        variable = {a["nombre"]: a["variable"] for a in sim["articulaciones"]} if sim else {}
         elementos, errores = {}, []
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() or 2) as hilos:
+            cuadros = hilos.map(lambda t: vertices(ensamblaje, carpeta, t[0],
+                                                   f"{variable[t[2]['articulacion']]}={t[1]}"), fotogramas)
             for nombre, b64, error in hilos.map(lambda e: malla(ensamblaje, carpeta, e), nombres):
+                if error and nombre in solo_simulacion and error == "la malla está vacía":
+                    continue  # elemento que el diseño no dibuja con estos parámetros (p. ej. sin lastre)
                 if error:
-                    errores.append(f"No se pudo exportar '{nombre}' (paso {donde[nombre]}): {error}")
+                    errores.append(f"No se pudo exportar '{nombre}' (paso {donde.get(nombre, '-')}): {error}")
                 else:
                     elementos[nombre] = {"color": colores.get(nombre, ""), "malla": b64}
-        if errores:
-            raise Fallo("\n".join(errores))
-    return pasos, elementos
+            for (e, a, d), (coords, error) in zip(fotogramas, cuadros):
+                if error:
+                    errores.append(f"No se pudo exportar '{e}' con {variable[d['articulacion']]}={a}: {error}")
+                else:
+                    d.setdefault("fotogramas", []).append({"a": a, "malla": base64_de(coords)})
+            if errores:
+                raise Fallo("\n".join(errores))
+            if sim:
+                for e, d in sim["deformables"].items():
+                    d["color"] = colores.get(e, "")
+                comprobar_pivotes(ensamblaje, carpeta, sim, {e: v["malla"] for e, v in elementos.items()}, hilos)
+    if sim:
+        for a in sim["articulaciones"]:
+            del a["variable"]
+        for d in sim["deformables"].values():
+            del d["angulos"]
+    return pasos, elementos, sim
 
 
 # --- Página ---
@@ -193,6 +327,15 @@ def validar(datos, pagina):
             el = datos["elementos"].get(e)
             if not el or not el["color"] or not el["malla"]:
                 raise Fallo(f"El elemento '{e}' (paso {p['n']}) no tiene color o malla")
+    sim = datos.get("simulacion")
+    if sim:
+        for e in sorted(elementos_de_simulacion(sim)):
+            el = datos["elementos"].get(e)
+            if el and (not el["color"] or not el["malla"]):
+                raise Fallo(f"El elemento '{e}' de la simulación no tiene color o malla")
+        for e, d in sim["deformables"].items():
+            if not d.get("fotogramas") or not all(f["malla"] for f in d["fotogramas"]):
+                raise Fallo(f"El deformable '{e}' no tiene todos sus fotogramas")
     tamano = len(pagina.encode("utf-8"))
     if tamano > TAMANO_MAXIMO:
         pesados = sorted(datos["elementos"].items(), key=lambda kv: -len(kv[1]["malla"]))[:5]
@@ -216,13 +359,15 @@ def generar(diseno, carpeta_spec, reexportar=False):
                  and actual.get("huella") == firma)
     if reutiliza:
         pasos = [{"entradas": p["entradas"], "contexto": p["contexto"]} for p in actual["pasos"]]
-        elementos = actual["elementos"]
+        elementos, sim = actual["elementos"], actual.get("simulacion")
     else:
-        pasos, elementos = exportar(ensamblaje)
+        pasos, elementos, sim = exportar(ensamblaje)
     if len(pasos) != len(guia):
         raise Fallo(f"La tabla de pasos de {rel(ensamblaje)} tiene {len(pasos)} pasos y la guía {len(guia)}")
     datos = {"version": VERSION, "diseno": diseno, "huella": firma, "fn": FN_VISOR,
              "pasos": [{**g, **p} for g, p in zip(guia, pasos)], "elementos": elementos}
+    if sim:
+        datos["simulacion"] = sim
     pagina = armar_pagina(titulo, datos)
     return ruta, pagina, datos, actual, reutiliza
 
@@ -257,8 +402,10 @@ def ejecutar(diseno, carpeta_spec, comprobar_solo=False, reexportar=False):
         os.makedirs(os.path.dirname(ruta), exist_ok=True)
         with open(ruta, "w", encoding="utf-8") as f:
             f.write(pagina)
+        sim = datos.get("simulacion")
+        articulaciones = f"{len(sim['articulaciones'])} articulaciones, " if sim else ""
         print(f"✓ Visor 3D: {rel(ruta)} ({tamano/1e6:.1f} MB, {len(datos['elementos'])} piezas, "
-              f"{'mallas reutilizadas' if reutiliza else 'mallas exportadas'})")
+              f"{articulaciones}{'mallas reutilizadas' if reutiliza else 'mallas exportadas'})")
         return 0
     except Fallo as error:
         sys.stdout.flush()

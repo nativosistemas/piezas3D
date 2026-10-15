@@ -26,7 +26,7 @@ use <puntero_laser_grapa_cable.scad>
 include <armado_comun.scad>
 
 // Ángulo de altura del láser en la vista previa
-angulo_altura = 45; // [-10:1:95]
+angulo_altura = 45; // [-10:1:95] (angulo_altura_min a angulo_altura_max)
 // Dibujar la tapa (transparente)
 ver_tapa = true;
 // Paso de armado de la guía (0 = conjunto completo; -1 = datos de los pasos con echo)
@@ -168,8 +168,8 @@ armado();
 module ensamblaje_principal() {
     for (e = elementos) if (e != "tapa") color(color_elemento(e)) elemento(e);
     if (ver_tapa) %elemento("tapa");
-    %laser_en(-10) laser();
-    %laser_en(95) laser();
+    %laser_en(angulo_altura_min) laser();
+    %laser_en(angulo_altura_max) laser();
 }
 
 // Subconjunto al que pertenece un elemento en el paso n
@@ -190,6 +190,42 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
              "placas", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
              "cable_laser"];
+
+// --- SIMULACIÓN DE FUNCIONAMIENTO (visor 3D) ---
+// Contrato: specs/007-simulacion-funcionamiento/contracts/ensamblaje.md. La base queda fija; el resto
+// gira en azimut; la cuna y lo montado en ella giran en altura. Cada articulación parte del ángulo con
+// que el catálogo dibuja sus elementos (reposo).
+largo_haz_simulacion = 600;   // largo del haz del láser en el visor
+elementos_altura = ["cuna", "laser", "pila_falsa", "tapa_trasera", "lastre", "grapa", "tuerca_munon",
+                    "perno_alt_cable", "perno_alt_motor", "polea_alt"];
+elementos_motor_azimut = ["polea20_az"];
+elementos_motor_altura = ["polea20_alt"];
+elementos_azimut = [for (e = elementos)
+    if (!contiene(grupo_base, e) && !contiene(elementos_altura, e) && !contiene(elementos_motor_azimut, e)
+        && !contiene(elementos_motor_altura, e) && e != "cable_laser") e];
+// Azimut positivo: horario visto desde arriba; altura positiva: sube el láser (tabla del firmware)
+articulaciones = [
+    ["azimut", "Azimut", elementos_azimut, [0, 0, 0], [0, 0, -1], undef, 0, "",
+     velocidad_max_eje, "", pasos_por_grado],
+    ["altura", "Altura", elementos_altura, [0, 0, z_eje_altura], [1, 0, 0],
+     [angulo_altura_min, angulo_altura_max], angulo_altura, "azimut",
+     velocidad_max_eje, "angulo_altura", pasos_por_grado]];
+// Con correa, las dos poleas giran en el mismo sentido. En altura la polea grande gira con la cuna
+// respecto de la horquilla (+); en azimut está fija a la base y el motor viaja con la plataforma (−).
+motores = [
+    ["motor_azimut", "Motor de azimut", elementos_motor_azimut, [0, distancia_centros, z_sup], [0, 0, 1],
+     "azimut", -relacion_correa, "azimut"],
+    ["motor_altura", "Motor de altura", elementos_motor_altura, [x_inicio_cubo20_alt, 0, z_eje_motor_alt],
+     [1, 0, 0], "altura", relacion_correa, "azimut"]];
+// La punta del láser está en +l_delantero sobre el eje del láser (+Y de su sistema)
+emisores = [["laser", "Láser", en_conjunto([0, l_delantero, 0], angulo_altura),
+             [0, cos(angulo_altura), sin(angulo_altura)], "Lime", "altura", largo_haz_simulacion]];
+// Objetivos de demostración del modo automático: [nombre, [azimut, altura]]
+objetivos = [["Norte bajo", [0, 10]], ["Este", [90, 35]], ["Cenit", [180, 88]], ["Oeste alto", [270, 60]],
+             ["Casi norte", [350, 25]], ["Noreste", [10, 45]]];
+// El cable va en parte con el láser y en parte con la horquilla: se exporta cada 5° de altura
+deformables = [["cable_laser", "altura", [for (a = [angulo_altura_min:5:angulo_altura_max]) a]]];
+transparentes_simulacion = ["tapa"];
 
 function color_elemento(e) =
     e == "base" ? "SlateGray" : e == "plataforma" ? "DarkSeaGreen" :
@@ -237,9 +273,10 @@ module elemento(e) {
     if (e == "autoblocante_az") translate([0, 0, z_camara_sup - alto_arandela_contacto - m8_autoblocante_alto])
         tuerca(m8_tuerca_ec, m8_autoblocante_alto);
     // Lado motor: tuerca en el muñón +X y perno desde afuera, con la cabeza en el hexágono de la polea
+    // (gira con ella)
     if (e == "tuerca_munon") laser_en(angulo_altura) translate([diametro_interior_cuna/2, 0, 0]) rotate([0, 90, 0])
         tuerca(m8_tuerca_ec, m8_tuerca_alto);
-    if (e == "perno_alt_motor") translate([0, 0, z_eje_altura]) rotate([0, 90, 0]) {
+    if (e == "perno_alt_motor") translate([0, 0, z_eje_altura]) rotate([angulo_altura, 0, 0]) rotate([0, 90, 0]) {
         translate([0, 0, x_punta_perno_alt_motor]) cylinder(d = rod608_d_int, h = largo_perno_alt_motor);
         translate([0, 0, x_punta_perno_alt_motor + largo_perno_alt_motor]) tuerca(m8_cabeza_ec, m8_cabeza_alto);
     }

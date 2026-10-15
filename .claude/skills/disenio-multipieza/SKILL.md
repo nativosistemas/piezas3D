@@ -108,6 +108,23 @@ La maquinaria común está en `src/armado_comun.scad`; el contrato completo, en
    Tiene que quedar **fuera** de cualquier pieza sólida, si no la flecha no se ve.
 7. `assert(len(pasos) == <pasos de la guía>)`. La biblioteca comprueba que cada elemento de la tabla
    exista y que los campos tengan el formato correcto.
+8. **Partes móviles (opcional)**: si el aparato tiene ejes que se mueven, declararlos para que el
+   visor tenga la pestaña Funcionamiento. Contrato y ejemplo:
+   `specs/007-simulacion-funcionamiento/contracts/ensamblaje.md`; modelo: el puntero láser.
+   - `articulaciones`: qué elementos mueve cada eje, alrededor de qué recta, en qué rango, sobre qué
+     otro eje va montado y a qué velocidad. Los elementos que no están en ninguna quedan fijos.
+   - El **reposo** es el ángulo con que `elemento(e)` dibuja esas piezas (en el puntero láser, la
+     variable `angulo_altura`). Si el catálogo dibuja el eje con una variable, nombrarla en el campo
+     `variable`: el generador exporta las piezas en los extremos del rango y falla si no coinciden con
+     el giro declarado. Toda pieza que en la realidad gira con el eje tiene que girar también en el
+     catálogo.
+   - `motores`: la relación lleva **signo** y se mide respecto de la articulación donde va montado el
+     motor. Con correa, las dos poleas giran en el mismo sentido; si la polea grande está fija y el
+     motor viaja con la articulación, la relación es negativa.
+   - `emisores` (un láser), `objetivos` (apuntes del modo automático) y `deformables` (un cable que
+     cambia de forma: se exporta en varios ángulos).
+   - Los números salen de los parámetros (relación de la correa, rango, velocidad). Las listas se
+     declaran después de `elementos`: OpenSCAD no ve una variable definida más abajo.
 
 ## 5. Lista de control
 

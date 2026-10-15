@@ -176,6 +176,10 @@ radio_hueco_gt2 = 0.555;
 // Relación interna real del 28BYJ-48
 relacion_motor = (32/9)*(22/11)*(26/9)*(31/10);
 medios_pasos_motor = 64;
+medios_pasos_por_segundo_max = 900;   // velocidad máxima fiable del 28BYJ-48 (tabla del firmware)
+// Rango de la altura: fuera de él, el láser choca (V-07)
+angulo_altura_min = -10;
+angulo_altura_max = 95;
 
 // ---------- Constantes internas de diseño ----------
 espesor_carro = 3;
@@ -345,6 +349,7 @@ relacion_correa = dientes_polea_conducida/dientes_polea_motriz;
 pasos_por_vuelta_eje = relacion_motor*medios_pasos_motor*relacion_correa;
 pasos_por_grado = pasos_por_vuelta_eje/360;
 grados_por_paso = 360/pasos_por_vuelta_eje;
+velocidad_max_eje = medios_pasos_por_segundo_max/pasos_por_grado;   // °/s en el eje
 h_dentado = ancho_correa + 1;
 
 // Cuna y horquilla
@@ -561,7 +566,8 @@ choques_tapa = [for (z = [zona_cubo, zona_brazo_motor, zona_brazo_cable, zona_mo
 choques_conducto = [for (z = [zona_cubo, zona_brazo_motor, zona_brazo_cable, zona_motor_azimut, zona_tope_azimut])
     if (solapan(z, zona_conducto, 0)) z[5]];
 
-// Barrido del láser (V-07): secciones del láser y del tubo de la cuna cada 5 mm, de −10° a 95°.
+// Barrido del láser (V-07): secciones del láser y del tubo de la cuna cada 5 mm, de angulo_altura_min a
+// angulo_altura_max.
 // Cada sección es un disco perpendicular al eje del láser: su punto más bajo está r·|cos a| por
 // debajo del centro y se extiende r·|sin a| en Y.
 // La cola es la tapa trasera impresa (006): radio r_funda_ext, y r_tapa_trasera en la sección de los
@@ -575,7 +581,7 @@ function secciones(a) = concat(
     [for (t = [-largo_tubo_cuna/2:5:largo_tubo_cuna/2]) [t*cos(a), altura_eje + t*sin(a), radio_exterior_cuna + sobre_anillo_colim]],
     [[-l_trasero*cos(a), altura_eje - l_trasero*sin(a), r_funda_ext],
      [l_delantero*cos(a), altura_eje + l_delantero*sin(a), diametro_laser/2]]);
-function holgura_barrido_zona(z) = minimo(concat([999], [for (a = [-10:1:95]) for (s = secciones(a))
+function holgura_barrido_zona(z) = minimo(concat([999], [for (a = [angulo_altura_min:1:angulo_altura_max]) for (s = secciones(a))
     if (z[0] < s[2] && z[2] > -s[2] && s[0] + s[2]*abs(sin(a)) > z[1] && s[0] - s[2]*abs(sin(a)) < z[3])
         s[1] - s[2]*abs(cos(a)) - z[4]]));
 choques_barrido = [for (z = concat(zonas_todas, [[-ancho_tope/2, r_tope_int, ancho_tope/2, r_tope_ext, alto_tope, "tope"]]))
@@ -726,7 +732,7 @@ assert(len(choques_conducto) == 0, str("espesor_plataforma=", espesor_plataforma
 // V-07 (planta): nada de la plataforma entra en el barrido del láser
 assert(len(choques_barrido) == 0,
     str("holgura_barrido=", holgura_barrido, ": el láser toca ", choques_barrido,
-        " en algún ángulo entre −10° y 95°; aumente holgura_barrido o revise el centro de masa"));
+        " en algún ángulo entre ", angulo_altura_min, "° y ", angulo_altura_max, "°; aumente holgura_barrido o revise el centro de masa"));
 // V-10: el eje del motor entra en el cubo de la polea 20T
 assert(eje_en_cubo20 >= 5,
     str("espesor_plataforma=", espesor_plataforma, ": el eje del motor entra solo ", eje_en_cubo20,
