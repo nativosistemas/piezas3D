@@ -390,7 +390,8 @@ Tipo de cambio: US$ 1 = {ars(ars_por_usd)} ({html.escape(tc['tipo'])},
 def vistas_de_pasos(html_txt, diseno, docs, prefijo, visor):
     """Agrega a cada paso de armado su vista explotada (docs/img/<diseño>_paso_NN.png, generada por
     scripts/capturas_armado.sh). Los pasos sin imagen quedan solo con texto. Si el diseño tiene visor
-    3D, cada vista lleva un enlace a ese paso del visor y la lista, uno al visor completo."""
+    3D (visor: sus datos; None si no tiene), cada vista lleva un enlace a ese paso del visor y la lista,
+    uno al visor completo y, si el visor tiene simulación, uno a su modo Funcionamiento."""
     apertura = '<ol class="pasos">'
     inicio = html_txt.find(apertura)
     if inicio < 0:
@@ -413,16 +414,19 @@ def vistas_de_pasos(html_txt, diseno, docs, prefijo, visor):
                                          f'<img src="{src}" alt="Paso {numero}: cómo se colocan las piezas" '
                                          f'loading="lazy"></a></figure>'
                                          + (f'<a class="ver-3d" href="armado_3d.html#paso-{numero}">Ver en 3D</a>'
-                                            if visor else "")))
+                                            if visor is not None else "")))
     if not inserciones:
         return html_txt
     for pos, texto in reversed(inserciones):
         html_txt = html_txt[:pos] + texto + html_txt[pos:]
     leyenda = ('<p class="leyenda">En cada imagen, las piezas de ese paso van en color y la flecha naranja '
                "muestra hacia dónde se mueven para colocarlas. Lo que ya está armado se ve transparente.</p>")
-    if visor:
+    if visor is not None:
         leyenda += ('<p><a class="boton-3d" href="armado_3d.html">Ver el armado en 3D</a> '
                     "<span class=\"fuente\">Las piezas se mueven hasta su lugar y se puede girar la vista.</span></p>")
+    if visor and visor.get("simulacion"):
+        leyenda += ('<p><a class="boton-3d" href="armado_3d.html#funcionamiento">Ver cómo funciona</a> '
+                    "<span class=\"fuente\">Se mueven los ejes y se ve girar cada motor.</span></p>")
     return html_txt[:inicio] + leyenda + html_txt[inicio:]
 
 
@@ -479,7 +483,7 @@ def generar(diseno, carpeta_spec):
 
     html_cuerpo = clase_lista(html_cuerpo, "primeros-pasos", "primeros")
     html_cuerpo = clase_lista(html_cuerpo, "instrucciones-paso-a-paso", "pasos")
-    html_cuerpo = vistas_de_pasos(html_cuerpo, diseno, docs, md.prefijo_img, tiene_visor(diseno))
+    html_cuerpo = vistas_de_pasos(html_cuerpo, diseno, docs, md.prefijo_img, visor_de(diseno, carpeta_spec))
     html_cuerpo = re.sub(r'(<h2 id="[^"]*consejos[^"]*">.*?</h2>\s*(?:<p>.*?</p>\s*)*)<ul',
                          r'\1<ul class="consejos"', html_cuerpo, count=1, flags=re.S)
     # Cada h2 abre una sección
@@ -525,6 +529,11 @@ def main():
     p.add_argument("--comprobar", action="store_true", help="no escribir; fallar si algo no está al día")
     a = p.parse_args()
 
+    # El visor va primero: la web enlaza su modo Funcionamiento si el visor tiene simulación
+    if not a.comprobar and tiene_visor(a.diseno):
+        codigo = generar_visor.ejecutar(a.diseno, a.carpeta_spec)
+        if codigo:
+            sys.exit(codigo)
     guia_actual, guia, ruta_guia, ruta_web, pagina = generar(a.diseno, a.carpeta_spec)
     web_actual = open(ruta_web, encoding="utf-8").read() if os.path.isfile(ruta_web) else None
     rel = lambda r: os.path.relpath(r, RAIZ)
@@ -546,12 +555,17 @@ def main():
     with open(ruta_web, "w", encoding="utf-8") as f:
         f.write(pagina)
     print(f"✓ Web generada: {rel(ruta_web)}")
-    if tiene_visor(a.diseno):
-        sys.exit(generar_visor.ejecutar(a.diseno, a.carpeta_spec))
 
 
 def tiene_visor(diseno):
     return os.path.isfile(os.path.join(RAIZ, "src", f"{diseno}_ensamblaje.scad"))
+
+
+def visor_de(diseno, carpeta_spec):
+    """None si el diseño no tiene visor; si no, los datos del visor generado ({} si todavía no existe)."""
+    if not tiene_visor(diseno):
+        return None
+    return generar_visor.datos_de_pagina(os.path.join(RAIZ, carpeta_spec, "web", "armado_3d.html")) or {}
 
 
 PLANTILLA = r"""<!doctype html>

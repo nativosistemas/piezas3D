@@ -37,8 +37,38 @@
   button:disabled { opacity: .4; cursor: default; }
   input[type=range] { width: 100%; accent-color: var(--acento); }
   .piezas { margin: 0; padding-left: 18px; color: var(--suave); font-size: 13px; }
+  .piezas li { border-radius: 6px; padding: 1px 4px; cursor: default; }
+  .piezas li:hover, .piezas li:focus { background: #eef5f2; color: var(--texto); outline: none; }
+  .tipo { display: inline-block; font-size: 11px; line-height: 1.5; padding: 0 6px; margin-right: 4px;
+          border: 1px solid var(--borde); border-radius: 9px; white-space: nowrap; color: var(--texto); }
+  .tipo-impresa { background: #e4f1ec; }
+  .tipo-comprada { background: #f6ecdc; }
+  #etiqueta { position: absolute; z-index: 2; pointer-events: none; max-width: 280px; padding: 6px 10px;
+              background: var(--panel); border: 1px solid var(--borde); border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, .15); font-size: 13px; line-height: 1.35; }
+  #etiqueta[hidden] { display: none; }
+  #etiqueta strong { display: block; }
+  #etiqueta span { color: var(--suave); font-size: 12px; }
   .leyenda { font-size: 12px; color: var(--suave); border-top: 1px solid var(--borde); padding-top: 10px;
              margin: auto 0 0; }
+  .pestanas { display: flex; gap: 6px; }
+  .pestanas[hidden] { display: none; }
+  .pestanas button { flex: 1; min-height: 38px; }
+  .pestanas button[aria-selected=true] { background: var(--acento); border-color: var(--acento); color: #fff; }
+  .panel { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+  .panel[hidden] { display: none; }
+  .eje { display: grid; grid-template-columns: minmax(0, 1fr) 84px; gap: 4px 10px; align-items: center; }
+  .eje label { font-weight: 600; font-size: 14px; }
+  .eje input[type=range] { grid-column: 1 / -1; }
+  .eje input[type=number] { font: inherit; width: 84px; padding: 4px 6px; border: 1px solid var(--borde);
+                            border-radius: 8px; text-align: right; }
+  .eje .dato { grid-column: 1 / -1; color: var(--suave); font-size: 12px; margin-top: -4px; }
+  .motores { margin: 0; padding-left: 18px; font-size: 13px; color: var(--suave); }
+  button.encendido { background: #2e9e3e; border-color: #2e9e3e; color: #fff; }
+  .automatico { display: grid; grid-template-columns: minmax(0, 1fr) 90px; gap: 8px; }
+  .automatico select { width: 90px; }
+  .estado { margin: 0; font-size: 13px; min-height: 1.5em; }
+  .aviso { color: #a4511f; font-weight: 600; }
   @media (max-width: 760px) {
     main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55vh auto; height: auto; }
     aside { border-left: 0; border-top: 1px solid var(--borde); }
@@ -53,13 +83,19 @@
   <div id="escena">
     <div id="sin3d"><p>Este navegador no puede mostrar el visor 3D.<br>
       <a href="index.html#instrucciones-paso-a-paso">Ver el armado con imágenes en la web</a></p></div>
-    <div id="ayuda">Arrastrar: girar · Rueda: acercar · Botón derecho o Mayús: desplazar</div>
+    <div id="ayuda">Arrastrar: girar · Rueda: acercar · Botón derecho o Mayús: desplazar · Puntero sobre una pieza: qué es</div>
+    <div id="etiqueta" role="status" hidden><strong id="etiqueta-nombre"></strong><span id="etiqueta-tipo"></span></div>
   </div>
   <aside>
     <div class="arriba">
       <a href="index.html#instrucciones-paso-a-paso">← Volver a la guía</a>
       <span id="progreso"></span>
     </div>
+    <div class="pestanas" id="pestanas" role="tablist" hidden>
+      <button id="pestana-armado" role="tab" aria-selected="true">Armado</button>
+      <button id="pestana-funcionamiento" role="tab" aria-selected="false">Funcionamiento</button>
+    </div>
+    <div class="panel" id="panel-armado">
     <select id="selector" aria-label="Ir a un paso"></select>
     <h1><span class="numero" id="numero"></span><span id="titulo"></span></h1>
     <p class="texto" id="texto"></p>
@@ -75,7 +111,28 @@
       <ul class="piezas" id="piezas"></ul>
     </div>
     <p class="leyenda">Las piezas nuevas van en color y se mueven hasta su lugar; lo que ya está armado se
-      ve transparente. Teclado: ← → para cambiar de paso, Espacio para repetir, Inicio para la vista inicial.</p>
+      ve transparente. Pasá el puntero (o tocá) una pieza para ver qué es. Teclado: ← → para cambiar de paso, Espacio para repetir, Inicio para la vista inicial.</p>
+    </div>
+    <div class="panel" id="panel-funcionamiento" hidden>
+      <h1>Funcionamiento</h1>
+      <p class="texto">Mové cada eje y mirá cómo gira su motor. Las marcas naranjas de las poleas muestran cuánto giran.</p>
+      <div id="ejes"></div>
+      <ul class="motores" id="motores"></ul>
+      <div id="emisores" class="controles"></div>
+      <div class="automatico" id="automatico">
+        <button id="auto">▶ Automático</button>
+        <select id="velocidad" aria-label="Velocidad del automático">
+          <option value="1">×1</option><option value="5">×5</option><option value="20">×20</option>
+        </select>
+      </div>
+      <p class="estado" id="estado-auto"></p>
+      <div class="controles">
+        <button id="reposo">Reposo</button>
+        <button id="inicial-sim">Vista inicial</button>
+      </div>
+      <p class="leyenda">Simulación cinemática: el cable y las correas se muestran aproximados; no se calculan
+        choques ni fuerzas. Pasá el puntero (o tocá) una pieza para ver qué es. Teclado: L enciende o apaga el láser, A el modo automático, Inicio la vista inicial.</p>
+    </div>
   </aside>
 </main>
 <script type="module">
@@ -116,6 +173,8 @@ function float32(b64) {
   return new Float32Array(bytes.buffer);
 }
 const piezas = {};
+const raizArmado = new THREE.Group();
+escena.add(raizArmado);
 for (const [nombre, el] of Object.entries(DATOS.elementos)) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(float32(el.malla), 3));
@@ -125,7 +184,8 @@ for (const [nombre, el] of Object.entries(DATOS.elementos)) {
                                                roughness: 0.65, metalness: 0.05 });
   const malla = new THREE.Mesh(geo, mat);
   malla.visible = false;
-  escena.add(malla);
+  malla.userData.elemento = nombre;
+  raizArmado.add(malla);
   piezas[nombre] = malla;
 }
 
@@ -213,6 +273,137 @@ function mostrarComo(m, opaco) {
   m.material.transparent = !opaco;
   m.material.opacity = opaco ? 1 : ALFA_ARMADO;
   m.material.depthWrite = opaco;
+  if (m === senalada) realzar(m);
+}
+
+// --- Identificación de piezas (specs/008-identificacion-componentes) ---
+// Nombre y tipo declarados en el ensamblaje; sin ellos, el identificador legible y sin tipo
+const TIPOS = { impresa: "🖨\uFE0F Impresa", comprada: "🛒 Comprada" };
+const nombreDe = e => DATOS.elementos[e]?.nombre || e.replaceAll("_", " ");
+const tipoDe = e => TIPOS[DATOS.elementos[e]?.tipo] ?? "";
+const escapar = texto => texto.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const COLOR_REALCE = new THREE.Color("#2f8fff");
+const ALFA_REALCE = 0.6;       // opacidad de una pieza atenuada mientras está señalada
+const TOQUE_MS = 500, TOQUE_PX = 6;
+const raycaster = new THREE.Raycaster();
+const mallasSim = [];          // piezas del modo Funcionamiento (rígidas y fotogramas de los deformables)
+let senalada = null;           // malla resaltada
+let puntero = null;            // { x, y, tactil } último punto señalado en el lienzo (coordenadas de la ventana)
+let pendiente = false;         // recalcular la selección en el próximo cuadro
+let arrastrando = false;       // la persona está moviendo la vista
+
+function realzar(m) {
+  m.material.emissive.copy(COLOR_REALCE);
+  m.material.emissiveIntensity = 0.55;
+  if (m.material.transparent) m.material.opacity = Math.max(m.material.opacity, ALFA_REALCE);
+}
+function resaltar(malla) {
+  if (malla === senalada) return;
+  soltar();
+  if (!malla) return;
+  senalada = malla;
+  realzar(malla);
+}
+// Quita el resalte: el emisivo vuelve a negro (nada más lo usa) y la opacidad a la de su estado
+function soltar() {
+  $("etiqueta").hidden = true;
+  if (!senalada) return;
+  const m = senalada.material;
+  m.emissive.setRGB(0, 0, 0);
+  m.emissiveIntensity = 1;
+  if (m.transparent) m.opacity = ALFA_ARMADO;
+  senalada = null;
+}
+
+// Piezas que se pueden señalar: solo las visibles del modo actual (ni el haz, ni las marcas, ni flechas)
+const seleccionables = () =>
+  (modo === "funcionamiento" ? mallasSim : Object.values(piezas)).filter(m => m.visible);
+
+// Pieza en un punto de la ventana: la opaca más cercana; si no hay, la atenuada más cercana
+function elegir(x, y) {
+  const r = renderer.domElement.getBoundingClientRect();
+  raycaster.setFromCamera(new THREE.Vector2((x - r.left) / r.width * 2 - 1, -(y - r.top) / r.height * 2 + 1), camara);
+  escena.updateMatrixWorld();
+  camara.updateMatrixWorld();   // la cámara no está en la escena
+  const cortes = raycaster.intersectObjects(seleccionables(), false);
+  return (cortes.find(c => !c.object.material.transparent) ?? cortes[0])?.object ?? null;
+}
+
+// Etiqueta junto al punto (x, y relativos a la escena), dentro del lienzo
+function mostrarEtiqueta(e, x, y) {
+  const etiqueta = $("etiqueta");
+  $("etiqueta-nombre").textContent = nombreDe(e);
+  $("etiqueta-tipo").textContent = tipoDe(e);
+  etiqueta.hidden = false;
+  const ancho = contenedor.clientWidth, alto = contenedor.clientHeight;
+  let izquierda = x + 14, arriba = y + 14;
+  if (izquierda + etiqueta.offsetWidth > ancho - 4) izquierda = x - 14 - etiqueta.offsetWidth;
+  if (arriba + etiqueta.offsetHeight > alto - 4) arriba = y - 14 - etiqueta.offsetHeight;
+  etiqueta.style.left = Math.max(4, Math.min(izquierda, ancho - 4 - etiqueta.offsetWidth)) + "px";
+  etiqueta.style.top = Math.max(4, Math.min(arriba, alto - 4 - etiqueta.offsetHeight)) + "px";
+}
+
+function senalarEn(x, y) {
+  const malla = elegir(x, y);
+  if (!malla) {
+    soltar();
+    if (puntero?.tactil) puntero = null;   // un toque en el fondo suelta
+    return;
+  }
+  resaltar(malla);
+  const r = contenedor.getBoundingClientRect();
+  mostrarEtiqueta(malla.userData.elemento, x - r.left, y - r.top);
+}
+
+// Mouse: señalar al moverse sin botones. Tacto o lápiz: un toque corto sin arrastre.
+// Mover la vista suelta la selección (los controles avisan con "start").
+const lienzo = renderer.domElement;
+let toque = null;
+lienzo.addEventListener("pointermove", ev => {
+  if (ev.pointerType !== "mouse" || ev.buttons) return;
+  puntero = { x: ev.clientX, y: ev.clientY, tactil: false };
+  pendiente = true;
+});
+lienzo.addEventListener("pointerleave", ev => {
+  if (ev.pointerType !== "mouse") return;
+  puntero = null;
+  soltar();
+});
+lienzo.addEventListener("pointerdown", ev => {
+  if (ev.pointerType !== "mouse") toque = { x: ev.clientX, y: ev.clientY, t: performance.now() };
+});
+lienzo.addEventListener("pointerup", ev => {
+  if (ev.pointerType === "mouse" || !toque) return;
+  const corto = performance.now() - toque.t < TOQUE_MS && Math.hypot(ev.clientX - toque.x, ev.clientY - toque.y) < TOQUE_PX;
+  toque = null;
+  if (!corto) return;
+  puntero = { x: ev.clientX, y: ev.clientY, tactil: true };
+  senalarEn(puntero.x, puntero.y);
+});
+controles.addEventListener("start", () => {
+  arrastrando = true;
+  soltar();
+  if (puntero?.tactil) puntero = null;
+});
+controles.addEventListener("end", () => { arrastrando = false; });
+
+// Lista del paso: señalar un renglón resalta su pieza (sin etiqueta: el nombre ya está ahí)
+const renglon = ev => ev.target.closest?.("li[data-e]");
+for (const tipo of ["pointerover", "focusin", "click"])
+  $("piezas").addEventListener(tipo, ev => { const li = renglon(ev); if (li) resaltar(piezas[li.dataset.e]); });
+for (const tipo of ["pointerout", "focusout"])
+  $("piezas").addEventListener(tipo, ev => { if (renglon(ev)) soltar(); });
+
+// Revisión: ?senalar=<elemento> resalta esa pieza con su etiqueta en el centro de su caja
+function senalarElemento(e) {
+  escena.updateMatrixWorld();
+  camara.updateMatrixWorld();
+  const malla = seleccionables().find(m => m.userData.elemento === e);
+  if (!malla) return;
+  if (!malla.geometry.boundingBox) malla.geometry.computeBoundingBox();
+  const p = malla.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(malla.matrixWorld).project(camara);
+  resaltar(malla);
+  mostrarEtiqueta(e, (p.x + 1) / 2 * contenedor.clientWidth, (1 - p.y) / 2 * contenedor.clientHeight);
 }
 
 function aplicar() {
@@ -231,12 +422,11 @@ function aplicar() {
     if (en.g) girar(m, en, t, hayOrigen);
   }
   $("tiempo").value = t;
+  pendiente = true;   // las piezas se movieron: la del puntero puede ser otra
 }
 
 // --- Pasos ---
-const legible = nombre => nombre.replaceAll("_", " ");
-const conNegritas = texto => texto
-  .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c])
+const conNegritas = texto => escapar(texto)
   .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
 for (const [i, p] of DATOS.pasos.entries()) {
@@ -247,6 +437,8 @@ for (const [i, p] of DATOS.pasos.entries()) {
 }
 
 function mostrarPaso(i, reproducir = true) {
+  soltar();
+  if (puntero?.tactil) puntero = null;
   indice = Math.max(0, Math.min(DATOS.pasos.length - 1, i));
   const paso = DATOS.pasos[indice];
   $("numero").textContent = paso.n;
@@ -256,7 +448,9 @@ function mostrarPaso(i, reproducir = true) {
   $("selector").value = indice;
   const nuevas = paso.entradas.filter(en => en.r);
   $("titulo-piezas").style.display = nuevas.length ? "" : "none";
-  $("piezas").innerHTML = nuevas.map(en => `<li>${legible(en.e)}</li>`).join("");
+  $("piezas").innerHTML = nuevas.map(en => `<li tabindex="0" data-e="${escapar(en.e)}">` +
+    (tipoDe(en.e) ? `<span class="tipo tipo-${DATOS.elementos[en.e].tipo}">${tipoDe(en.e)}</span>` : "") +
+    `${escapar(nombreDe(en.e))}</li>`).join("");
   $("anterior").disabled = indice === 0;
   $("siguiente").disabled = indice === DATOS.pasos.length - 1;
   $("repetir").disabled = $("tiempo").disabled = paso.entradas.length === 0;
@@ -276,6 +470,7 @@ $("inicial").onclick = vistaInicial;
 $("tiempo").oninput = e => { t = +e.target.value; reproduciendo = false; aplicar(); };
 addEventListener("keydown", e => {
   if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
+  if (modo === "funcionamiento") return teclaFuncionamiento(e);
   if (e.key === "ArrowRight") mostrarPaso(indice + 1);
   else if (e.key === "ArrowLeft") mostrarPaso(indice - 1);
   else if (e.key === " ") { t = 0; reproduciendo = DATOS.pasos[indice].entradas.length > 0; }
@@ -285,7 +480,8 @@ addEventListener("keydown", e => {
 });
 addEventListener("hashchange", () => {
   const m = location.hash.match(/^#paso-(\d+)$/);
-  if (m && indiceDePaso(+m[1]) >= 0) mostrarPaso(indiceDePaso(+m[1]));
+  if (m && indiceDePaso(+m[1]) >= 0) { cambiarModo("armado"); mostrarPaso(indiceDePaso(+m[1])); }
+  else if (location.hash === "#funcionamiento") cambiarModo("funcionamiento");
 });
 
 // Paso inicial: #paso-N (enlaces de la web) o ?paso=N&t=0.5 (revisión: congela ese momento)
@@ -297,15 +493,351 @@ vistaInicial();
 camaraLista = true;
 if (consulta.has("t")) { t = Math.min(1, Math.max(0, +consulta.get("t"))); reproduciendo = false; aplicar(); }
 
+// --- Funcionamiento: simulación de las partes móviles (specs/007-simulacion-funcionamiento) ---
+// Cada articulación es un par de grupos: el exterior se ubica en un punto del eje y gira; el interior
+// deshace la traslación, así sus hijos quedan en coordenadas del conjunto en reposo. Los hijos de una
+// articulación van en el interior de su padre; los motores, en el interior de su articulación de montaje.
+const SIM = DATOS.simulacion;
+const TIEMPO_APUNTANDO = 3;    // segundos con el láser encendido en cada objetivo
+const COLOR_MARCA = "OrangeRed";
+let modo = "armado";
+const raizSim = new THREE.Group();
+raizSim.visible = false;
+escena.add(raizSim);
+const valores = {}, emisorEncendido = {}, marcos = { "": { interior: raizSim } };
+let automatico = null;         // null (manual) o { estado: "moviendo" | "apuntando", i, resta }
+let multiplicador = 1;
+
+function articulacionComoGrupo(punto, padre) {
+  const exterior = new THREE.Group(), interior = new THREE.Group();
+  exterior.position.set(...punto);
+  interior.position.set(-punto[0], -punto[1], -punto[2]);
+  exterior.add(interior);
+  padre.add(exterior);
+  return { exterior, interior };
+}
+const grados = (v, decimales = 1) => ((Math.round(v * 10 ** decimales) / 10 ** decimales) || 0)
+  .toLocaleString("es-AR", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+const normalizar = v => ((v % 360) + 360) % 360;
+const diferenciaCorta = (desde, hasta) => ((hasta - desde) % 360 + 540) % 360 - 180;
+const material = (color, opaco) => new THREE.MeshStandardMaterial({
+  color: new THREE.Color().setStyle(color.toLowerCase()), roughness: 0.65, metalness: 0.05,
+  transparent: !opaco, opacity: opaco ? 1 : ALFA_ARMADO, depthWrite: opaco });
+
+// Vértices de una malla del catálogo como lista de Vector3 (para medir las poleas)
+function puntosDe(nombre) {
+  const p = piezas[nombre].geometry.attributes.position, lista = [];
+  for (let i = 0; i < p.count; i++) lista.push(new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)));
+  return lista;
+}
+
+// Marca de giro de un motor: una franja a lo largo del costado de la polea y una radial en cada cara
+function marcaDeGiro(motor, grupo) {
+  const eje = vec(motor.eje).normalize(), punto = vec(motor.punto);
+  let radio = 0, desde = Infinity, hasta = -Infinity;
+  for (const nombre of motor.elementos) for (const p of puntosDe(nombre)) {
+    const rel = p.sub(punto), largo = rel.dot(eje);
+    radio = Math.max(radio, rel.addScaledVector(eje, -largo).length());
+    desde = Math.min(desde, largo);
+    hasta = Math.max(hasta, largo);
+  }
+  const radial = new THREE.Vector3(1, 0, 0).cross(eje).lengthSq() < 0.01
+    ? new THREE.Vector3(0, 1, 0).cross(eje).normalize() : new THREE.Vector3(1, 0, 0).cross(eje).normalize();
+  const tangente = new THREE.Vector3().crossVectors(eje, radial);
+  const base = new THREE.Matrix4().makeBasis(radial, tangente, eje);
+  const mat = new THREE.MeshBasicMaterial({ color: COLOR_MARCA });
+  const franja = (ancho, alto, largo, centro) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, largo), mat);
+    m.quaternion.setFromRotationMatrix(base);
+    m.position.copy(punto).add(centro);
+    grupo.add(m);
+  };
+  const ancho = Math.max(1, radio * 0.16);
+  franja(0.8, ancho, hasta - desde + 0.4,
+         radial.clone().multiplyScalar(radio + 0.3).addScaledVector(eje, (desde + hasta) / 2));
+  for (const cara of [desde - 0.3, hasta + 0.3])
+    franja(radio, ancho, 0.6, radial.clone().multiplyScalar(radio / 2).addScaledVector(eje, cara));
+}
+
+// Halo del láser: degradado radial dibujado en un canvas (sin imágenes externas)
+function texturaHalo(color) {
+  const lienzo = document.createElement("canvas");
+  lienzo.width = lienzo.height = 64;
+  const g = lienzo.getContext("2d"), degradado = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  const c = new THREE.Color().setStyle(color.toLowerCase());
+  const rgb = `${Math.round(c.r * 255)}, ${Math.round(c.g * 255)}, ${Math.round(c.b * 255)}`;
+  degradado.addColorStop(0, "rgba(255, 255, 255, 1)");
+  degradado.addColorStop(0.25, `rgba(${rgb}, 0.9)`);
+  degradado.addColorStop(1, `rgba(${rgb}, 0)`);
+  g.fillStyle = degradado;
+  g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(lienzo);
+}
+
+// Haz de un emisor: núcleo, resplandor, halo en la salida y una luz tenue que tiñe lo cercano
+function haz(emisor, grupo) {
+  const dir = vec(emisor.direccion).normalize(), salida = vec(emisor.punto);
+  const color = new THREE.Color().setStyle(emisor.color.toLowerCase());
+  const conjunto = new THREE.Group();
+  for (const [radio, opacidad] of [[0.7, 0.95], [2.2, 0.28]]) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(radio, radio, emisor.largo, 12, 1, true),
+                             new THREE.MeshBasicMaterial({ color, transparent: true, opacity: opacidad,
+                                                           depthWrite: false }));
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    m.position.copy(salida).addScaledVector(dir, emisor.largo / 2);
+    conjunto.add(m);
+  }
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: texturaHalo(emisor.color), depthWrite: false,
+                                                           transparent: true }));
+  halo.scale.set(18, 18, 1);
+  halo.position.copy(salida).addScaledVector(dir, 1);
+  conjunto.add(halo);
+  const luz = new THREE.PointLight(color, 2000, 160, 2);
+  luz.position.copy(salida).addScaledVector(dir, 6);
+  conjunto.add(luz);
+  conjunto.visible = false;
+  grupo.add(conjunto);
+  return conjunto;
+}
+
+const haces = {}, fotogramas = {};
+const marcoDe = nombre => SIM.articulaciones.find(a => a.elementos.includes(nombre))?.nombre
+  ?? SIM.motores.find(m => m.elementos.includes(nombre))?.montado_en ?? "";
+const cajaConjunto = new THREE.Box3();
+const limitar = (a, v) => a.rango ? Math.min(a.rango[1], Math.max(a.rango[0], v)) : v;
+const vistaConjunto = () => encuadrar(cajaConjunto, direccion);
+
+if (SIM) {
+  // Articulaciones en orden de la cadena (cada padre antes que sus hijos)
+  const pendientes = [...SIM.articulaciones];
+  while (pendientes.length) {
+    const i = pendientes.findIndex(a => marcos[a.padre]);
+    const a = pendientes.splice(i, 1)[0];
+    marcos[a.nombre] = articulacionComoGrupo(a.punto, marcos[a.padre].interior);
+    valores[a.nombre] = a.reposo;
+  }
+  for (const m of SIM.motores) {
+    marcos["motor:" + m.nombre] = articulacionComoGrupo(m.punto, marcos[m.montado_en].interior);
+    marcaDeGiro(m, marcos["motor:" + m.nombre].interior);
+  }
+  // Piezas rígidas: el mismo catálogo del armado, en el marco que las lleva
+  for (const [nombre, original] of Object.entries(piezas)) {
+    if (SIM.deformables[nombre]) continue;
+    const motor = SIM.motores.find(m => m.elementos.includes(nombre));
+    const grupo = motor ? marcos["motor:" + motor.nombre] : marcos[marcoDe(nombre)];
+    const malla = new THREE.Mesh(original.geometry,
+                                 material(DATOS.elementos[nombre].color, !SIM.transparentes.includes(nombre)));
+    malla.userData.elemento = nombre;
+    mallasSim.push(malla);
+    grupo.interior.add(malla);
+    cajaConjunto.union(original.geometry.boundingBox);
+  }
+  // Deformables: una malla por ángulo, en el marco del padre de su articulación; se ve la más cercana
+  for (const [nombre, d] of Object.entries(SIM.deformables)) {
+    const art = SIM.articulaciones.find(a => a.nombre === d.articulacion);
+    fotogramas[nombre] = d.fotogramas.map(f => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(float32(f.malla), 3));
+      geo.computeVertexNormals();
+      const malla = new THREE.Mesh(geo, material(d.color, true));
+      malla.visible = false;
+      malla.userData.elemento = nombre;
+      mallasSim.push(malla);
+      marcos[art.padre].interior.add(malla);
+      return { a: f.a, malla };
+    });
+  }
+  for (const e of SIM.emisores) {
+    haces[e.nombre] = haz(e, marcos[e.articulacion].interior);
+    emisorEncendido[e.nombre] = false;
+  }
+  construirPanel();
+  $("pestanas").hidden = false;
+  $("pestana-armado").onclick = () => cambiarModo("armado");
+  $("pestana-funcionamiento").onclick = () => cambiarModo("funcionamiento");
+  aplicarSim();
+}
+
+// --- Panel ---
+function construirPanel() {
+  for (const a of SIM.articulaciones) {
+    const [min, max] = a.rango ?? [0, 360];
+    const fila = document.createElement("div");
+    fila.className = "eje";
+    fila.innerHTML = `<label for="eje-${a.nombre}">${a.etiqueta}</label>
+      <input type="number" id="num-${a.nombre}" min="${min}" max="${max}" step="0.1" aria-label="${a.etiqueta} en grados">
+      <input type="range" id="eje-${a.nombre}" min="${min}" max="${max}" step="0.1" aria-label="${a.etiqueta}">
+      <span class="dato" id="dato-${a.nombre}"></span>`;
+    $("ejes").appendChild(fila);
+    const fijar = v => { detenerAutomatico(); valores[a.nombre] = limitar(a, v); aplicarSim(); };
+    $("eje-" + a.nombre).oninput = e => fijar(+e.target.value);
+    $("num-" + a.nombre).onchange = e => fijar(+e.target.value);
+  }
+  for (const e of SIM.emisores) {
+    const boton = document.createElement("button");
+    boton.id = "emisor-" + e.nombre;
+    boton.onclick = () => { detenerAutomatico(); encender(e.nombre, !emisorEncendido[e.nombre]); };
+    $("emisores").appendChild(boton);
+  }
+  if (SIM.objetivos.length < 2) $("automatico").hidden = true;
+  $("auto").onclick = () => automatico ? detenerAutomatico() : iniciarAutomatico();
+  $("velocidad").onchange = e => { multiplicador = +e.target.value; mostrarEstado(); };
+  $("reposo").onclick = reposo;
+  $("inicial-sim").onclick = vistaConjunto;
+}
+
+function aplicarSim() {
+  pendiente = true;
+  for (const a of SIM.articulaciones)
+    marcos[a.nombre].exterior.quaternion.setFromAxisAngle(vec(a.eje).normalize(),
+                                                          (valores[a.nombre] - a.reposo) * Math.PI / 180);
+  for (const m of SIM.motores) {
+    const a = SIM.articulaciones.find(x => x.nombre === m.articulacion);
+    marcos["motor:" + m.nombre].exterior.quaternion.setFromAxisAngle(
+      vec(m.eje).normalize(), m.relacion * (valores[a.nombre] - a.reposo) * Math.PI / 180);
+  }
+  for (const [nombre, lista] of Object.entries(fotogramas)) {
+    const v = valores[SIM.deformables[nombre].articulacion];
+    const cercano = lista.reduce((x, y) => Math.abs(y.a - v) < Math.abs(x.a - v) ? y : x);
+    for (const f of lista) f.malla.visible = f === cercano;
+  }
+  for (const a of SIM.articulaciones) {
+    const v = valores[a.nombre], mostrado = a.rango ? v : normalizar(v);
+    $("eje-" + a.nombre).value = mostrado;
+    if (document.activeElement !== $("num-" + a.nombre)) $("num-" + a.nombre).value = mostrado.toFixed(1);
+    const rango = a.rango ? `rango ${grados(a.rango[0], 0)}° a ${grados(a.rango[1], 0)}°` : "vuelta completa";
+    const pasos = a.pasos_por_grado ? ` · ${Math.round(v * a.pasos_por_grado).toLocaleString("es-AR")} pasos` : "";
+    $("dato-" + a.nombre).textContent = `${grados(mostrado)}° · ${rango}${pasos}`;
+  }
+  $("motores").innerHTML = SIM.motores.map(m => {
+    const a = SIM.articulaciones.find(x => x.nombre === m.articulacion);
+    const giro = m.relacion * (valores[a.nombre] - a.reposo);
+    return `<li><strong>${m.etiqueta}</strong>: ${grados(giro)}° (${grados(giro / 360, 2)} vueltas), ` +
+           `${grados(Math.abs(m.relacion), 2)} vueltas por vuelta de ${a.etiqueta.toLowerCase()}</li>`;
+  }).join("");
+  for (const e of SIM.emisores) {
+    const boton = $("emisor-" + e.nombre);
+    boton.textContent = `${e.etiqueta}: ${emisorEncendido[e.nombre] ? "encendido" : "apagado"}`;
+    boton.classList.toggle("encendido", emisorEncendido[e.nombre]);
+    boton.setAttribute("aria-pressed", emisorEncendido[e.nombre]);
+  }
+}
+
+function encender(nombre, si) {
+  emisorEncendido[nombre] = si;
+  haces[nombre].visible = si;
+  aplicarSim();
+}
+const apagarTodo = () => { for (const e of SIM.emisores) encender(e.nombre, false); };
+
+function reposo() {
+  detenerAutomatico();
+  for (const a of SIM.articulaciones) valores[a.nombre] = a.reposo;
+  apagarTodo();
+}
+
+function cambiarModo(nuevo) {
+  if (!SIM || nuevo === modo) return;
+  modo = nuevo;
+  const sim = modo === "funcionamiento";
+  if (!sim) { detenerAutomatico(); apagarTodo(); }
+  soltar();
+  if (puntero?.tactil) puntero = null;
+  raizSim.visible = sim;
+  raizArmado.visible = !sim;
+  $("panel-armado").hidden = sim;
+  $("panel-funcionamiento").hidden = !sim;
+  $("progreso").style.visibility = sim ? "hidden" : "";
+  $("pestana-armado").setAttribute("aria-selected", !sim);
+  $("pestana-funcionamiento").setAttribute("aria-selected", sim);
+}
+
+function teclaFuncionamiento(e) {
+  const tecla = e.key.toLowerCase();
+  if (tecla === "l" && SIM.emisores.length) {
+    detenerAutomatico();
+    encender(SIM.emisores[0].nombre, !emisorEncendido[SIM.emisores[0].nombre]);
+  } else if (tecla === "a" && SIM.objetivos.length >= 2) automatico ? detenerAutomatico() : iniciarAutomatico();
+  else if (e.key === "Home") vistaConjunto();
+  else return;
+  e.preventDefault();
+}
+
+// --- Modo automático (data-model.md, sección 3) ---
+function iniciarAutomatico() {
+  apagarTodo();
+  automatico = { estado: "moviendo", i: 0, resta: 0 };
+  mostrarEstado();
+}
+function detenerAutomatico() {
+  if (!automatico) return;
+  automatico = null;
+  apagarTodo();
+  mostrarEstado();
+}
+function mostrarEstado() {
+  $("auto").textContent = automatico ? "■ Detener" : "▶ Automático";
+  $("auto").classList.toggle("principal", !!automatico);
+  if (!automatico) { $("estado-auto").textContent = ""; return; }
+  const objetivo = SIM.objetivos[automatico.i].nombre;
+  $("estado-auto").innerHTML = (automatico.estado === "moviendo" ? "Hacia: " : "Apuntando: ") +
+    `<strong>${objetivo}</strong>` + (multiplicador !== 1 ? ` · <span class="aviso">velocidad no real (×${multiplicador})</span>` : "");
+}
+
+function avanzarAutomatico(dt) {
+  if (!automatico) return;
+  if (automatico.estado === "apuntando") {
+    automatico.resta -= dt;
+    if (automatico.resta > 0) return;
+    apagarTodo();
+    automatico = { estado: "moviendo", i: (automatico.i + 1) % SIM.objetivos.length, resta: 0 };
+    mostrarEstado();
+    return;
+  }
+  // Cada articulación avanza hacia su valor a su velocidad máxima, como dos motores independientes
+  const objetivo = SIM.objetivos[automatico.i].valores;
+  let llegaron = true;
+  SIM.articulaciones.forEach((a, j) => {
+    const falta = a.rango ? objetivo[j] - valores[a.nombre] : diferenciaCorta(valores[a.nombre], objetivo[j]);
+    const paso = a.velocidad * multiplicador * dt;
+    if (Math.abs(falta) <= paso) valores[a.nombre] += falta;
+    else { valores[a.nombre] += Math.sign(falta) * paso; llegaron = false; }
+  });
+  if (llegaron) {
+    automatico = { estado: "apuntando", i: automatico.i, resta: TIEMPO_APUNTANDO };
+    for (const e of SIM.emisores) encender(e.nombre, true);
+    mostrarEstado();
+  }
+  aplicarSim();
+}
+
+// Modo inicial: #funcionamiento o ?modo=funcionamiento&<articulación>=<grados>&<emisor>=1&auto=1&vel=N
+if (SIM && (consulta.get("modo") === "funcionamiento" || location.hash === "#funcionamiento")) {
+  cambiarModo("funcionamiento");
+  for (const a of SIM.articulaciones)
+    if (consulta.has(a.nombre) && isFinite(+consulta.get(a.nombre))) valores[a.nombre] = limitar(a, +consulta.get(a.nombre));
+  for (const e of SIM.emisores) if (consulta.get(e.nombre) === "1") encender(e.nombre, true);
+  if ([1, 5, 20].includes(+consulta.get("vel"))) { multiplicador = +consulta.get("vel"); $("velocidad").value = multiplicador; }
+  if (consulta.get("auto") === "1" && SIM.objetivos.length >= 2) iniciarAutomatico();
+  aplicarSim();
+  vistaConjunto();
+}
+
+if (consulta.has("senalar")) senalarElemento(consulta.get("senalar"));
+
 const reloj = new THREE.Clock();
 renderer.setAnimationLoop(() => {
-  const dt = reloj.getDelta();
+  const dt = Math.min(reloj.getDelta(), 0.1);   // una pestaña en segundo plano no salta de golpe
+  if (modo === "funcionamiento") avanzarAutomatico(dt);
   if (reproduciendo) {
     t = Math.min(1, t + dt / DURACION);
     if (t >= 1) reproduciendo = false;
     aplicar();
   }
   controles.update();
+  // Una selección por cuadro como máximo: el puntero se movió o las piezas se movieron debajo de él
+  if (pendiente && puntero && !arrastrando) senalarEn(puntero.x, puntero.y);
+  pendiente = false;
   renderer.render(escena, camara);
 });
 </script>

@@ -92,6 +92,26 @@ en la mitad del movimiento (`t=0`: piezas separadas, como la captura):
 - Las capturas solo muestran un paso abierto directamente; para probar la navegación (el
   reencuadre al cambiar de paso), pedirle al usuario que lo recorra en su navegador.
 
+**Pestaña Funcionamiento** (si el ensamblaje declara partes móviles; skill `disenio-multipieza`,
+sección 4, punto 8). Al generar, la comprobación de pivotes ya comparó cada eje con OpenSCAD en sus
+extremos. Capturar con `?modo=funcionamiento&<eje>=<grados>&<emisor>=1` (p. ej.
+`?modo=funcionamiento&altura=95&azimut=120&laser=1`) y revisar:
+
+- Cada eje en sus topes: las piezas no se despegan y lo fijo no se mueve.
+- Cada motor gira según su correa y en el sentido correcto (marca naranja de la polea).
+- El haz sale de la punta del emisor en su dirección.
+- `&auto=1&vel=20` muestra el modo automático en marcha. Los tiempos reales (×1) los mide el
+  usuario en su navegador: el Edge sin ventana no avanza el reloj al ritmo real.
+
+**Nombres y selección** (si el ensamblaje declara `nombres_elementos`; skill `disenio-multipieza`,
+sección 4, punto 9). Agregar `&senalar=<elemento>` a una dirección de captura: la pieza se resalta
+y su etiqueta aparece en el centro de su caja (p. ej. `?paso=11&t=1&senalar=perno_az`). Revisar:
+
+- La lista "Piezas de este paso" muestra nombres (no identificadores) con su marca de tipo.
+- La etiqueta de una pieza chica (tornillería) y la de una pieza atenuada del contexto.
+- Pasar el puntero, arrastrar y tocar no se prueban con capturas: pedirle al usuario que lo pruebe
+  en su navegador.
+
 Revisar la página en un navegador. Captura sin abrir ventanas (fuera del sandbox, con el Edge de
 Windows):
 
@@ -99,7 +119,9 @@ Windows):
 "/mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" --headless=new --disable-gpu --hide-scrollbars --window-size=1280,5000 --screenshot="$(wslpath -w "$PWD/.tools/tmp/web.png")" "$(wslpath -w "$PWD/specs/<NNN-nombre>/web/index.html")"
 ```
 
-- El Edge sin ventana no baja de 492 px de ancho: no sirve para ver el diseño de un celular.
+- El Edge sin ventana no baja de 492 px de ancho. Para ver el diseño de un celular, abrir una página
+  temporal junto a la web con `<iframe src="armado_3d.html" style="width:360px;height:1400px">`,
+  capturarla con `--allow-file-access-from-files` y borrarla después.
 - No respeta los anclajes (`#seccion`): para ver una sección, hacer una copia temporal que oculte
   las demás con CSS y borrarla después.
 
@@ -111,5 +133,6 @@ Windows):
 - [ ] El tipo de cambio es del mismo período que los precios.
 - [ ] Las vistas explotadas se revisaron una por una.
 - [ ] Si el diseño tiene ensamblaje, el visor 3D se generó y se revisó sin red (`t=0` contra cada
-  captura y los pasos con origen).
+  captura y los pasos con origen), los nombres de las piezas y, si tiene partes móviles, la
+  pestaña Funcionamiento.
 - [ ] La página se revisó en un navegador.

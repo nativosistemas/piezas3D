@@ -71,6 +71,11 @@ module ensamblaje_principal() {
 
 // --- CATÁLOGO DE ELEMENTOS (posición final en el conjunto) ---
 elementos = ["caja", "pilas", "tapa"];
+// Nombre y tipo de cada elemento para el visor 3D (contrato: specs/008-identificacion-componentes/
+// contracts/ensamblaje.md)
+nombres_elementos = [["caja", "Caja", "impresa"],
+                     ["pilas", str("Pila AA (", cantidad_pilas, ")"), "comprada"],
+                     ["tapa", "Tapa", "impresa"]];
 
 // Sin subconjuntos: todo se arma sobre la caja
 function grupo(e, n) = "conjunto";

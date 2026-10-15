@@ -6,6 +6,8 @@
 
 **Estado**: Implementada (pendiente de las pruebas físicas)
 
+**Modificada por**: [006-laser-alimentacion-externa](../006-laser-alimentacion-externa/spec.md) (el láser va sin batería, alimentado desde el power bank a través del relé y un regulador)
+
 **Entrada**: Descripción del usuario: "Aparato que tiene un láser para señalar una estrella en la
 esfera celeste. El aparato se coloca en el trípode de un telescopio. Tiene un ESP32 que maneja la
 lógica de cómo se mueven los motores o se enciende el láser. El láser es un 303 para astronomía. Los

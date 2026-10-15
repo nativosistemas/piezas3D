@@ -17,13 +17,9 @@ largo_rejilla = 15;
 paso_rejilla = 6;
 z_rejilla = 14;
 margen_rejilla = 8;
-ancho_usb_esp32 = 12;
-alto_usb_esp32 = 9;
-margen_usb_esp32 = 2;
 ancho_entrada_cable = 8;
 alto_entrada_cable = 6;
 ancho_ranura_interruptor = d_interruptor + 2;
-y_entrada_motor_az = (y_sob0 + y_sob1)/2;   // entra por la pared −X a la altura del hueco del sobrante
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
 ensamblaje_principal();
@@ -89,14 +85,16 @@ module rejillas_ventilacion() {
                     rotate([s*45, 0, 0]) cube([largo_rejilla/3, ancho_rejilla, 3*pared_tapa], center = true);
 }
 
-// Abertura para el conector USB del ESP32 (extremo −Y de su celda). El borde inferior (que queda
-// arriba al imprimir la tapa boca abajo) termina a dos aguas a 45°: sin puentes de más de 10 mm.
+// Abertura para el enchufe USB del ESP32 (extremo −Y de su celda), centrada en su conector y del
+// tamaño de la funda más la holgura (009). El borde inferior (que queda arriba al imprimir la tapa boca
+// abajo) termina a dos aguas a 45°: sin puentes de más de 10 mm.
 module abertura_usb() {
-    z0 = elevacion_esp32 - margen_usb_esp32;
-    translate([(x_col_b0 + x_col_b1)/2, y_tapa0 + pared_tapa + 1, 0]) rotate([90, 0, 0])
+    z0 = z_usb_esp32 - alto_abertura_usb/2;
+    z1 = z_usb_esp32 + alto_abertura_usb/2;
+    translate([x_esp32_c, y_tapa0 + pared_tapa + 1, 0]) rotate([90, 0, 0])
         linear_extrude(height = pared_tapa + 2)
-            polygon([[-ancho_usb_esp32/2, z0 + alto_usb_esp32], [ancho_usb_esp32/2, z0 + alto_usb_esp32],
-                     [ancho_usb_esp32/2, z0], [0, z0 - ancho_usb_esp32/2], [-ancho_usb_esp32/2, z0]]);
+            polygon([[-ancho_abertura_usb/2, z1], [ancho_abertura_usb/2, z1],
+                     [ancho_abertura_usb/2, z0], [0, z0 - ancho_abertura_usb/2], [-ancho_abertura_usb/2, z0]]);
 }
 
 // Ranura abierta desde abajo para la palanca del interruptor (la tapa sale sin desmontarlo)
@@ -109,7 +107,7 @@ module ranura_interruptor() {
 module entradas_cables() {
     translate([x_tapa0 - 1, y_conducto - ancho_canal/2 - pared_canal - 1, -1])
         cube([pared_tapa + 2, ancho_canal + 2*pared_canal + 2, altura_max_canal + 2]);
-    for (y = [0, y_entrada_motor_az])
+    for (y = [y_entrada_motor_alt, y_entrada_motor_az])
         translate([x_tapa0 - 1, y - ancho_entrada_cable/2, -1])
             cube([pared_tapa + 2, ancho_entrada_cable, alto_entrada_cable + 1]);
     assert(y_entrada_motor_az + ancho_entrada_cable/2 < y_tapa1 - pared_tapa,

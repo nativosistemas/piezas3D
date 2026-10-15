@@ -5,8 +5,10 @@
 //              un anillo de 3 prisioneros M3 a 120° en cada extremo para la colimación del haz y
 //              dos muñones laterales: el −X aloja la cabeza del perno M8 del lado del cable y el +X
 //              una tuerca M8 donde se enrosca el perno del lado motor, que entra desde afuera por la
-//              polea. Los dos alojamientos se abren hacia el interior del tubo. Se imprime de pie, con
-//              el eje del tubo vertical.
+//              polea. Los dos alojamientos se abren hacia el interior del tubo. Desde la 006, el
+//              cable del láser corre por fuera, en una canaleta a angulo_cable (lado −X, 30° bajo la
+//              horizontal) desde el borde trasero hasta el muñón −X, con puentes para enhebrarlo.
+//              Se imprime de pie, con el eje del tubo vertical.
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
@@ -18,6 +20,19 @@ r_anillo = radio_exterior_cuna + sobre_anillo_colim;
 x_cara_munon = semiancho_interior_horquilla - holgura_munon_brazo;
 largo_anillo_contacto = labio_608 + holgura_munon_brazo;
 z_centro_cuna = largo_tubo_cuna/2;
+z_fin_canaleta = z_centro_cuna - d_munon/2 - 2;
+r_fondo_canaleta = r_anillo - prof_canaleta;
+ancho_nervio_canaleta = ancho_ranura_canaleta + 2*pared_canaleta;
+paso_puentes = z_fin_canaleta/(puentes_canaleta + 1);
+angulos_prisioneros_trasero = [90, 210, 330];   // los de agujeros_colimacion(…, 90)
+
+// --- VALIDACIONES ---
+assert(min([for (a = angulos_prisioneros_trasero) abs(((angulo_cable - a + 540) % 360) - 180)]) >= 30,
+    str("angulo_cable=", angulo_cable, ": la canaleta queda a menos de 30° de un prisionero del anillo trasero"));
+assert(r_fondo_canaleta >= radio_exterior_cuna + 0.5,
+    str("prof_canaleta=", prof_canaleta, ": la canaleta cortaría la pared del tubo"));
+assert(z_fin_canaleta > alto_anillo_colim + puentes_canaleta*alto_puente_canaleta,
+    str("d_munon=", d_munon, ": no hay lugar para la canaleta del cable entre el anillo trasero y el muñón"));
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
 ensamblaje_principal();
@@ -35,13 +50,14 @@ module pieza_cuna_laser() {
             anillo_colimacion(0, false);
             anillo_colimacion(largo_tubo_cuna - alto_anillo_colim, true);
             for (s = [-1, 1]) munon(s);
+            canaleta_cable();
         }
         translate([0, 0, -1]) cylinder(r = r_int_cuna, h = largo_tubo_cuna + 2, $fn = 96);
         agujeros_colimacion(alto_anillo_colim/2, 90);
         agujeros_colimacion(largo_tubo_cuna - alto_anillo_colim/2, 30);
         for (s = [-1, 1]) vaciado_munon(s);
         if (con_ventana_pulsador) ventana_pulsador();
-        ranura_cable();
+        ranura_canaleta();
     }
 }
 
@@ -113,8 +129,21 @@ module ventana_pulsador() {
                      [-ancho_ventana_pulsador/2, -largo_ventana_pulsador]]);
 }
 
-// Ranura de salida de los 2 hilos del relé, junto al muñón del lado −X (cerca del eje)
-module ranura_cable() {
-    translate([-radio_exterior_cuna - 1, -ancho_ranura_cable/2, z_centro_cuna + d_munon/2 + 2])
-        cube([radio_exterior_cuna - r_int_cuna + 2, ancho_ranura_cable, alto_ranura_cable]);
+// Nervio exterior de la canaleta del cable, a angulo_cable, del borde trasero (z = 0) hasta el muñón −X.
+// No sobresale más que los anillos de colimación: no cambia el barrido.
+module canaleta_cable() {
+    rotate([0, 0, angulo_cable])
+        translate([radio_exterior_cuna - 1, -ancho_nervio_canaleta/2, 0])
+            cube([r_anillo - radio_exterior_cuna + 1, ancho_nervio_canaleta, z_fin_canaleta]);
+}
+
+// Ranura de la canaleta, con puentes cerrados donde se enhebra el cable
+module ranura_canaleta() {
+    rotate([0, 0, angulo_cable]) difference() {
+        translate([r_fondo_canaleta, -ancho_ranura_canaleta/2, -eps])
+            cube([r_anillo - r_fondo_canaleta + 1, ancho_ranura_canaleta, z_fin_canaleta + 2*eps]);
+        for (i = [1:puentes_canaleta])
+            translate([r_fondo_canaleta + d_hilo + 0.3, -ancho_ranura_canaleta/2 - 1, i*paso_puentes - alto_puente_canaleta/2])
+                cube([r_anillo - r_fondo_canaleta, ancho_ranura_canaleta + 2, alto_puente_canaleta]);
+    }
 }
