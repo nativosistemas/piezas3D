@@ -19,8 +19,6 @@ alto_puente_canal = 1.2;
 ancho_puente_canal = 4;
 cantidad_puentes_canal = 3;
 pad_soporte = 3;
-pad_soporte_esp32 = 2.5;
-pierna_soporte = 5;
 alto_labio_soporte = 1;
 ancho_reborde_tapa = 1.6;
 

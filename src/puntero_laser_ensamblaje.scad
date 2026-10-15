@@ -63,6 +63,31 @@ function punto_cable(r, y) = [r*cos(angulo_cable), y, -r*sin(angulo_cable)];
 function en_conjunto(p, a) = [p[0], p[1]*cos(a) - p[2]*sin(a), p[1]*sin(a) + p[2]*cos(a) + z_eje_altura];
 y_orejas_tapa = [y_tapa0 - largo_oreja_tapa/2, y_tapa1 + largo_oreja_tapa/2];
 m_placa = pared_soporte + holgura_encastre;   // del borde del soporte al borde de la placa
+largo_usb_fuera = 10;   // funda del enchufe USB que queda afuera de la tapa (solo para dibujarla)
+
+// Recorridos de los cables de los motores (009, research R6; tabla de recorridos de la guía). El cable
+// sale de la tapa azul del motor, a media altura del cuerpo; corre sobre la plataforma y termina en el
+// enchufe de su ULN2003 (centro de la placa, a la altura del enchufe).
+salida_cable_motor = [motor_desplazamiento_eje + motor_d_cuerpo/2 + motor_tapa_saliente, 0, -motor_alto_cuerpo/2];
+z_cable_plataforma = z_sup + 2;
+function aplicar_matriz(m, p) = [for (i = [0:2]) m[i][0]*p[0] + m[i][1]*p[1] + m[i][2]*p[2] + m[i][3]];
+function largo_polilinea(p) = len(p) < 2 ? 0 : norm(p[1] - p[0]) + largo_polilinea([for (i = [1:len(p) - 1]) p[i]]);
+function enchufe_uln(y0) = [x_col_a0 + m_placa + uln2003_ancho/2, y0 + m_placa + uln2003_largo/2, z_sup + alto_enchufes_motor];
+function hasta_enchufe(y_entrada, enchufe) = [[x_tapa0, y_entrada, z_cable_plataforma],
+    [enchufe[0], enchufe[1], z_cable_plataforma], enchufe];
+// Altura: baja por el canal de la cara exterior del brazo motor y entra por la pared −X de la tapa.
+// El motor va en el brazo: el recorrido no cambia con el ángulo de altura.
+salida_cable_alt = aplicar_matriz(matriz_motor_alt, salida_cable_motor);
+recorrido_cable_alt = concat([salida_cable_alt, [x_cara_ext_brazo, salida_cable_alt[1], salida_cable_alt[2]],
+                              [x_cara_ext_brazo, y_entrada_motor_alt, z_cable_plataforma]],
+                             hasta_enchufe(y_entrada_motor_alt, enchufe_uln(y_uln_alt0)));
+// Azimut: del motor a la brida del puente de la plataforma y de ahí a la pared −X de la tapa
+salida_cable_az = [salida_cable_motor[1], distancia_centros + salida_cable_motor[0],
+                   z_sup + espesor_carro - salida_cable_motor[2]];
+recorrido_cable_az = concat([salida_cable_az, [x_puente_brida_az, y_puente_brida_az, z_cable_plataforma]],
+                            hasta_enchufe(y_entrada_motor_az, enchufe_uln(y_uln_az0)));
+largo_cable_alt = largo_polilinea(recorrido_cable_alt);
+largo_cable_az = largo_polilinea(recorrido_cable_az);
 
 // Vista explotada: transparencia de lo ya armado, color y grosor de las flechas
 alfa_contexto = 0.22;
@@ -131,7 +156,7 @@ pasos = [
                     [for (e = ["pila_falsa", "lastre", "tapa_trasera", "grapa"]) [e, 150*v_laser, false]]),
     /* 16 */ concat([for (e = placas) [e, [0, 0, 70], true]],
                     [["regulador", [0, 0, 150], true], ["powerbank", [0, 0, 100], true]]),
-    /* 17 */ [["cable_laser", [-40, 0, 0], true]],
+    /* 17 */ [["cable_laser", [-40, 0, 0], true], ["conectores", [0, 0, 0], true]],
     /* 18 */ [["tapa", [0, 0, 50], true], ["tornillos_tapa", [0, 0, 80], true], ["tuercas_tapa", [0, 0, -30], true]],
     /* 19 */ []
 ];
@@ -150,9 +175,19 @@ assert(altura_eje - distancia_centros - carro_x_max - recorrido_tensor > espesor
     "largo_correa: la parte ancha del brazo del motor baja hasta el motor de azimut");
 assert(alto_tapa + holgura_tapa_carro <= min(altura_eje - distancia_centros - carro_x_max,
                                             altura_eje - distancia_centros - (motor_desplazamiento_eje + motor_d_cuerpo/2 + motor_tapa_saliente)),
-    str("altura_placas=", altura_placas, ": la tapa (", alto_tapa, " mm) toca el carro o el motor de altura"));
+    str("altura_placas=", altura_placas, ", largo_dupont=", largo_dupont, ": la tapa (", alto_tapa,
+        " mm) toca el carro o el motor de altura; use conectores más cortos o a 90°"));
 assert(r_tope_ext + 1 < distancia_centros - polea20_d_brida/2,
     "largo_correa: el tope tensor toca la polea 20T del motor de altura");
+// V-26: los cables de fábrica de los motores llegan a su ULN2003 por el recorrido de la guía (009, R6)
+assert(largo_cable_alt + reserva_cable_motor <= largo_cable_motor,
+    str("largo_cable_motor=", largo_cable_motor, ": el cable del motor de altura no llega (faltan ",
+        largo_cable_alt + reserva_cable_motor - largo_cable_motor, " mm)"));
+assert(largo_cable_az + reserva_cable_motor <= largo_cable_motor,
+    str("largo_cable_motor=", largo_cable_motor, ": el cable del motor de azimut no llega (faltan ",
+        largo_cable_az + reserva_cable_motor - largo_cable_motor, " mm)"));
+echo(str("CABLES largo_alt=", largo_cable_alt, ", largo_az=", largo_cable_az,
+         ", sobra_alt=", largo_cable_motor - largo_cable_alt, ", sobra_az=", largo_cable_motor - largo_cable_az));
 // Cables lejos de las correas (FR-012)
 assert(plano_correa_altura - ancho_correa/2 - polea20_espesor_brida - x_cara_ext_brazo >= distancia_min_cable_correa,
     "alto_pilar_motor: el canal del cable del motor de altura queda a menos de 5 mm de la correa");
@@ -170,8 +205,9 @@ assert(len(pasos) == 19, "pasos: la guía tiene 19 pasos de armado");
 armado();
 
 module ensamblaje_principal() {
-    for (e = elementos) if (e != "tapa") color(color_elemento(e)) elemento(e);
+    for (e = elementos) if (e != "tapa" && e != "conectores") color(color_elemento(e)) elemento(e);
     if (ver_tapa) %elemento("tapa");
+    %elemento("conectores");
     %laser_en(angulo_altura_min) laser();
     %laser_en(angulo_altura_max) laser();
 }
@@ -193,7 +229,7 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
              "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
              "placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
-             "cable_laser"];
+             "cable_laser", "conectores"];
 
 // Nombre y tipo de cada elemento para el visor 3D (contrato: specs/008-identificacion-componentes/
 // contracts/ensamblaje.md). Lo comprado usa la descripción de docs/puntero_laser_bom.csv.
@@ -255,7 +291,8 @@ nombres_elementos = [
     ["regulador",       "Módulo reductor de tensión MP1584EN (3,7 V)",    "comprada"],
     ["powerbank",       "Power bank USB de 5 V y ≥ 2 A",                  "comprada"],
     ["laser",           "Puntero láser verde \"303\" (sin su batería)",   "comprada"],
-    ["cable_laser",     "Cable de silicona de 2 × 26 AWG (regulador → láser)", "comprada"]];
+    ["cable_laser",     "Cable de silicona de 2 × 26 AWG (regulador → láser)", "comprada"],
+    ["conectores",      "Cables Dupont y enchufes (espacio reservado)",   "comprada"]];
 
 // --- SIMULACIÓN DE FUNCIONAMIENTO (visor 3D) ---
 // Contrato: specs/007-simulacion-funcionamiento/contracts/ensamblaje.md. La base queda fija; el resto
@@ -291,7 +328,7 @@ objetivos = [["Norte bajo", [0, 10]], ["Este", [90, 35]], ["Cenit", [180, 88]], 
              ["Casi norte", [350, 25]], ["Noreste", [10, 45]]];
 // El cable va en parte con el láser y en parte con la horquilla: se exporta cada 5° de altura
 deformables = [["cable_laser", "altura", [for (a = [angulo_altura_min:5:angulo_altura_max]) a]]];
-transparentes_simulacion = ["tapa"];
+transparentes_simulacion = ["tapa", "conectores"];
 
 function color_elemento(e) =
     e == "base" ? "SlateGray" : e == "plataforma" ? "DarkSeaGreen" :
@@ -303,7 +340,7 @@ function color_elemento(e) =
     e == "placa_esp32" ? "DarkSlateGray" : e == "placa_rele" ? "Teal" :
     e == "powerbank" ? "DarkBlue" : e == "laser" ? "LimeGreen" :
     e == "pila_falsa" ? "Tomato" : e == "tapa_trasera" || e == "grapa" ? "Peru" : e == "regulador" ? "RoyalBlue" :
-    e == "cable_laser" ? "Red" :
+    e == "cable_laser" ? "Red" : e == "conectores" ? "LightSlateGray" :
     e == "608_base_sup" || e == "608_base_inf" || e == "608_brazo_motor" || e == "608_brazo_cable"
         || e == "polea20_az" || e == "polea20_alt" ? "Silver" : "DimGray";
 
@@ -414,6 +451,23 @@ module elemento(e) {
     if (e == "grapa") laser_en(angulo_altura) translate([0, y_grapa, 0]) rotate([-90, 0, 0]) pieza_grapa_cable();
     if (e == "regulador")
         placa(x_col_a0, y_reg0, regulador_ancho, regulador_largo, alto_soporte_placa, 4);
+    // Espacio reservado para los conectores con la curva de sus cables (009, data-model §3); no es una
+    // pieza: el visor lo muestra en el paso de cableado
+    if (e == "conectores") {
+        // Dupont y enchufes hacia arriba, sobre toda la planta de las placas bajas
+        for (c = [[x_col_a0, y_uln_alt0, uln2003_ancho, uln2003_largo], [x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo],
+                  [x_col_b0, y_rele_0, rele_ancho, rele_largo]])
+            translate([c[0] + m_placa, c[1] + m_placa, z_sup + alto_soporte_placa + espesor_pcb])
+                cube([c[2], c[3], alto_dupont_conectado]);
+        // Dupont del ESP32 hacia abajo: una franja por fila, con la curva del cable hacia el centro
+        for (lado = [0, 1])
+            translate([lado == 0 ? x_esp32_0 : x_esp32_0 + esp32_ancho - ancho_franja_esp32,
+                       y_esp32_0 + m_placa + (esp32_largo - largo_fila_esp32)/2, z_sup + elevacion_esp32 - alto_dupont_conectado])
+                cube([ancho_franja_esp32, largo_fila_esp32, alto_dupont_conectado]);
+        // Enchufe USB con su funda, del borde del ESP32 hasta afuera de la tapa
+        translate([x_esp32_c - ancho_enchufe_usb/2, y_tapa0 - largo_usb_fuera, z_sup + z_usb_esp32 - alto_enchufe_usb/2])
+            cube([ancho_enchufe_usb, y_esp32_0 + m_placa - y_tapa0 + largo_usb_fuera, alto_enchufe_usb]);
+    }
     if (e == "cable_laser") {
         // Tramo que gira con el láser: ventana de la tapa → grapa → canaleta → fin de la canaleta
         laser_en(angulo_altura) cordon([

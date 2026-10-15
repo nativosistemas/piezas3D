@@ -62,8 +62,10 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
 | Láser convertido (sin batería, con pila falsa, tapa, lastre y grapa) | ≈ 167 g, equilibrado a 92,7 mm de la cola |
 | Hueco entre la tapa trasera y la cuna (grapa y equilibrado) | 13,0 mm |
 | Caída de tensión en el cable del láser | 0,08 V |
-| Centro de masa de la parte giratoria | a ≈ 4 mm del eje |
-| Masa total estimada del aparato | ≈ 965 g |
+| Tapa de la electrónica | 33,5 mm de alto; el ESP32 queda a 23,9 mm de la plataforma (espacio para los Dupont) |
+| Cables de los motores (recorrido hasta su ULN2003) | altura ≈ 115 mm, azimut ≈ 139 mm, de 230 mm de fábrica |
+| Centro de masa de la parte giratoria | a ≈ 5 mm del eje |
+| Masa total estimada del aparato | ≈ 972 g |
 
 ## Primeros pasos
 
@@ -106,14 +108,14 @@ de `ajuste_608` cambia, hay que **regenerar los 13 STL** antes de imprimir el re
 |-------|-----|-------|----------------------------------|---------|------------|----------|------------|--------------|
 | Probeta de ajuste del 608 | `puntero_laser_probeta_ajuste_608.stl` | 1 | Plana, tal como viene | 15 % | 3 | No | — | 13 g |
 | Adaptador del trípode (base) | `puntero_laser_adaptador_tripode.stl` | 1 | Cara de apoyo del trípode | 40 % giroide | 4 | No | — | 254 g |
-| Plataforma de azimut | `puntero_laser_plataforma_azimut.stl` | 1 | Cara inferior | 20 % giroide | 3 | No | Borde (brim) de 5 mm si la cama despega esquinas | 212 g |
+| Plataforma de azimut | `puntero_laser_plataforma_azimut.stl` | 1 | Cara inferior | 20 % giroide | 3 | No | Borde (brim) de 5 mm si la cama despega esquinas | 213 g |
 | Brazo de la horquilla, motor | `puntero_laser_brazo_horquilla_motor.stl` | 1 | Cara interior (pilares hacia arriba) | 30 % | 4 | No | — | 101 g |
 | Brazo de la horquilla, cable | `puntero_laser_brazo_horquilla_cable.stl` | 1 | Cara interior (canal hacia arriba) | 30 % | 4 | No | — | 57 g |
 | Cuna del láser | `puntero_laser_cuna_laser.stl` | 1 | De pie, sobre un anillo de colimación | 30 % | 4 | No | Borde (brim) de 5 mm | 55 g |
 | Polea de altura | `puntero_laser_polea_altitud.stl` | 1 | Cara exterior (cubo hacia arriba) | 40 % | 4; capa de 0,16 mm | No | — | 23 g |
 | Carro del motor | `puntero_laser_carro_motor.stl` | **2** | Plano | 40 % | 4 | No | — | 8 g c/u |
 | Separador y 3 arandelas | `puntero_laser_separador_azimut.stl` | 1 | De pie, tal como viene | 100 % | — | No | — | 1 g |
-| Tapa de la electrónica | `puntero_laser_tapa_electronica.stl` | 1 | Techo | 15 % | 3 | No | — | 54 g |
+| Tapa de la electrónica | `puntero_laser_tapa_electronica.stl` | 1 | Techo | 15 % | 3 | No | — | 61 g |
 | Pila falsa | `puntero_laser_pila_falsa.stl` | 1 | De pie, cara trasera (la de la ranura) | 30 % | 3 | No | Borde (brim) de 3 mm | 20 g |
 | Tapa trasera del láser | `puntero_laser_tapa_trasera.stl` | 1 | De pie, piso trasero | 40 % | 4 | No | — | 21 g |
 | Grapa del cable | `puntero_laser_grapa_cable.stl` | 1 | Plana | 100 % | — | No | — | 1 g |
@@ -195,7 +197,7 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 * 1 × Interruptor de palanca miniatura con rosca M6 (tipo MTS-102)
 * 1 × Cable USB-A con salida a bornes (o cable USB cortado)
 * 60 cm de cable de silicona de 2 × 26 AWG, rojo y negro (regulador → láser)
-* Cables Dupont hembra-hembra
+* Cables Dupont hembra-hembra rectos (conector de 14 mm)
 * Bridas de 3 mm
 * Una banda elástica o una tira de velcro para el power bank
 <!-- BOM:fin -->
@@ -288,7 +290,10 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
     cara exterior del brazo.
 16. **Electrónica.** Encajar las placas en sus soportes (lado +X): los 2 ULN2003, el **regulador** (en el
     tercer soporte de la misma columna) y el relé apoyados, y el ESP32 elevado, con los pines hacia
-    abajo. Soldar la **resistencia de 10 kΩ** entre los pines IN y GND del relé (o meterla en el cable
+    abajo como viene de fábrica. **Antes de encajar el ESP32, conectarle los Dupont** desde abajo y
+    doblar los cables hacia el centro de la placa (hacia afuera chocan con la columna de los ULN2003):
+    con la placa puesta, los conectores de abajo no se alcanzan. Los Dupont del relé y de los ULN2003
+    van rectos hacia arriba; la tapa tiene lugar para ellos y la curva del cable. Soldar la **resistencia de 10 kΩ** entre los pines IN y GND del relé (o meterla en el cable
     Dupont). Atornillar el interruptor en su soporte, con la palanca hacia +X. Colocar el power bank de
     pie en su bolsillo (−X), con el conector USB hacia el extremo bajo de la pared (−Y), y sujetarlo
     con la banda elástica alrededor del bolsillo.
@@ -422,6 +427,12 @@ pasa de 0,1°. La generación lo avisa con una línea `AVISO`. Ver la justificac
 | Regulador | Largo y ancho del módulo | `regulador_largo`, `regulador_ancho` |
 | Power bank | Largo, ancho (queda vertical) y espesor | `powerbank_largo`, `_ancho`, `_alto` |
 | ESP32, relé, ULN2003 | Largo y ancho de cada placa | `esp32_*`, `rele_*`, `uln2003_*` |
+| ESP32 | Pines de cada fila (15 o 19) | `pines_por_lado_esp32` |
+| Cables Dupont | Largo del cuerpo plástico del conector hembra (los estándar miden 14 mm; **la tapa admite hasta ≈ 14,8 mm**: con más, falla la validación) | `largo_dupont` |
+| Placas | Alto del plástico de las tiras de pines | `alto_tira_pines` |
+| Cables Dupont | Cuánto hay que dejar para doblar el cable sin forzarlo (radio, al eje del cable) | `radio_curva_cable` |
+| Motores | Alto del enchufe blanco conectado en su ULN2003, y largo del cable del motor al enchufe | `alto_enchufe_motor`, `largo_cable_motor` |
+| Cable USB | Ancho y alto de la funda del enchufe que va al ESP32 | `ancho_enchufe_usb`, `alto_enchufe_usb` |
 
 ### 4.2 Cómo cambiar los parámetros
 
@@ -466,6 +477,12 @@ están en `specs/002-puntero-laser-estelar/quickstart.md`, escenario 2, y en
 | V-19 | `distancia_trasera_centro_masa_nueva=` | La tapa trasera queda muy cerca de la cuna: no entran la grapa y el equilibrado | Más lastre, o revisar el punto de equilibrio medido |
 | V-20 | `largo_cable_laser=` | El cable del láser hace caer más de 0,1 V | Cable más corto o más grueso |
 | V-21 | `regulador_ancho=` | El regulador no entra en la columna de los ULN2003 | Usar un módulo más chico (mini-360) |
+| V-22 | `largo_dupont=…: un conector toca el techo de la tapa` | Un conector de arriba no entra bajo la tapa | Revisar las medidas de los conectores |
+| V-23 | `largo_dupont=…: los Dupont del ESP32 tocan la plataforma` | No hay lugar bajo el ESP32 | Revisar `largo_dupont` y `alto_tira_pines` |
+| V-24 | `pines_por_lado_esp32=` o `radio_curva_cable=` | Los Dupont del ESP32 tocan los apoyos del soporte, o las curvas de las dos filas se cruzan | Revisar la cantidad de pines; doblar los cables más cerrado |
+| V-25 | `ancho_enchufe_usb=` o `alto_enchufe_usb=` | El enchufe USB toca el soporte del ESP32 o la abertura llega al techo de la tapa | Usar un cable USB de funda más chica |
+| V-26 | `largo_cable_motor=…: el cable del motor de <eje> no llega` | El cable del motor no alcanza su ULN2003 por el recorrido de la guía | Empalmar un alargue de 4 hilos |
+| — | `altura_placas=…, largo_dupont=…: la tapa (… mm) toca el carro o el motor de altura` | Los conectores hacen crecer la tapa hasta el carro del motor de altura | Conectores más cortos o a 90° |
 | Aviso | `AVISO: alto_brazo=` | El brazo supera 131 mm | Repetir el cálculo de flexión (sección 3.6) |
 
 ## 5. Electrónica y requisitos del firmware
@@ -564,8 +581,8 @@ Regulador OUT−           ──> hilo negro 26 AWG ──> prisionero de la ta
 |-------|-----------|
 | Alimentación y láser | Conducto elevado que cruza la franja del láser (Y = −30 mm) |
 | Láser | Ventana de la tapa trasera → grapa → canaleta de la cuna (lado −X, abajo) → bucle de 40 mm → agujero y canal del brazo cable |
-| Motor de altura | Canal de la cara exterior del brazo motor |
-| Motor de azimut | Brida en el puente de la plataforma → pared −X de la tapa |
+| Motor de altura | Canal de la cara exterior del brazo motor → pared −X de la tapa (≈ 115 mm hasta su ULN2003) |
+| Motor de azimut | Brida en el puente de la plataforma → pared −X de la tapa (≈ 139 mm hasta su ULN2003) |
 
 Ningún cable cruza el eje de azimut, así que el aparato gira sin límite.
 

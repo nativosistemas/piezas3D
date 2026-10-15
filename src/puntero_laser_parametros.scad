@@ -3,7 +3,7 @@
 // Componente: Parámetros compartidos
 // Descripción: Medidas compartidas por todas las piezas del puntero láser motorizado alt-az:
 //              parámetros editables, constantes de componentes estándar, valores derivados,
-//              reglas de validación (V-01…V-21) y módulos utilitarios (dentado GT2, etc.).
+//              reglas de validación (V-01…V-25) y módulos utilitarios (dentado GT2, etc.).
 //              Desde la 006, el láser va sin batería: lo alimenta el power bank a través de una pila
 //              falsa y una tapa trasera impresa con lastre.
 //              No dibuja nada; al renderizarlo solo imprime los derivados con echo.
@@ -70,6 +70,26 @@ distancia_trasera_centro_masa_nueva = 0; // [0:1:200]
 regulador_largo = 22; // [15:0.5:25]
 // Ancho del módulo reductor de tensión (MP1584EN: 17 mm)
 regulador_ancho = 17; // [10:0.5:18]
+
+/* [Conectores y cables] */
+// Largo del cuerpo plástico de un Dupont hembra recto (medir)
+largo_dupont = 14; // [10:0.5:20]
+// Alto del plástico de las tiras de pines macho de las placas (medir)
+alto_tira_pines = 2.5; // [2:0.1:3.5]
+// Diámetro del cable de un Dupont
+diametro_cable_dupont = 1.4; // [1:0.1:2]
+// Radio mínimo de curva del cable al salir del conector, medido al eje del cable
+radio_curva_cable = 5; // [3:0.5:10]
+// Alto del enchufe del motor ya conectado en su ULN2003, sobre la placa (medir)
+alto_enchufe_motor = 13; // [9:0.5:18]
+// Pines de cada fila del ESP32 (15 en el de 30 pines, 19 en el de 38)
+pines_por_lado_esp32 = 19; // [15:1:20]
+// Ancho de la funda del enchufe USB del cable para cargar el firmware (medir)
+ancho_enchufe_usb = 11; // [8:0.5:14]
+// Alto de la funda del enchufe USB (medir)
+alto_enchufe_usb = 7.5; // [5:0.5:10]
+// Largo del cable de fábrica del motor 28BYJ-48, del motor al enchufe (medir)
+largo_cable_motor = 230; // [150:5:400]
 
 /* [Transmisión] */
 // Dientes de la polea conducida impresa (≥ 80 para la relación ≥ 1:4 de FR-005)
@@ -190,6 +210,16 @@ labio_608_min = 3;             // labio interior mínimo que apoya el aro exteri
 d_labio_608 = 16;              // agujero del labio (no toca el aro interior)
 d_contacto_aro = 11.5;         // anillos y arandelas que apoyan SOLO en el aro interior (< rod608_d_aro_int)
 holgura_pcb = 0.2;             // holgura vertical de las placas bajo el labio de sus soportes
+// Conectores y cables (009, research R1–R5)
+holgura_conector = 1;          // entre un conector (con la curva de su cable) y lo que tenga cerca
+holgura_techo_tapa = 2;        // entre lo más alto bajo la tapa y su techo
+holgura_usb = 0.75;            // entre la funda del enchufe USB y la abertura de la tapa
+reserva_cable_motor = 20;      // cable de motor que queda para el enchufe y la curva dentro de la tapa
+paso_pines = 2.54;
+separacion_filas_esp32 = 25.4; // entre las dos filas de pines del ESP32
+alto_conector_usb_esp32 = 3;   // conector USB soldado sobre el ESP32
+pad_soporte_esp32 = 2.5;       // apoyos de las esquinas bajo el ESP32
+pierna_soporte = 5;            // largo de cada lado de los postes en L de los soportes
 altura_libre_central = 5;
 eps = 0.01;
 cama_max = 200;
@@ -255,7 +285,7 @@ alto_soporte_placa = 3;
 espesor_pcb = 1.6;
 pared_soporte = 1.6;
 labio_soporte = 0.6;
-elevacion_esp32 = 15;          // el ESP32 va elevado: los pines quedan hacia abajo
+// El ESP32 va elevado con los pines hacia abajo; su altura sale de los conectores (009)
 alto_modulo_esp32 = 4;
 alto_borde_tapa = 3;           // reborde de la plataforma que guía la tapa
 pared_tapa = 2;
@@ -490,10 +520,26 @@ y_uln_az0 = y_uln_alt0 + largo_soporte_uln + holgura_zonas;
 y_reg0 = y_uln_az0 + largo_soporte_uln + holgura_zonas;
 y_esp32_0 = -alto_col_b/2;
 y_rele_0 = y_esp32_0 + largo_soporte_esp32 + holgura_zonas;
+// Conectores (009): un Dupont conectado ocupa la tira, su cuerpo y la curva del cable
+curva_cable = radio_curva_cable + diametro_cable_dupont;
+alto_dupont_conectado = alto_tira_pines + largo_dupont + curva_cable;
+elevacion_esp32 = alto_dupont_conectado + holgura_conector;   // los Dupont del ESP32 van hacia abajo
+alto_conectores_arriba = alto_soporte_placa + espesor_pcb + alto_dupont_conectado;   // ULN2003 y relé
+alto_enchufes_motor = alto_soporte_placa + espesor_pcb + alto_enchufe_motor + curva_cable;
 alto_esp32_total = elevacion_esp32 + espesor_pcb + alto_modulo_esp32;
-alto_interior_tapa = max(altura_placas, alto_esp32_total) + 5;
+alto_interior_tapa = max(altura_placas, alto_conectores_arriba, alto_esp32_total) + holgura_techo_tapa;
 alto_tapa = alto_interior_tapa + techo_tapa;
 x_tapa0 = x_col_a0 - holgura_encastre - pared_tapa;
+// ESP32 en su celda: borde en X y centro; filas de Dupont (largo y separación de los apoyos)
+x_esp32_0 = x_col_b0 + pared_soporte + holgura_encastre;
+x_esp32_c = x_esp32_0 + esp32_ancho/2;
+largo_fila_esp32 = pines_por_lado_esp32*paso_pines;
+margen_fila_esp32 = (esp32_largo - largo_fila_esp32)/2 - (pad_soporte_esp32 - holgura_encastre);
+ancho_franja_esp32 = (esp32_ancho - separacion_filas_esp32)/2 + paso_pines/2 + curva_cable;
+// Abertura USB de la tapa: centrada en el conector del ESP32 (009, research R5)
+z_usb_esp32 = elevacion_esp32 + espesor_pcb + alto_conector_usb_esp32/2;
+ancho_abertura_usb = ancho_enchufe_usb + 2*holgura_usb;
+alto_abertura_usb = alto_enchufe_usb + 2*holgura_usb;
 x_tapa1 = x_col_b1 + holgura_encastre + pared_tapa;
 y_tapa0 = min(y_uln_alt0, y_esp32_0) - holgura_encastre - pared_tapa;
 // Hueco para el cable sobrante (FR-012) e interruptor general (FR-013), dentro de la tapa
@@ -502,6 +548,9 @@ y_sob1 = y_sob0 + alto_sobrante_cables;
 x_interruptor = x_col_b1 - espesor_soporte_interruptor;
 y_interruptor = (y_sob0 + y_sob1)/2;
 y_tapa1 = y_sob1 + holgura_encastre + pared_tapa;
+// Entradas de los cables de los motores en la pared −X de la tapa
+y_entrada_motor_alt = 0;                     // frente al canal del brazo motor
+y_entrada_motor_az = (y_sob0 + y_sob1)/2;    // a la altura del hueco del sobrante
 // Power bank (−X), centrado en Y para equilibrar el grupo del motor de azimut
 x_pb0 = -x_marco_ext - holgura_zonas;
 ancho_bolsillo = powerbank_alto + 2*holgura_encastre + 2*pared_bolsillo;
@@ -828,6 +877,35 @@ assert(regulador_largo >= regulador_ancho && regulador_ancho + 2*holgura_encastr
 if (alto_brazo > alto_brazo_max_flexion)
     echo(str("AVISO: alto_brazo=", alto_brazo, " supera 131 mm: repetir el cálculo de flexión (research 006, R5)"));
 
+// V-22…V-25: conectores y cables (009, data-model §4)
+comprobar_rango("largo_dupont", largo_dupont, 10, 20);
+comprobar_rango("alto_tira_pines", alto_tira_pines, 2, 3.5);
+comprobar_rango("diametro_cable_dupont", diametro_cable_dupont, 1, 2);
+comprobar_rango("radio_curva_cable", radio_curva_cable, 3, 10);
+comprobar_rango("alto_enchufe_motor", alto_enchufe_motor, 9, 18);
+comprobar_rango("pines_por_lado_esp32", pines_por_lado_esp32, 15, 20);
+comprobar_rango("ancho_enchufe_usb", ancho_enchufe_usb, 8, 14);
+comprobar_rango("alto_enchufe_usb", alto_enchufe_usb, 5, 10);
+comprobar_rango("largo_cable_motor", largo_cable_motor, 150, 400);
+// V-22: los conectores de arriba de las placas y el ESP32 quedan bajo el techo de la tapa
+assert(max(alto_conectores_arriba, alto_enchufes_motor, alto_esp32_total) + holgura_techo_tapa <= alto_interior_tapa,
+    str("largo_dupont=", largo_dupont, ": un conector toca el techo de la tapa"));
+// V-23: los Dupont del ESP32 (hacia abajo, con la curva del cable) quedan sobre la plataforma
+assert(elevacion_esp32 - alto_dupont_conectado >= holgura_conector,
+    str("largo_dupont=", largo_dupont, ": los Dupont del ESP32 tocan la plataforma"));
+// V-24: las filas de Dupont del ESP32 no tocan los apoyos de las esquinas de su soporte, y las
+// curvas de las dos filas (hacia el centro) no se cruzan
+assert(margen_fila_esp32 >= holgura_conector,
+    str("pines_por_lado_esp32=", pines_por_lado_esp32, ": los Dupont del ESP32 tocan los apoyos del soporte (",
+        margen_fila_esp32, " mm de separación)"));
+assert(2*ancho_franja_esp32 + holgura_conector <= esp32_ancho,
+    str("radio_curva_cable=", radio_curva_cable, ": las curvas de los cables de las dos filas del ESP32 se cruzan"));
+// V-25: el enchufe USB pasa entre los postes del soporte y la abertura deja material en el techo
+assert(ancho_abertura_usb/2 <= esp32_ancho/2 - (pierna_soporte - pared_soporte - holgura_encastre) - holgura_conector,
+    str("ancho_enchufe_usb=", ancho_enchufe_usb, ": el enchufe USB toca los postes del soporte del ESP32"));
+assert(z_usb_esp32 + alto_abertura_usb/2 <= alto_tapa - 1,
+    str("alto_enchufe_usb=", alto_enchufe_usb, ": la abertura USB llega al techo de la tapa"));
+
 // --- SALIDA DE DERIVADOS (echo) ---
 echo(str("FIRMWARE pasos_por_grado=", pasos_por_grado, ", grados_por_paso=", grados_por_paso,
          ", pasos_por_vuelta_eje=", pasos_por_vuelta_eje));
@@ -841,7 +919,8 @@ echo(str("LASER masa_laser_mod_g=", masa_laser_mod_g, ", l_trasero=", l_trasero,
          ", hueco_equilibrado=", hueco_equilibrado, ", caida_cable_v=", caida_cable_v,
          ", r_tapa_trasera=", r_tapa_trasera, ", alto_col_a=", alto_col_a));
 echo(str("COTAS z_tope_base=", z_tope_base, ", z_plataforma_sup=", z_plataforma_sup, ", z_eje_altura=", z_eje_altura,
-         ", semiancho_horquilla=", semiancho_interior_horquilla, ", alto_tapa=", alto_tapa));
+         ", semiancho_horquilla=", semiancho_interior_horquilla, ", alto_tapa=", alto_tapa,
+         ", elevacion_esp32=", elevacion_esp32));
 echo(str("PERNOS azimut=M8x", largo_perno_azimut, ", altura_motor=M8x", largo_perno_alt_motor,
          ", altura_cable=M8x", largo_perno_alt_cable));
 echo(str("PARES disponible=", par_disponible_mNm, ", desbalance_10=", par_desbalance_10_mNm, ", fs_10=", fs_par_10,
