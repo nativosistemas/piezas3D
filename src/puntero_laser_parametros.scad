@@ -3,7 +3,9 @@
 // Componente: Parámetros compartidos
 // Descripción: Medidas compartidas por todas las piezas del puntero láser motorizado alt-az:
 //              parámetros editables, constantes de componentes estándar, valores derivados,
-//              reglas de validación (V-01…V-14) y módulos utilitarios (dentado GT2, etc.).
+//              reglas de validación (V-01…V-21) y módulos utilitarios (dentado GT2, etc.).
+//              Desde la 006, el láser va sin batería: lo alimenta el power bank a través de una pila
+//              falsa y una tapa trasera impresa con lastre.
 //              No dibuja nada; al renderizarlo solo imprime los derivados con echo.
 // ==========================================
 //
@@ -18,11 +20,11 @@
 /* [Componentes comprados] */
 // Diámetro del cuerpo del láser 303 (medir el ejemplar real)
 diametro_laser = 30; // [20:0.5:40]
-// Largo total del láser (medir el ejemplar real)
+// Largo total del láser con su tapa original (medir el ejemplar real)
 largo_laser = 190; // [120:1:260]
-// Distancia del extremo trasero del láser a su punto de equilibrio (medir apoyándolo sobre un borde)
+// Distancia del extremo trasero del láser a su punto de equilibrio, con batería y tapa original (medir apoyándolo sobre un borde)
 distancia_trasera_centro_masa = 95; // [48:1:156]
-// Masa del láser con su batería, en gramos (solo para los cálculos)
+// Masa del láser con su batería y su tapa original, en gramos (solo para los cálculos)
 masa_laser_g = 180; // [80:5:400]
 // Largo del power bank (medir el ejemplar real)
 powerbank_largo = 100; // [60:1:150]
@@ -44,6 +46,30 @@ uln2003_largo = 35; // [30:0.5:42]
 uln2003_ancho = 32; // [20:0.5:35]
 // Altura máxima de una placa con sus componentes (relé y ULN2003)
 altura_placas = 18; // [10:1:25]
+
+/* [Láser sin batería] */
+// Diámetro interior del tubo donde iba la batería (medir)
+diametro_hueco_bateria = 18.5; // [16:0.1:22]
+// Del borde trasero del tubo al contacto del cabezal, con el resorte libre (medir con la varilla del calibre)
+profundidad_hueco_bateria = 65; // [34:0.5:70]
+// Diámetro exterior de la rosca donde enroscaba la tapa original (medir)
+diametro_zona_tapa = 30; // [20:0.1:40]
+// Largo de esa rosca (medir)
+largo_zona_tapa = 12; // [8:0.5:20]
+// Cuánto sobresale la tapa original del borde del tubo (medir)
+largo_tapa_original = 20; // [5:0.5:40]
+// Masa de la batería que se quita, en gramos
+masa_bateria_g = 45; // [15:1:60]
+// Masa de la tapa original que se quita, en gramos
+masa_tapa_original_g = 20; // [5:1:40]
+// Tuercas M10 de lastre en la tapa impresa (devuelven el centro de masa hacia atrás)
+tuercas_lastre_tapa = 2; // [0:1:3]
+// 0 = se calcula; si no, punto de equilibrio medido desde el extremo trasero de la tapa impresa
+distancia_trasera_centro_masa_nueva = 0; // [0:1:200]
+// Largo del módulo reductor de tensión (MP1584EN: 22 mm)
+regulador_largo = 22; // [15:0.5:25]
+// Ancho del módulo reductor de tensión (MP1584EN: 17 mm)
+regulador_ancho = 17; // [10:0.5:18]
 
 /* [Transmisión] */
 // Dientes de la polea conducida impresa (≥ 80 para la relación ≥ 1:4 de FR-005)
@@ -98,6 +124,8 @@ con_ventana_pulsador = true;
 $fn = 64; // [24:8:128]
 
 /* [Hidden] */
+// ---------- Perfil de impresora (holguras de encaje y límites; constitución, Principio IV) ----------
+include <perfil_impresora.scad>
 // ---------- Constantes de componentes estándar (Entidad 2 de data-model.md) ----------
 // Rodamiento 608ZZ
 rod608_d_ext = 22;
@@ -159,7 +187,6 @@ d_labio_608 = 16;              // agujero del labio (no toca el aro interior)
 d_contacto_aro = 11.5;         // anillos y arandelas que apoyan SOLO en el aro interior (< rod608_d_aro_int)
 holgura_pcb = 0.2;             // holgura vertical de las placas bajo el labio de sus soportes
 altura_libre_central = 5;
-espesor_min_pared = 1.2;
 eps = 0.01;
 cama_max = 200;
 plataforma_max = 196;
@@ -255,11 +282,48 @@ d_munon = 22;
 largo_ventana_pulsador = 16;
 ancho_ventana_pulsador = 12;
 dist_ventana_pulsador = 25;
-ancho_ranura_cable = 3;
-alto_ranura_cable = 8;
 // Polea de altura
 d_aligerado = 8;
 material_min_aligerado = 4;
+// Láser sin batería (006: research.md R1–R7)
+m10_tuerca_ec = 17;            // tuerca DIN 934 M10 (lastre)
+m10_tuerca_alto = 8;
+masa_tuerca_m10_g = 11;
+largo_prisionero_tapa = 12;    // prisionero DIN 914 M3 × 12, punta cónica
+iso7380_m3_cabeza_d = 5.7;     // tornillo M3 × 8 de cabeza alomada (contacto +)
+iso7380_m3_cabeza_alto = 1.65;
+largo_tornillo_contacto = 8;
+espesor_ojal = 0.8;            // terminal de ojal M3
+compresion_resorte = 2;        // compresión del resorte del cabezal con la pila falsa puesta
+d_hilo = 1.3;                  // hilo de silicona de 26 AWG
+ohm_por_m_26awg = 0.134;
+corriente_laser_a = 0.5;       // peor caso de un 303 verde
+largo_cable_laser = 600;       // del regulador a la cola del láser
+angulo_cable = 150;            // ángulo del cable en el plano de impresión de la cuna (−X, 30° bajo la horizontal)
+ancho_ranura_canaleta = 2.8;    // 2 hilos de 26 AWG lado a lado
+prof_canaleta = 2.8;
+pared_canaleta = 1.2;
+puentes_canaleta = 3;
+alto_puente_canaleta = 2;
+prof_ranura_cable = 2;         // ranuras del hilo en la pila falsa y en el escalón de la tapa
+ancho_ranura_cable_tapa = 2.4;
+prof_tuerca_contacto = 4;      // de la cara delantera de la pila a la tuerca del contacto
+piso_tapa_trasera = 1.6;
+pared_tapa_trasera = 2.4;
+espesor_resalte_prisionero = 4;
+ancho_resalte_prisionero = 8;
+desfase_prisionero_tapa = 45;  // el prisionero del negativo va a angulo_cable + 45°, fuera de la salida del cable
+alto_min_cuello_tapa = 6;      // tramo macizo mínimo bajo el escalón (lleva el paso de la brida)
+ancho_ventana_cable = 3;
+alto_ventana_cable = 4;
+ancho_grapa = 5;
+pared_grapa = 2;
+abertura_grapa = 100;          // abertura del anillo de la grapa, en grados
+recorrido_equilibrado = 3.5;     // lo que se puede correr el láser hacia cada lado para equilibrarlo
+masa_grapa_g = 2;
+masa_cable_g = 4;
+masa_regulador_g = 5;
+alto_brazo_max_flexion = 131;  // límite del criterio de flexión de 0,1° (research 006, R5)
 
 // ---------- Valores derivados (Entidad 3 de data-model.md) ----------
 function largo_estandar(x) = ceil(x/5)*5;   // largos comerciales de perno cada 5 mm
@@ -290,10 +354,51 @@ radio_exterior_cuna = diametro_interior_cuna/2 + pared_tubo_cuna;
 largo_munon = m8_cabeza_alto + holgura_tuerca - pared_tubo_cuna + piso_munon;
 semiancho_interior_horquilla = radio_exterior_cuna + largo_munon + holgura_munon_brazo;
 
+// Láser sin batería (006, data-model Entidad 3). Distancias a lo largo del eje del láser desde el
+// borde trasero del tubo, positivas hacia el frente.
+largo_laser_sin_tapa = largo_laser - largo_tapa_original;
+prof_lastre = tuercas_lastre_tapa > 0 ? tuercas_lastre_tapa*m10_tuerca_alto + holgura("presion") : 0;
+largo_tapa_fuera = piso_tapa_trasera + max(prof_lastre, alto_min_cuello_tapa);
+largo_tapa_trasera = largo_tapa_fuera + largo_zona_tapa;
+largo_laser_mod = largo_laser_sin_tapa + largo_tapa_fuera;
+d_pila_falsa = diametro_hueco_bateria - 2*holgura("suelto");
+largo_pila_falsa = profundidad_hueco_bateria + compresion_resorte - iso7380_m3_cabeza_alto - espesor_ojal;
+d_paso_hilo = d_hilo + 1.1;
+r_esquina_tuerca_contacto = (m3_tuerca_ec + holgura_tuerca)/cos(30)/2;
+// Agujero del hilo en la pila falsa: a mitad de camino entre la tuerca del contacto y la pared mínima
+descentrado_hilo_pila = (r_esquina_tuerca_contacto + 0.4 + d_paso_hilo/2 + d_pila_falsa/2 - espesor_min_pared - d_paso_hilo/2)/2;
+r_funda_int = diametro_zona_tapa/2 + holgura("deslizante");
+r_funda_ext = r_funda_int + pared_tapa_trasera;
+ec_lastre = m10_tuerca_ec + 2*holgura("presion");
+r_esquina_lastre = ec_lastre/2/cos(30);
+plastico_prisionero = pared_tapa_trasera + espesor_resalte_prisionero;
+saliente_prisionero = largo_prisionero_tapa - plastico_prisionero - holgura("deslizante");
+r_tapa_trasera = r_funda_ext + espesor_resalte_prisionero + saliente_prisionero;   // en los prisioneros
+z_prisioneros_tapa = largo_tapa_fuera + largo_zona_tapa/2;   // desde la cara trasera de la tapa
+masa_pila_falsa_g = PI*pow(d_pila_falsa/2, 2)*largo_pila_falsa*densidad_petg*relleno_medio + 1.5;
+vol_tapa_trasera = PI*pow(r_funda_ext, 2)*largo_tapa_trasera - PI*pow(r_funda_int, 2)*largo_zona_tapa
+                   - (tuercas_lastre_tapa > 0 ? 3*sqrt(3)/2*pow(r_esquina_lastre, 2)*prof_lastre : 0);
+masa_tapa_trasera_g = vol_tapa_trasera*densidad_petg*relleno_medio + 2;   // + 2 prisioneros con tuerca
+masa_lastre_g = tuercas_lastre_tapa*masa_tuerca_m10_g;
+x_cable_grapa = largo_zona_tapa + 8;
+masas_laser_mod = [   // [masa, posición desde el borde trasero del tubo]
+    [masa_laser_g, distancia_trasera_centro_masa - largo_tapa_original],
+    [-masa_bateria_g, profundidad_hueco_bateria/2],
+    [-masa_tapa_original_g, -largo_tapa_original/2],
+    [masa_pila_falsa_g, largo_pila_falsa/2],
+    [masa_lastre_g, -largo_tapa_fuera + piso_tapa_trasera + prof_lastre/2],
+    [masa_tapa_trasera_g, (largo_zona_tapa - largo_tapa_fuera)/2],
+    [masa_grapa_g + masa_cable_g, x_cable_grapa]];
+masa_laser_mod_g = sum_lista([for (m = masas_laser_mod) m[0]]);
+cm_mod_desde_borde = sum_lista([for (m = masas_laser_mod) m[0]*m[1]])/masa_laser_mod_g;
+caida_cable_v = 2*largo_cable_laser/1000*ohm_por_m_26awg*corriente_laser_a;
+
 // Barrido del láser y altura del eje de altura (sobre la cara superior de la plataforma)
-l_trasero = distancia_trasera_centro_masa;
-l_delantero = largo_laser - l_trasero;
-radio_barrido = max(l_trasero, l_delantero) + diametro_laser/2*sin(5);
+l_trasero = distancia_trasera_centro_masa_nueva > 0 ? distancia_trasera_centro_masa_nueva
+                                                     : cm_mod_desde_borde + largo_tapa_fuera;
+l_delantero = largo_laser_mod - l_trasero;
+hueco_equilibrado = l_trasero - largo_tapa_trasera - largo_tubo_cuna/2;
+radio_barrido = max(l_trasero + r_funda_ext*sin(5), l_delantero + diametro_laser/2*sin(5));
 altura_eje = radio_barrido + holgura_barrido + altura_libre_central;
 alto_brazo = altura_eje + rod608_d_ext/2 + pared_alojamiento_608 + 1;
 
@@ -372,10 +477,12 @@ x_col_b1 = x_col_b0 + ancho_col_b;
 largo_soporte_uln = uln2003_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_esp32 = esp32_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_rele = rele_largo + 2*holgura_encastre + 2*pared_soporte;
-alto_col_a = 2*largo_soporte_uln + holgura_zonas;
+largo_soporte_regulador = regulador_largo + 2*holgura_encastre + 2*pared_soporte;
+alto_col_a = 2*largo_soporte_uln + largo_soporte_regulador + 2*holgura_zonas;
 alto_col_b = largo_soporte_esp32 + largo_soporte_rele + holgura_zonas;
 y_uln_alt0 = -alto_col_a/2;
 y_uln_az0 = y_uln_alt0 + largo_soporte_uln + holgura_zonas;
+y_reg0 = y_uln_az0 + largo_soporte_uln + holgura_zonas;
 y_esp32_0 = -alto_col_b/2;
 y_rele_0 = y_esp32_0 + largo_soporte_esp32 + holgura_zonas;
 alto_esp32_total = elevacion_esp32 + espesor_pcb + alto_modulo_esp32;
@@ -385,7 +492,7 @@ x_tapa0 = x_col_a0 - holgura_encastre - pared_tapa;
 x_tapa1 = x_col_b1 + holgura_encastre + pared_tapa;
 y_tapa0 = min(y_uln_alt0, y_esp32_0) - holgura_encastre - pared_tapa;
 // Hueco para el cable sobrante (FR-012) e interruptor general (FR-013), dentro de la tapa
-y_sob0 = max(y_uln_az0 + largo_soporte_uln, y_rele_0 + largo_soporte_rele) + holgura_zonas;
+y_sob0 = max(y_reg0 + largo_soporte_regulador, y_rele_0 + largo_soporte_rele) + holgura_zonas;
 y_sob1 = y_sob0 + alto_sobrante_cables;
 x_interruptor = x_col_b1 - espesor_soporte_interruptor;
 y_interruptor = (y_sob0 + y_sob1)/2;
@@ -418,6 +525,7 @@ zona_uln_altura = [x_col_a0, y_uln_alt0, x_col_a1, y_uln_alt0 + largo_soporte_ul
 zona_uln_azimut = [x_col_a0, y_uln_az0, x_col_a1, y_uln_az0 + largo_soporte_uln, altura_placas, "uln azimut"];
 zona_esp32 = [x_col_b0, y_esp32_0, x_col_b1, y_esp32_0 + largo_soporte_esp32, alto_esp32_total, "esp32"];
 zona_rele = [x_col_b0, y_rele_0, x_col_b1, y_rele_0 + largo_soporte_rele, altura_placas, "rele"];
+zona_regulador = [x_col_a0, y_reg0, x_col_a1, y_reg0 + largo_soporte_regulador, altura_placas, "regulador"];
 y_puente_brida_az = y_carro_az1 + holgura_zonas + ancho_puente_brida/2 + 1;   // brida del cable del motor de azimut
 zona_sobrante_cables = [x_col_a0, y_sob0, x_col_b1, y_sob1, 0, "sobrante de cables"];
 zona_tapa = [x_tapa0, y_tapa0 - largo_oreja_tapa, x_tapa1, y_tapa1 + largo_oreja_tapa, alto_tapa, "tapa"];
@@ -429,7 +537,7 @@ zona_contrapeso = [x_contrapeso - d_contrapeso/2, y_contrapeso - d_contrapeso/2,
 
 zonas_componentes = concat(
     [zona_cubo, zona_brazo_motor, zona_brazo_cable, zona_motor_azimut, zona_tope_azimut,
-     zona_powerbank, zona_uln_altura, zona_uln_azimut, zona_esp32, zona_rele],
+     zona_powerbank, zona_uln_altura, zona_uln_azimut, zona_esp32, zona_rele, zona_regulador],
     con_contrapeso ? [zona_contrapeso] : []);
 zonas_todas = concat(zonas_componentes, [zona_tapa, zona_conducto]);
 
@@ -456,10 +564,16 @@ choques_conducto = [for (z = [zona_cubo, zona_brazo_motor, zona_brazo_cable, zon
 // Barrido del láser (V-07): secciones del láser y del tubo de la cuna cada 5 mm, de −10° a 95°.
 // Cada sección es un disco perpendicular al eje del láser: su punto más bajo está r·|cos a| por
 // debajo del centro y se extiende r·|sin a| en Y.
+// La cola es la tapa trasera impresa (006): radio r_funda_ext, y r_tapa_trasera en la sección de los
+// prisioneros (con su contratuerca), que se agrega aparte porque el paso de 5 mm podría saltearla.
+function radio_laser(t) = t <= -l_trasero + largo_tapa_trasera ? r_funda_ext : diametro_laser/2;
+t_prisioneros = -l_trasero + z_prisioneros_tapa;
 function secciones(a) = concat(
-    [for (t = [-l_trasero:5:l_delantero]) [t*cos(a), altura_eje + t*sin(a), diametro_laser/2]],
+    [for (t = [-l_trasero:5:l_delantero]) [t*cos(a), altura_eje + t*sin(a), radio_laser(t)]],
+    [for (t = [t_prisioneros - ancho_resalte_prisionero/2, t_prisioneros, t_prisioneros + ancho_resalte_prisionero/2])
+        [t*cos(a), altura_eje + t*sin(a), r_tapa_trasera]],
     [for (t = [-largo_tubo_cuna/2:5:largo_tubo_cuna/2]) [t*cos(a), altura_eje + t*sin(a), radio_exterior_cuna + sobre_anillo_colim]],
-    [[-l_trasero*cos(a), altura_eje - l_trasero*sin(a), diametro_laser/2],
+    [[-l_trasero*cos(a), altura_eje - l_trasero*sin(a), r_funda_ext],
      [l_delantero*cos(a), altura_eje + l_delantero*sin(a), diametro_laser/2]]);
 function holgura_barrido_zona(z) = minimo(concat([999], [for (a = [-10:1:95]) for (s = secciones(a))
     if (z[0] < s[2] && z[2] > -s[2] && s[0] + s[2]*abs(sin(a)) > z[1] && s[0] - s[2]*abs(sin(a)) < z[3])
@@ -478,13 +592,14 @@ masas_giratorias = [
     [10, (x_col_a0+x_col_a1)/2, y_uln_az0 + largo_soporte_uln/2],
     [masa_placas_g - 35, (x_col_b0+x_col_b1)/2, y_esp32_0 + largo_soporte_esp32/2],
     [15, (x_col_b0+x_col_b1)/2, y_rele_0 + largo_soporte_rele/2],
+    [masa_regulador_g, (x_col_a0+x_col_a1)/2, y_reg0 + largo_soporte_regulador/2],
     [masa_tapa_g, (x_tapa0+x_tapa1)/2, (y_tapa0+y_tapa1)/2],
     [masa_grupo_az_g, 0, distancia_centros + motor_desplazamiento_eje],
     [masa_motor_g + masa_carro_g + masa_polea20_g, x_cara_int_carro_alt - motor_alto_cuerpo/2, 0],
     [masa_polea80_g, x_ext_polea_alt - h_dentado, 0],
     [masa_brazo_g, x_cara_ext_brazo - espesor_brazo/2, 0],
     [masa_brazo_g, -(x_cara_ext_brazo - espesor_brazo/2), 0],
-    [masa_cuna_g + masa_laser_g, 0, 0],
+    [masa_cuna_g + masa_laser_mod_g, 0, 0],
     [masa_plataforma_g, (x_plat0+x_plat1)/2, (y_plat0+y_plat1)/2]];
 masa_giratoria_g = sum_lista([for (m = masas_giratorias) m[0]]);
 function sum_lista(v, i = 0) = i >= len(v) ? 0 : v[i] + sum_lista(v, i+1);
@@ -495,8 +610,8 @@ masa_estimada_g = masa_giratoria_g + masa_base_g;
 
 // Pares del eje de altura (FR-024)
 par_disponible_mNm = par_motor_mNm*relacion_correa*rendimiento_correa;
-par_desbalance_10_mNm = (masa_laser_g + masa_cuna_g)/1000*g_gravedad*10;
-par_desbalance_20_mNm = (masa_laser_g + masa_cuna_g)/1000*g_gravedad*20;
+par_desbalance_10_mNm = (masa_laser_mod_g + masa_cuna_g)/1000*g_gravedad*10;
+par_desbalance_20_mNm = (masa_laser_mod_g + masa_cuna_g)/1000*g_gravedad*20;
 fs_par_10 = par_disponible_mNm/par_desbalance_10_mNm;
 fs_par_20 = par_disponible_mNm/par_desbalance_20_mNm;
 
@@ -669,6 +784,44 @@ assert(error_peor_caso < 2, str("error_peor_caso=", error_peor_caso, "°: supera
 if (error_rss > 1) echo(str("AVISO: error_rss=", error_rss, "° supera el objetivo de 1°"));
 if (fs_par_10 < 3) echo(str("AVISO: con 10 mm de desbalance el factor de seguridad del par es ", fs_par_10, " (< 3); equilibre bien el láser"));
 
+// V-15…V-21: láser sin batería (006, data-model Entidad 4)
+comprobar_rango("diametro_hueco_bateria", diametro_hueco_bateria, 16, 22);
+comprobar_rango("profundidad_hueco_bateria", profundidad_hueco_bateria, 34, 70);
+comprobar_rango("diametro_zona_tapa", diametro_zona_tapa, 20, 40);
+comprobar_rango("largo_zona_tapa", largo_zona_tapa, 8, 20);
+comprobar_rango("largo_tapa_original", largo_tapa_original, 5, 40);
+comprobar_rango("masa_bateria_g", masa_bateria_g, 15, 60);
+comprobar_rango("masa_tapa_original_g", masa_tapa_original_g, 5, 40);
+comprobar_rango("tuercas_lastre_tapa", tuercas_lastre_tapa, 0, 3);
+comprobar_rango("distancia_trasera_centro_masa_nueva", distancia_trasera_centro_masa_nueva, 0, 200);
+comprobar_rango("regulador_largo", regulador_largo, 15, 25);
+comprobar_rango("regulador_ancho", regulador_ancho, 10, 18);
+assert(tuercas_lastre_tapa == floor(tuercas_lastre_tapa),
+    str("tuercas_lastre_tapa=", tuercas_lastre_tapa, ": debe ser un número entero de tuercas"));
+assert(diametro_hueco_bateria + 2*espesor_min_pared <= diametro_zona_tapa,
+    str("diametro_hueco_bateria=", diametro_hueco_bateria, ": el hueco de la batería no entra en el tubo de ",
+        diametro_zona_tapa, " mm (pared mín. ", espesor_min_pared, " mm)"));
+assert(d_pila_falsa/2 - descentrado_hilo_pila - d_paso_hilo/2 >= espesor_min_pared
+       && descentrado_hilo_pila - d_paso_hilo/2 >= r_esquina_tuerca_contacto + 0.4,
+    str("diametro_hueco_bateria=", diametro_hueco_bateria, ": la pila falsa es muy fina para el paso del hilo"));
+assert(tuercas_lastre_tapa == 0 || r_funda_int - r_esquina_lastre >= 1,
+    str("tuercas_lastre_tapa=", tuercas_lastre_tapa, ": las tuercas M10 de lastre no dejan escalón para el borde del tubo de ",
+        diametro_zona_tapa, " mm"));
+assert(plastico_prisionero + holgura("deslizante") + m3_tuerca_alto + espesor_ojal + 1 <= largo_prisionero_tapa,
+    str("espesor_resalte_prisionero=", espesor_resalte_prisionero, ": el prisionero M3 × ", largo_prisionero_tapa,
+        " no alcanza para el ojal y la contratuerca"));
+assert(hueco_equilibrado >= ancho_grapa + 2*recorrido_equilibrado,
+    str("distancia_trasera_centro_masa_nueva=", distancia_trasera_centro_masa_nueva, ": la tapa trasera queda a ",
+        hueco_equilibrado, " mm de la cuna (mín. ", ancho_grapa + 2*recorrido_equilibrado,
+        "): no hay lugar para la grapa y el equilibrado"));
+assert(caida_cable_v < 0.1,
+    str("largo_cable_laser=", largo_cable_laser, ": el cable hace caer ", caida_cable_v, " V (máx. 0,1 V)"));
+assert(regulador_largo >= regulador_ancho && regulador_ancho + 2*holgura_encastre + 2*pared_soporte <= ancho_col_a,
+    str("regulador_ancho=", regulador_ancho, ": el regulador no entra en la columna de los ULN2003 (máx. ",
+        ancho_col_a - 2*holgura_encastre - 2*pared_soporte, " mm) o es más ancho que largo"));
+if (alto_brazo > alto_brazo_max_flexion)
+    echo(str("AVISO: alto_brazo=", alto_brazo, " supera 131 mm: repetir el cálculo de flexión (research 006, R5)"));
+
 // --- SALIDA DE DERIVADOS (echo) ---
 echo(str("FIRMWARE pasos_por_grado=", pasos_por_grado, ", grados_por_paso=", grados_por_paso,
          ", pasos_por_vuelta_eje=", pasos_por_vuelta_eje));
@@ -677,6 +830,10 @@ echo(str("DISEÑO distancia_centros=", distancia_centros, ", altura_eje=", altur
          ", plataforma=", largo_plataforma, "x", ancho_plataforma,
          ", x_centro_masa=", x_centro_masa_plataforma, ", y_centro_masa=", y_centro_masa_plataforma,
          ", masa_estimada_g=", masa_estimada_g));
+echo(str("LASER masa_laser_mod_g=", masa_laser_mod_g, ", l_trasero=", l_trasero, ", l_delantero=", l_delantero,
+         ", largo_tapa_fuera=", largo_tapa_fuera, ", largo_pila_falsa=", largo_pila_falsa,
+         ", hueco_equilibrado=", hueco_equilibrado, ", caida_cable_v=", caida_cable_v,
+         ", r_tapa_trasera=", r_tapa_trasera, ", alto_col_a=", alto_col_a));
 echo(str("COTAS z_tope_base=", z_tope_base, ", z_plataforma_sup=", z_plataforma_sup, ", z_eje_altura=", z_eje_altura,
          ", semiancho_horquilla=", semiancho_interior_horquilla, ", alto_tapa=", alto_tapa));
 echo(str("PERNOS azimut=M8x", largo_perno_azimut, ", altura_motor=M8x", largo_perno_alt_motor,

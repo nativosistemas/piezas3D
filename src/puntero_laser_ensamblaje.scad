@@ -3,7 +3,8 @@
 // Componente: Ensamblaje (solo revisión, NO se exporta)
 // Descripción: Coloca todas las piezas en su posición del conjunto, dibuja los componentes
 //              comprados como volúmenes simplificados (motores, poleas 20T, correas, 608ZZ, pernos,
-//              tornillería, placas, power bank y láser) y comprueba con asserts los choques y
+//              tornillería, placas, regulador, power bank y láser sin batería con su pila falsa, tapa
+//              trasera, lastre, grapa y cable) y comprueba con asserts los choques y
 //              alineaciones que no se pueden ver en una pieza sola (V-07, V-09 y separaciones entre
 //              piezas). Las vistas explotadas y los datos del visor 3D salen de la tabla de pasos con la
 //              biblioteca común armado_comun.scad.
@@ -19,6 +20,9 @@ use <puntero_laser_polea_altitud.scad>
 use <puntero_laser_carro_motor.scad>
 use <puntero_laser_separador_azimut.scad>
 use <puntero_laser_tapa_electronica.scad>
+use <puntero_laser_pila_falsa.scad>
+use <puntero_laser_tapa_trasera.scad>
+use <puntero_laser_grapa_cable.scad>
 include <armado_comun.scad>
 
 // Ángulo de altura del láser en la vista previa
@@ -26,7 +30,7 @@ angulo_altura = 45; // [-10:1:95]
 // Dibujar la tapa (transparente)
 ver_tapa = true;
 // Paso de armado de la guía (0 = conjunto completo; -1 = datos de los pasos con echo)
-paso_armado = 0; // [-1:1:18]
+paso_armado = 0; // [-1:1:19]
 // Dibujar solo este elemento, en su posición final y sin color (para exportar mallas al visor 3D)
 solo_elemento = "";
 
@@ -46,6 +50,17 @@ alto_cabeza_m3 = 3;
 espesor_oreja_motor = 1;   // las orejas del 28BYJ-48 se dibujan de 1 mm
 x_pie_brazo = semiancho_interior_horquilla + espesor_brazo/2;
 x_tapa_c = (x_tapa0 + x_tapa1)/2;
+// Láser sin batería (006), en el sistema del láser: eje del láser sobre +Y, eje de altura en el origen
+y_borde_tubo = -l_trasero + largo_tapa_fuera;
+y_grapa = -l_trasero + largo_tapa_trasera + hueco_equilibrado/2 - ancho_grapa/2;
+r_cable_canaleta = radio_exterior_cuna + sobre_anillo_colim - prof_canaleta + d_hilo/2 + 0.2;
+r_cable_grapa = diametro_laser/2 - holgura("presion") + pared_grapa + d_hilo + 0.1;
+y_fin_canaleta = -d_munon/2 - 2;
+x_cara_int_brazo_cable = -semiancho_interior_horquilla;
+// Punto del cable a angulo_cable, a radio r del eje del láser y a y del eje de altura
+function punto_cable(r, y) = [r*cos(angulo_cable), y, -r*sin(angulo_cable)];
+// Punto del sistema del láser pasado al conjunto con el láser a "a" grados
+function en_conjunto(p, a) = [p[0], p[1]*cos(a) - p[2]*sin(a), p[1]*sin(a) + p[2]*cos(a) + z_eje_altura];
 y_orejas_tapa = [y_tapa0 - largo_oreja_tapa/2, y_tapa1 + largo_oreja_tapa/2];
 
 // Vista explotada: transparencia de lo ya armado, color y grosor de las flechas
@@ -107,11 +122,14 @@ pasos = [
     /* 12 */ [["correa_az", [0, 0, -30], true]],
     /* 13 */ [["carro_alt", [45, 0, 0], true], ["motor_alt", [45, 0, 0], true], ["tornillos_orejas_alt", [45, 0, 0], false],
               ["tornillos_carro_alt", [80, 0, 0], true], ["polea20_alt", [65, 0, 0], true], ["correa_alt", [25, 0, 0], true]],
-    /* 14 */ [["laser", 150*v_laser, true]],
-    /* 15 */ [["placas", [0, 0, 70], true], ["powerbank", [0, 0, 100], true]],
-    /* 16 */ [],
-    /* 17 */ [["tapa", [0, 0, 50], true], ["tornillos_tapa", [0, 0, 80], true], ["tuercas_tapa", [0, 0, -30], true]],
-    /* 18 */ []
+    /* 14 */ [["laser", [0, 0, 0], false], ["pila_falsa", 120*v_laser, true], ["lastre", 90*v_laser, true],
+              ["tapa_trasera", 60*v_laser, true], ["grapa", [0, 0, 35], true]],
+    /* 15 */ concat([["laser", 150*v_laser, true]],
+                    [for (e = ["pila_falsa", "lastre", "tapa_trasera", "grapa"]) [e, 150*v_laser, false]]),
+    /* 16 */ [["placas", [0, 0, 70], true], ["regulador", [0, 0, 150], true], ["powerbank", [0, 0, 100], true]],
+    /* 17 */ [["cable_laser", [-40, 0, 0], true]],
+    /* 18 */ [["tapa", [0, 0, 50], true], ["tornillos_tapa", [0, 0, 80], true], ["tuercas_tapa", [0, 0, -30], true]],
+    /* 19 */ []
 ];
 
 // --- COMPROBACIONES DEL CONJUNTO ---
@@ -142,7 +160,7 @@ assert(altura_max_canal < altura_libre_central, "altura_max_canal: el conducto i
 // La parte ancha del brazo del motor no se mete en la tapa
 assert(x_cara_ext_brazo < x_tapa0, "espesor_brazo: el brazo del motor se mete en la tapa");
 // Tabla de pasos: un paso por cada instrucción de la guía (los elementos los comprueba armado())
-assert(len(pasos) == 18, "pasos: la guía tiene 18 pasos de armado");
+assert(len(pasos) == 19, "pasos: la guía tiene 19 pasos de armado");
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
 armado();
@@ -170,7 +188,8 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "autoblocante_cable", "motor_az", "motor_alt", "polea20_az", "polea20_alt", "correa_az", "correa_alt",
              "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
              "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
-             "placas", "powerbank", "laser"];
+             "placas", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
+             "cable_laser"];
 
 function color_elemento(e) =
     e == "base" ? "SlateGray" : e == "plataforma" ? "DarkSeaGreen" :
@@ -180,6 +199,8 @@ function color_elemento(e) =
     e == "tapa" ? "LightGray" : e == "motor_az" || e == "motor_alt" ? "Gold" :
     e == "correa_az" || e == "correa_alt" ? "Black" : e == "placas" ? "ForestGreen" :
     e == "powerbank" ? "DarkBlue" : e == "laser" ? "LimeGreen" :
+    e == "pila_falsa" ? "Tomato" : e == "tapa_trasera" || e == "grapa" ? "Peru" : e == "regulador" ? "RoyalBlue" :
+    e == "cable_laser" ? "Red" :
     e == "608_base_sup" || e == "608_base_inf" || e == "608_brazo_motor" || e == "608_brazo_cable"
         || e == "polea20_az" || e == "polea20_alt" ? "Silver" : "DimGray";
 
@@ -275,6 +296,32 @@ module elemento(e) {
         translate([x_pb1 + pared_bolsillo + holgura_encastre, y_pb0 + pared_bolsillo + holgura_encastre, z_sup])
             cube([powerbank_alto, powerbank_largo, powerbank_ancho]);
     if (e == "laser") laser_en(angulo_altura) laser();
+    if (e == "pila_falsa") laser_en(angulo_altura) translate([0, y_borde_tubo, 0]) rotate([-90, 0, 0])
+        rotate([0, 0, angulo_cable]) pieza_pila_falsa();
+    if (e == "tapa_trasera") laser_en(angulo_altura) translate([0, -l_trasero, 0]) rotate([-90, 0, 0])
+        pieza_tapa_trasera();
+    if (e == "lastre" && tuercas_lastre_tapa > 0) laser_en(angulo_altura) translate([0, -l_trasero, 0]) rotate([-90, 0, 0])
+        for (i = [0:tuercas_lastre_tapa - 1]) translate([0, 0, piso_tapa_trasera + i*m10_tuerca_alto]) difference() {
+            tuerca(m10_tuerca_ec, m10_tuerca_alto);
+            translate([0, 0, -1]) cylinder(d = 10, h = m10_tuerca_alto + 2);
+        }
+    if (e == "grapa") laser_en(angulo_altura) translate([0, y_grapa, 0]) rotate([-90, 0, 0]) pieza_grapa_cable();
+    if (e == "regulador")
+        placa(x_col_a0, y_reg0, regulador_ancho, regulador_largo, alto_soporte_placa, 4);
+    if (e == "cable_laser") {
+        // Tramo que gira con el láser: ventana de la tapa → grapa → canaleta → fin de la canaleta
+        laser_en(angulo_altura) cordon([
+            punto_cable(r_funda_ext + d_hilo, y_borde_tubo),
+            punto_cable(r_cable_grapa, y_grapa + ancho_grapa/2),
+            punto_cable(r_cable_canaleta, -largo_tubo_cuna/2),
+            punto_cable(r_cable_canaleta, y_fin_canaleta)]);
+        // Bucle hasta el agujero del brazo cable (fijo) y salida por su cara exterior
+        cordon([
+            en_conjunto(punto_cable(r_cable_canaleta, y_fin_canaleta), angulo_altura),
+            [x_cara_int_brazo_cable + d_hilo + 0.5, -8, z_eje_altura - dist_agujero_cable - 8],
+            [x_cara_int_brazo_cable, 0, z_eje_altura - dist_agujero_cable],
+            [-x_cara_ext_brazo - 2, 0, z_eje_altura - dist_agujero_cable]]);
+    }
 }
 
 // Puntos de cada elemento donde se dibuja la flecha de la vista explotada
@@ -311,6 +358,11 @@ function anclas(e) =
     e == "arandela_cable" || e == "autoblocante_cable" ? [[-(x_cara_ext_brazo + alto_arandela_contacto), 0, z_eje_altura]] :
     e == "polea_alt" ? [[x_cara_ext_brazo, 0, z_eje_altura + d_exterior_conducida/3]] :   // sobre el perno
     e == "laser" ? [[0, 0, z_eje_altura] + (l_trasero + 130)*v_laser] :   // detrás del láser, no dentro
+    e == "pila_falsa" || e == "lastre" || e == "tapa_trasera" ? [[0, 0, z_eje_altura] + (l_trasero + 3)*v_laser] :
+    e == "grapa" ? [en_conjunto([0, y_grapa + ancho_grapa/2, diametro_laser/2 + pared_grapa + 1], angulo_altura)] :
+    e == "regulador" ? let (m = pared_soporte + holgura_encastre)
+        [[x_col_a0 + m + regulador_ancho/2, y_reg0 + m + regulador_largo/2, z_sup + alto_soporte_placa + 4]] :
+    e == "cable_laser" ? [[x_cara_int_brazo_cable, 0, z_eje_altura - dist_agujero_cable]] :
     e == "placas" ? let (m = pared_soporte + holgura_encastre)   // centro de cada placa, bajo su apoyo
         [[x_col_a0 + m + uln2003_ancho/2, y_uln_alt0 + m + uln2003_largo/2, z_sup],
          [x_col_a0 + m + uln2003_ancho/2, y_uln_az0 + m + uln2003_largo/2, z_sup],
@@ -330,8 +382,19 @@ module laser_en(a) {
 module cuna_en_conjunto() {
     rotate([-90, 0, 0]) translate([0, 0, -largo_tubo_cuna/2]) pieza_cuna_laser();
 }
+// Tubo del láser sin la tapa original: del borde trasero (y_borde_tubo) al frente, hueco donde iba la batería
 module laser() {
-    rotate([-90, 0, 0]) translate([0, 0, -l_trasero]) cylinder(d = diametro_laser, h = largo_laser);
+    rotate([-90, 0, 0]) translate([0, 0, y_borde_tubo]) difference() {
+        cylinder(d = diametro_laser, h = largo_laser_sin_tapa);
+        translate([0, 0, -1]) cylinder(d = diametro_hueco_bateria, h = profundidad_hueco_bateria + 1);
+    }
+}
+// Cable de 2 hilos (un cordón de 2·d_hilo) por una lista de puntos
+module cordon(puntos) {
+    for (i = [0:len(puntos) - 2]) hull() {
+        translate(puntos[i]) sphere(d = 2*d_hilo, $fn = 12);
+        translate(puntos[i + 1]) sphere(d = 2*d_hilo, $fn = 12);
+    }
 }
 
 module rodamiento_608() {

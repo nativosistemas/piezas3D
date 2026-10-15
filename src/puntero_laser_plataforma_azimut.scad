@@ -136,6 +136,7 @@ module soportes_placas() {
     soporte_placa(x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo, alto_soporte_placa, pad_soporte);
     soporte_placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, pad_soporte_esp32);
     soporte_placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, pad_soporte);
+    soporte_placa(x_col_a0, y_reg0, regulador_ancho, regulador_largo, alto_soporte_placa, pad_soporte);   // regulador (006)
 }
 // Celda que empieza en [x0, y0]; placa de a × l (a en X, l en Y) apoyada a z_apoyo sobre la plataforma
 module soporte_placa(x0, y0, a, l, z_apoyo, pad) {
