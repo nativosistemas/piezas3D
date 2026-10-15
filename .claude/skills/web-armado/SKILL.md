@@ -103,6 +103,15 @@ extremos. Capturar con `?modo=funcionamiento&<eje>=<grados>&<emisor>=1` (p. ej.
 - `&auto=1&vel=20` muestra el modo automático en marcha. Los tiempos reales (×1) los mide el
   usuario en su navegador: el Edge sin ventana no avanza el reloj al ritmo real.
 
+**Nombres y selección** (si el ensamblaje declara `nombres_elementos`; skill `disenio-multipieza`,
+sección 4, punto 9). Agregar `&senalar=<elemento>` a una dirección de captura: la pieza se resalta
+y su etiqueta aparece en el centro de su caja (p. ej. `?paso=11&t=1&senalar=perno_az`). Revisar:
+
+- La lista "Piezas de este paso" muestra nombres (no identificadores) con su marca de tipo.
+- La etiqueta de una pieza chica (tornillería) y la de una pieza atenuada del contexto.
+- Pasar el puntero, arrastrar y tocar no se prueban con capturas: pedirle al usuario que lo pruebe
+  en su navegador.
+
 Revisar la página en un navegador. Captura sin abrir ventanas (fuera del sandbox, con el Edge de
 Windows):
 
@@ -124,5 +133,6 @@ Windows):
 - [ ] El tipo de cambio es del mismo período que los precios.
 - [ ] Las vistas explotadas se revisaron una por una.
 - [ ] Si el diseño tiene ensamblaje, el visor 3D se generó y se revisó sin red (`t=0` contra cada
-  captura y los pasos con origen) y, si tiene partes móviles, la pestaña Funcionamiento.
+  captura y los pasos con origen), los nombres de las piezas y, si tiene partes móviles, la
+  pestaña Funcionamiento.
 - [ ] La página se revisó en un navegador.

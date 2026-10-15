@@ -29,6 +29,9 @@
 //   objetivos        [nombre, [un valor por articulación]]
 //   deformables      [elemento, articulación, ángulos]
 //   transparentes_simulacion   elementos que la simulación dibuja transparentes
+// Y, para identificar las piezas en el visor (contrato: specs/008-identificacion-componentes/
+// contracts/ensamblaje.md), esta lista opcional, con una entrada por elemento del catálogo:
+//   nombres_elementos  [elemento, nombre, tipo ("impresa" o "comprada")]
 // Se leen con is_undef (consultar una variable que no existe no avisa con --hardwarnings).
 // Proporciones de la flecha respecto de su diámetro y resolución de sus cilindros:
 //   punta de 2,5 diámetros de ancho y hasta 10/3 diámetros de largo; 16 lados.
@@ -38,6 +41,7 @@
 module armado() {
     comprobar_pasos();
     comprobar_simulacion();
+    comprobar_nombres();
     if (solo_elemento != "")
         elemento(solo_elemento);
     else if (paso_armado == -1)
@@ -78,6 +82,8 @@ module datos_armado() {
     echo(str("OBJETIVOS;", simulacion_objetivos()));
     echo(str("DEFORMABLES;", simulacion_deformables()));
     echo(str("TRANSPARENTES;", simulacion_transparentes()));
+    // El nombre va al final: echo no escapa las comillas y así el lector toma todo hasta la última
+    for (x = nombres_declarados()) echo(str("NOMBRE;", x[0], ";", x[2], ";", x[1]));
 }
 
 // Validación de la tabla de pasos
@@ -158,6 +164,22 @@ module comprobar_simulacion() {
         str("transparentes_simulacion: elemento desconocido '", e, "'"));
 }
 
+// Validación de los nombres de los elementos (visor 3D): si hay lista, cubre el catálogo exacto
+module comprobar_nombres() {
+    lista = nombres_declarados();
+    for (x = lista) {
+        assert(is_list(x) && len(x) == 3, str("nombres_elementos: ", x, " debe ser [elemento, nombre, tipo]"));
+        assert(contiene(elementos, x[0]), str("nombres_elementos: elemento desconocido '", x[0], "'"));
+        assert(len([for (y = lista) if (y[0] == x[0]) 0]) == 1, str("nombres_elementos: '", x[0], "' está repetido"));
+        assert(is_string(x[1]) && len(x[1]) > 0, str("nombres_elementos: el nombre de '", x[0], "' está vacío"));
+        assert(x[2] == "impresa" || x[2] == "comprada",
+               str("nombres_elementos: el tipo de '", x[0], "' debe ser \"impresa\" o \"comprada\""));
+    }
+    if (len(lista) > 0)
+        for (e = elementos) assert(contiene([for (x = lista) x[0]], e),
+                                   str("nombres_elementos: falta el nombre de '", e, "'"));
+}
+
 // --- FUNCIONES ---
 // Listas de la simulación del diseño, o vacías si no las define
 function simulacion_articulaciones() = is_undef(articulaciones) ? [] : articulaciones;
@@ -166,6 +188,8 @@ function simulacion_emisores() = is_undef(emisores) ? [] : emisores;
 function simulacion_objetivos() = is_undef(objetivos) ? [] : objetivos;
 function simulacion_deformables() = is_undef(deformables) ? [] : deformables;
 function simulacion_transparentes() = is_undef(transparentes_simulacion) ? [] : transparentes_simulacion;
+// Nombres y tipos de los elementos del diseño, o vacía si no los define
+function nombres_declarados() = is_undef(nombres_elementos) ? [] : nombres_elementos;
 function en_rango(v, rango) = is_undef(rango) || (v >= rango[0] && v <= rango[1]);
 // Cantidad de padres de una articulación hasta la raíz, o −1 si la cadena no termina (circular)
 function profundidad_articulacion(art, nombre, restantes) =

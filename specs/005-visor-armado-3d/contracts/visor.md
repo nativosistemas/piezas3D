@@ -2,6 +2,9 @@
 
 `specs/<NNN>/web/armado_3d.html`: un solo archivo, sin recursos externos.
 
+Ampliaciones: modo Funcionamiento ([007](../../007-simulacion-funcionamiento/contracts/visor.md)) e
+identificación de piezas ([008](../../008-identificacion-componentes/contracts/visor.md)).
+
 ## Direcciones
 
 | Dirección | Efecto |

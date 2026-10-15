@@ -3,6 +3,10 @@
 Lo que `src/<diseño>_ensamblaje.scad` DEBE ofrecer para tener vistas explotadas y visor 3D. La
 maquinaria común vive en `src/armado_comun.scad`; el ensamblaje la incluye y define solo lo propio.
 
+Ampliaciones opcionales: partes móviles
+([007](../../007-simulacion-funcionamiento/contracts/ensamblaje.md)) y nombres de los elementos
+([008](../../008-identificacion-componentes/contracts/ensamblaje.md)).
+
 ## Lo que define el diseño
 
 ```openscad

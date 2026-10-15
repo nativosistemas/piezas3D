@@ -37,9 +37,22 @@
   button:disabled { opacity: .4; cursor: default; }
   input[type=range] { width: 100%; accent-color: var(--acento); }
   .piezas { margin: 0; padding-left: 18px; color: var(--suave); font-size: 13px; }
+  .piezas li { border-radius: 6px; padding: 1px 4px; cursor: default; }
+  .piezas li:hover, .piezas li:focus { background: #eef5f2; color: var(--texto); outline: none; }
+  .tipo { display: inline-block; font-size: 11px; line-height: 1.5; padding: 0 6px; margin-right: 4px;
+          border: 1px solid var(--borde); border-radius: 9px; white-space: nowrap; color: var(--texto); }
+  .tipo-impresa { background: #e4f1ec; }
+  .tipo-comprada { background: #f6ecdc; }
+  #etiqueta { position: absolute; z-index: 2; pointer-events: none; max-width: 280px; padding: 6px 10px;
+              background: var(--panel); border: 1px solid var(--borde); border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, .15); font-size: 13px; line-height: 1.35; }
+  #etiqueta[hidden] { display: none; }
+  #etiqueta strong { display: block; }
+  #etiqueta span { color: var(--suave); font-size: 12px; }
   .leyenda { font-size: 12px; color: var(--suave); border-top: 1px solid var(--borde); padding-top: 10px;
              margin: auto 0 0; }
   .pestanas { display: flex; gap: 6px; }
+  .pestanas[hidden] { display: none; }
   .pestanas button { flex: 1; min-height: 38px; }
   .pestanas button[aria-selected=true] { background: var(--acento); border-color: var(--acento); color: #fff; }
   .panel { display: flex; flex-direction: column; gap: 12px; flex: 1; }
@@ -70,7 +83,8 @@
   <div id="escena">
     <div id="sin3d"><p>Este navegador no puede mostrar el visor 3D.<br>
       <a href="index.html#instrucciones-paso-a-paso">Ver el armado con imágenes en la web</a></p></div>
-    <div id="ayuda">Arrastrar: girar · Rueda: acercar · Botón derecho o Mayús: desplazar</div>
+    <div id="ayuda">Arrastrar: girar · Rueda: acercar · Botón derecho o Mayús: desplazar · Puntero sobre una pieza: qué es</div>
+    <div id="etiqueta" role="status" hidden><strong id="etiqueta-nombre"></strong><span id="etiqueta-tipo"></span></div>
   </div>
   <aside>
     <div class="arriba">
@@ -97,7 +111,7 @@
       <ul class="piezas" id="piezas"></ul>
     </div>
     <p class="leyenda">Las piezas nuevas van en color y se mueven hasta su lugar; lo que ya está armado se
-      ve transparente. Teclado: ← → para cambiar de paso, Espacio para repetir, Inicio para la vista inicial.</p>
+      ve transparente. Pasá el puntero (o tocá) una pieza para ver qué es. Teclado: ← → para cambiar de paso, Espacio para repetir, Inicio para la vista inicial.</p>
     </div>
     <div class="panel" id="panel-funcionamiento" hidden>
       <h1>Funcionamiento</h1>
@@ -117,7 +131,7 @@
         <button id="inicial-sim">Vista inicial</button>
       </div>
       <p class="leyenda">Simulación cinemática: el cable y las correas se muestran aproximados; no se calculan
-        choques ni fuerzas. Teclado: L enciende o apaga el láser, A el modo automático, Inicio la vista inicial.</p>
+        choques ni fuerzas. Pasá el puntero (o tocá) una pieza para ver qué es. Teclado: L enciende o apaga el láser, A el modo automático, Inicio la vista inicial.</p>
     </div>
   </aside>
 </main>
@@ -170,6 +184,7 @@ for (const [nombre, el] of Object.entries(DATOS.elementos)) {
                                                roughness: 0.65, metalness: 0.05 });
   const malla = new THREE.Mesh(geo, mat);
   malla.visible = false;
+  malla.userData.elemento = nombre;
   raizArmado.add(malla);
   piezas[nombre] = malla;
 }
@@ -258,6 +273,137 @@ function mostrarComo(m, opaco) {
   m.material.transparent = !opaco;
   m.material.opacity = opaco ? 1 : ALFA_ARMADO;
   m.material.depthWrite = opaco;
+  if (m === senalada) realzar(m);
+}
+
+// --- Identificación de piezas (specs/008-identificacion-componentes) ---
+// Nombre y tipo declarados en el ensamblaje; sin ellos, el identificador legible y sin tipo
+const TIPOS = { impresa: "🖨\uFE0F Impresa", comprada: "🛒 Comprada" };
+const nombreDe = e => DATOS.elementos[e]?.nombre || e.replaceAll("_", " ");
+const tipoDe = e => TIPOS[DATOS.elementos[e]?.tipo] ?? "";
+const escapar = texto => texto.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const COLOR_REALCE = new THREE.Color("#2f8fff");
+const ALFA_REALCE = 0.6;       // opacidad de una pieza atenuada mientras está señalada
+const TOQUE_MS = 500, TOQUE_PX = 6;
+const raycaster = new THREE.Raycaster();
+const mallasSim = [];          // piezas del modo Funcionamiento (rígidas y fotogramas de los deformables)
+let senalada = null;           // malla resaltada
+let puntero = null;            // { x, y, tactil } último punto señalado en el lienzo (coordenadas de la ventana)
+let pendiente = false;         // recalcular la selección en el próximo cuadro
+let arrastrando = false;       // la persona está moviendo la vista
+
+function realzar(m) {
+  m.material.emissive.copy(COLOR_REALCE);
+  m.material.emissiveIntensity = 0.55;
+  if (m.material.transparent) m.material.opacity = Math.max(m.material.opacity, ALFA_REALCE);
+}
+function resaltar(malla) {
+  if (malla === senalada) return;
+  soltar();
+  if (!malla) return;
+  senalada = malla;
+  realzar(malla);
+}
+// Quita el resalte: el emisivo vuelve a negro (nada más lo usa) y la opacidad a la de su estado
+function soltar() {
+  $("etiqueta").hidden = true;
+  if (!senalada) return;
+  const m = senalada.material;
+  m.emissive.setRGB(0, 0, 0);
+  m.emissiveIntensity = 1;
+  if (m.transparent) m.opacity = ALFA_ARMADO;
+  senalada = null;
+}
+
+// Piezas que se pueden señalar: solo las visibles del modo actual (ni el haz, ni las marcas, ni flechas)
+const seleccionables = () =>
+  (modo === "funcionamiento" ? mallasSim : Object.values(piezas)).filter(m => m.visible);
+
+// Pieza en un punto de la ventana: la opaca más cercana; si no hay, la atenuada más cercana
+function elegir(x, y) {
+  const r = renderer.domElement.getBoundingClientRect();
+  raycaster.setFromCamera(new THREE.Vector2((x - r.left) / r.width * 2 - 1, -(y - r.top) / r.height * 2 + 1), camara);
+  escena.updateMatrixWorld();
+  camara.updateMatrixWorld();   // la cámara no está en la escena
+  const cortes = raycaster.intersectObjects(seleccionables(), false);
+  return (cortes.find(c => !c.object.material.transparent) ?? cortes[0])?.object ?? null;
+}
+
+// Etiqueta junto al punto (x, y relativos a la escena), dentro del lienzo
+function mostrarEtiqueta(e, x, y) {
+  const etiqueta = $("etiqueta");
+  $("etiqueta-nombre").textContent = nombreDe(e);
+  $("etiqueta-tipo").textContent = tipoDe(e);
+  etiqueta.hidden = false;
+  const ancho = contenedor.clientWidth, alto = contenedor.clientHeight;
+  let izquierda = x + 14, arriba = y + 14;
+  if (izquierda + etiqueta.offsetWidth > ancho - 4) izquierda = x - 14 - etiqueta.offsetWidth;
+  if (arriba + etiqueta.offsetHeight > alto - 4) arriba = y - 14 - etiqueta.offsetHeight;
+  etiqueta.style.left = Math.max(4, Math.min(izquierda, ancho - 4 - etiqueta.offsetWidth)) + "px";
+  etiqueta.style.top = Math.max(4, Math.min(arriba, alto - 4 - etiqueta.offsetHeight)) + "px";
+}
+
+function senalarEn(x, y) {
+  const malla = elegir(x, y);
+  if (!malla) {
+    soltar();
+    if (puntero?.tactil) puntero = null;   // un toque en el fondo suelta
+    return;
+  }
+  resaltar(malla);
+  const r = contenedor.getBoundingClientRect();
+  mostrarEtiqueta(malla.userData.elemento, x - r.left, y - r.top);
+}
+
+// Mouse: señalar al moverse sin botones. Tacto o lápiz: un toque corto sin arrastre.
+// Mover la vista suelta la selección (los controles avisan con "start").
+const lienzo = renderer.domElement;
+let toque = null;
+lienzo.addEventListener("pointermove", ev => {
+  if (ev.pointerType !== "mouse" || ev.buttons) return;
+  puntero = { x: ev.clientX, y: ev.clientY, tactil: false };
+  pendiente = true;
+});
+lienzo.addEventListener("pointerleave", ev => {
+  if (ev.pointerType !== "mouse") return;
+  puntero = null;
+  soltar();
+});
+lienzo.addEventListener("pointerdown", ev => {
+  if (ev.pointerType !== "mouse") toque = { x: ev.clientX, y: ev.clientY, t: performance.now() };
+});
+lienzo.addEventListener("pointerup", ev => {
+  if (ev.pointerType === "mouse" || !toque) return;
+  const corto = performance.now() - toque.t < TOQUE_MS && Math.hypot(ev.clientX - toque.x, ev.clientY - toque.y) < TOQUE_PX;
+  toque = null;
+  if (!corto) return;
+  puntero = { x: ev.clientX, y: ev.clientY, tactil: true };
+  senalarEn(puntero.x, puntero.y);
+});
+controles.addEventListener("start", () => {
+  arrastrando = true;
+  soltar();
+  if (puntero?.tactil) puntero = null;
+});
+controles.addEventListener("end", () => { arrastrando = false; });
+
+// Lista del paso: señalar un renglón resalta su pieza (sin etiqueta: el nombre ya está ahí)
+const renglon = ev => ev.target.closest?.("li[data-e]");
+for (const tipo of ["pointerover", "focusin", "click"])
+  $("piezas").addEventListener(tipo, ev => { const li = renglon(ev); if (li) resaltar(piezas[li.dataset.e]); });
+for (const tipo of ["pointerout", "focusout"])
+  $("piezas").addEventListener(tipo, ev => { if (renglon(ev)) soltar(); });
+
+// Revisión: ?senalar=<elemento> resalta esa pieza con su etiqueta en el centro de su caja
+function senalarElemento(e) {
+  escena.updateMatrixWorld();
+  camara.updateMatrixWorld();
+  const malla = seleccionables().find(m => m.userData.elemento === e);
+  if (!malla) return;
+  if (!malla.geometry.boundingBox) malla.geometry.computeBoundingBox();
+  const p = malla.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(malla.matrixWorld).project(camara);
+  resaltar(malla);
+  mostrarEtiqueta(e, (p.x + 1) / 2 * contenedor.clientWidth, (1 - p.y) / 2 * contenedor.clientHeight);
 }
 
 function aplicar() {
@@ -276,12 +422,11 @@ function aplicar() {
     if (en.g) girar(m, en, t, hayOrigen);
   }
   $("tiempo").value = t;
+  pendiente = true;   // las piezas se movieron: la del puntero puede ser otra
 }
 
 // --- Pasos ---
-const legible = nombre => nombre.replaceAll("_", " ");
-const conNegritas = texto => texto
-  .replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c])
+const conNegritas = texto => escapar(texto)
   .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
 for (const [i, p] of DATOS.pasos.entries()) {
@@ -292,6 +437,8 @@ for (const [i, p] of DATOS.pasos.entries()) {
 }
 
 function mostrarPaso(i, reproducir = true) {
+  soltar();
+  if (puntero?.tactil) puntero = null;
   indice = Math.max(0, Math.min(DATOS.pasos.length - 1, i));
   const paso = DATOS.pasos[indice];
   $("numero").textContent = paso.n;
@@ -301,7 +448,9 @@ function mostrarPaso(i, reproducir = true) {
   $("selector").value = indice;
   const nuevas = paso.entradas.filter(en => en.r);
   $("titulo-piezas").style.display = nuevas.length ? "" : "none";
-  $("piezas").innerHTML = nuevas.map(en => `<li>${legible(en.e)}</li>`).join("");
+  $("piezas").innerHTML = nuevas.map(en => `<li tabindex="0" data-e="${escapar(en.e)}">` +
+    (tipoDe(en.e) ? `<span class="tipo tipo-${DATOS.elementos[en.e].tipo}">${tipoDe(en.e)}</span>` : "") +
+    `${escapar(nombreDe(en.e))}</li>`).join("");
   $("anterior").disabled = indice === 0;
   $("siguiente").disabled = indice === DATOS.pasos.length - 1;
   $("repetir").disabled = $("tiempo").disabled = paso.entradas.length === 0;
@@ -478,6 +627,8 @@ if (SIM) {
     const grupo = motor ? marcos["motor:" + motor.nombre] : marcos[marcoDe(nombre)];
     const malla = new THREE.Mesh(original.geometry,
                                  material(DATOS.elementos[nombre].color, !SIM.transparentes.includes(nombre)));
+    malla.userData.elemento = nombre;
+    mallasSim.push(malla);
     grupo.interior.add(malla);
     cajaConjunto.union(original.geometry.boundingBox);
   }
@@ -490,6 +641,8 @@ if (SIM) {
       geo.computeVertexNormals();
       const malla = new THREE.Mesh(geo, material(d.color, true));
       malla.visible = false;
+      malla.userData.elemento = nombre;
+      mallasSim.push(malla);
       marcos[art.padre].interior.add(malla);
       return { a: f.a, malla };
     });
@@ -534,6 +687,7 @@ function construirPanel() {
 }
 
 function aplicarSim() {
+  pendiente = true;
   for (const a of SIM.articulaciones)
     marcos[a.nombre].exterior.quaternion.setFromAxisAngle(vec(a.eje).normalize(),
                                                           (valores[a.nombre] - a.reposo) * Math.PI / 180);
@@ -587,6 +741,8 @@ function cambiarModo(nuevo) {
   modo = nuevo;
   const sim = modo === "funcionamiento";
   if (!sim) { detenerAutomatico(); apagarTodo(); }
+  soltar();
+  if (puntero?.tactil) puntero = null;
   raizSim.visible = sim;
   raizArmado.visible = !sim;
   $("panel-armado").hidden = sim;
@@ -667,6 +823,8 @@ if (SIM && (consulta.get("modo") === "funcionamiento" || location.hash === "#fun
   vistaConjunto();
 }
 
+if (consulta.has("senalar")) senalarElemento(consulta.get("senalar"));
+
 const reloj = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(reloj.getDelta(), 0.1);   // una pestaña en segundo plano no salta de golpe
@@ -677,6 +835,9 @@ renderer.setAnimationLoop(() => {
     aplicar();
   }
   controles.update();
+  // Una selección por cuadro como máximo: el puntero se movió o las piezas se movieron debajo de él
+  if (pendiente && puntero && !arrastrando) senalarEn(puntero.x, puntero.y);
+  pendiente = false;
   renderer.render(escena, camara);
 });
 </script>

@@ -125,6 +125,14 @@ La maquinaria común está en `src/armado_comun.scad`; el contrato completo, en
      cambia de forma: se exporta en varios ángulos).
    - Los números salen de los parámetros (relación de la correa, rango, velocidad). Las listas se
      declaran después de `elementos`: OpenSCAD no ve una variable definida más abajo.
+9. **Nombres de los elementos**: declarar `nombres_elementos = [[elemento, nombre, tipo], …]` junto a
+   `elementos`, con una entrada por elemento y tipo `"impresa"` o `"comprada"`. El visor los muestra
+   en la lista de cada paso y al señalar una pieza; sin la lista, muestra los identificadores.
+   Lo comprado usa la descripción de `docs/<diseño>_bom.csv` y agrega entre paréntesis dónde va
+   (`"Rodamiento 608ZZ (base, superior)"`); si el elemento agrupa varias piezas, lo dice
+   (`"Tuerca M3: tapa (2)"`). Un elemento solo agrupa piezas **iguales**: el visor identifica
+   elementos, así que componentes distintos (el ESP32, el relé y los drivers) van cada uno en el suyo. Lo impreso usa el nombre de la pieza en la guía. Contrato:
+   `specs/008-identificacion-componentes/contracts/ensamblaje.md`.
 
 ## 5. Lista de control
 

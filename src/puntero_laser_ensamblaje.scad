@@ -62,6 +62,7 @@ function punto_cable(r, y) = [r*cos(angulo_cable), y, -r*sin(angulo_cable)];
 // Punto del sistema del láser pasado al conjunto con el láser a "a" grados
 function en_conjunto(p, a) = [p[0], p[1]*cos(a) - p[2]*sin(a), p[1]*sin(a) + p[2]*cos(a) + z_eje_altura];
 y_orejas_tapa = [y_tapa0 - largo_oreja_tapa/2, y_tapa1 + largo_oreja_tapa/2];
+m_placa = pared_soporte + holgura_encastre;   // del borde del soporte al borde de la placa
 
 // Vista explotada: transparencia de lo ya armado, color y grosor de las flechas
 alfa_contexto = 0.22;
@@ -93,6 +94,8 @@ subconjunto_plataforma = concat(grupo_horquilla,
                                 ["plataforma", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_pie",
                                  "carro_az", "motor_az", "tornillos_orejas_az", "tuercas_carro_az",
                                  "tornillos_carro_az", "polea20_az"]);
+// Placas electrónicas: un elemento por placa, para que el visor nombre cada una
+placas = ["placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele"];
 pasos = [
     /* 1 */ [["base", [0, 0, 0], false], ["tuerca_tripode", [0, 0, 70], true]],
     /* 2 */ [["608_base_sup", [0, 0, 60], true], ["608_base_inf", [0, -60, 0], true]],
@@ -126,7 +129,8 @@ pasos = [
               ["tapa_trasera", 60*v_laser, true], ["grapa", [0, 0, 35], true]],
     /* 15 */ concat([["laser", 150*v_laser, true]],
                     [for (e = ["pila_falsa", "lastre", "tapa_trasera", "grapa"]) [e, 150*v_laser, false]]),
-    /* 16 */ [["placas", [0, 0, 70], true], ["regulador", [0, 0, 150], true], ["powerbank", [0, 0, 100], true]],
+    /* 16 */ concat([for (e = placas) [e, [0, 0, 70], true]],
+                    [["regulador", [0, 0, 150], true], ["powerbank", [0, 0, 100], true]]),
     /* 17 */ [["cable_laser", [-40, 0, 0], true]],
     /* 18 */ [["tapa", [0, 0, 50], true], ["tornillos_tapa", [0, 0, 80], true], ["tuercas_tapa", [0, 0, -30], true]],
     /* 19 */ []
@@ -188,8 +192,70 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "autoblocante_cable", "motor_az", "motor_alt", "polea20_az", "polea20_alt", "correa_az", "correa_alt",
              "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
              "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
-             "placas", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
+             "placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
              "cable_laser"];
+
+// Nombre y tipo de cada elemento para el visor 3D (contrato: specs/008-identificacion-componentes/
+// contracts/ensamblaje.md). Lo comprado usa la descripción de docs/puntero_laser_bom.csv.
+nombres_elementos = [
+    // Piezas impresas
+    ["base",            "Adaptador del trípode (base)",                   "impresa"],
+    ["plataforma",      "Plataforma de azimut",                           "impresa"],
+    ["brazo_motor",     "Brazo de la horquilla, lado motor",              "impresa"],
+    ["brazo_cable",     "Brazo de la horquilla, lado cable",              "impresa"],
+    ["cuna",            "Cuna del láser",                                 "impresa"],
+    ["polea_alt",       "Polea de altura",                                "impresa"],
+    ["carro_az",        "Carro del motor de azimut",                      "impresa"],
+    ["carro_alt",       "Carro del motor de altura",                      "impresa"],
+    ["separador",       "Separador de los rodamientos de azimut",         "impresa"],
+    ["arandela_sup",    "Arandela de contacto (608 superior de la base)", "impresa"],
+    ["arandela_inf",    "Arandela de contacto (608 inferior de la base)", "impresa"],
+    ["arandela_cable",  "Arandela de contacto (eje de altura, lado cable)", "impresa"],
+    ["tapa",            "Tapa de la electrónica",                         "impresa"],
+    ["pila_falsa",      "Pila falsa del láser",                           "impresa"],
+    ["tapa_trasera",    "Tapa trasera del láser",                         "impresa"],
+    ["grapa",           "Grapa del cable",                                "impresa"],
+    // Rodamientos, poleas y correas
+    ["608_base_sup",    "Rodamiento 608ZZ (base, superior)",              "comprada"],
+    ["608_base_inf",    "Rodamiento 608ZZ (base, inferior)",              "comprada"],
+    ["608_brazo_motor", "Rodamiento 608ZZ (brazo, lado motor)",           "comprada"],
+    ["608_brazo_cable", "Rodamiento 608ZZ (brazo, lado cable)",           "comprada"],
+    ["polea20_az",      "Polea GT2 20 dientes (motor de azimut)",         "comprada"],
+    ["polea20_alt",     "Polea GT2 20 dientes (motor de altura)",         "comprada"],
+    ["correa_az",       "Correa GT2 cerrada de 200 mm × 6 mm (azimut)",   "comprada"],
+    ["correa_alt",      "Correa GT2 cerrada de 200 mm × 6 mm (altura)",   "comprada"],
+    // Pernos y tuercas M8 y del trípode
+    ["tuerca_tripode",  "Tuerca 3/8\"-16 UNC (tornillo del trípode)",     "comprada"],
+    ["perno_az",        "Perno M8 × 50 mm (eje de azimut)",               "comprada"],
+    ["autoblocante_az", "Tuerca autoblocante M8 (eje de azimut)",         "comprada"],
+    ["tuerca_munon",    "Tuerca M8 común (muñón de la cuna, lado motor)", "comprada"],
+    ["perno_alt_motor", "Perno M8 × 55 mm (eje de altura, lado motor)",   "comprada"],
+    ["perno_alt_cable", "Perno M8 × 30 mm (eje de altura, lado cable)",   "comprada"],
+    ["autoblocante_cable", "Tuerca autoblocante M8 (eje de altura, lado cable)", "comprada"],
+    ["lastre",          str("Tuerca M10 (DIN 934): lastre de la tapa trasera (", tuercas_lastre_tapa, ")"),
+                        "comprada"],
+    // Motores y tornillería M3
+    ["motor_az",        "Motor paso a paso 28BYJ-48 (azimut)",            "comprada"],
+    ["motor_alt",       "Motor paso a paso 28BYJ-48 (altura)",            "comprada"],
+    ["tornillos_pie",   "Tornillo M3 × 12 mm: pies de los brazos (4)",    "comprada"],
+    ["tuercas_pie_motor", "Tuerca M3: pie del brazo lado motor (2)",      "comprada"],
+    ["tuercas_pie_cable", "Tuerca M3: pie del brazo lado cable (2)",      "comprada"],
+    ["tornillos_carro_az", "Tornillo M3 × 10 mm: carro de azimut (2)",    "comprada"],
+    ["tuercas_carro_az", "Tuerca M3: carro de azimut (2)",                "comprada"],
+    ["tornillos_orejas_az", "Tornillo M3 × 8 mm: orejas del motor de azimut (2)", "comprada"],
+    ["tornillos_orejas_alt", "Tornillo M3 × 8 mm: orejas del motor de altura (2)", "comprada"],
+    ["tornillos_carro_alt", "Tornillo M3 × 12 mm: carro de altura (2)",   "comprada"],
+    ["tornillos_tapa",  "Tornillo M3 × 10 mm: tapa (2)",                  "comprada"],
+    ["tuercas_tapa",    "Tuerca M3: tapa (2)",                            "comprada"],
+    // Electrónica y láser
+    ["placa_esp32",     "ESP32 DevKit",                                   "comprada"],
+    ["placa_rele",      "Módulo relé de 1 canal (lógica de 3,3 V)",       "comprada"],
+    ["placa_uln_az",    "Placa driver ULN2003 (motor de azimut)",         "comprada"],
+    ["placa_uln_alt",   "Placa driver ULN2003 (motor de altura)",         "comprada"],
+    ["regulador",       "Módulo reductor de tensión MP1584EN (3,7 V)",    "comprada"],
+    ["powerbank",       "Power bank USB de 5 V y ≥ 2 A",                  "comprada"],
+    ["laser",           "Puntero láser verde \"303\" (sin su batería)",   "comprada"],
+    ["cable_laser",     "Cable de silicona de 2 × 26 AWG (regulador → láser)", "comprada"]];
 
 // --- SIMULACIÓN DE FUNCIONAMIENTO (visor 3D) ---
 // Contrato: specs/007-simulacion-funcionamiento/contracts/ensamblaje.md. La base queda fija; el resto
@@ -233,7 +299,8 @@ function color_elemento(e) =
     e == "polea_alt" ? "Goldenrod" : e == "carro_az" || e == "carro_alt" ? "Khaki" :
     e == "separador" || e == "arandela_sup" || e == "arandela_inf" || e == "arandela_cable" ? "Wheat" :
     e == "tapa" ? "LightGray" : e == "motor_az" || e == "motor_alt" ? "Gold" :
-    e == "correa_az" || e == "correa_alt" ? "Black" : e == "placas" ? "ForestGreen" :
+    e == "correa_az" || e == "correa_alt" ? "Black" : e == "placa_uln_az" || e == "placa_uln_alt" ? "ForestGreen" :
+    e == "placa_esp32" ? "DarkSlateGray" : e == "placa_rele" ? "Teal" :
     e == "powerbank" ? "DarkBlue" : e == "laser" ? "LimeGreen" :
     e == "pila_falsa" ? "Tomato" : e == "tapa_trasera" || e == "grapa" ? "Peru" : e == "regulador" ? "RoyalBlue" :
     e == "cable_laser" ? "Red" :
@@ -323,12 +390,14 @@ module elemento(e) {
     if (e == "tuercas_tapa") for (y = y_orejas_tapa)
         translate([x_tapa_c, y, z_plataforma_inf]) tuerca(m3_tuerca_ec, m3_tuerca_alto);
     // Electrónica y láser
-    if (e == "placas") {
+    if (e == "placa_uln_alt")
         placa(x_col_a0, y_uln_alt0, uln2003_ancho, uln2003_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
+    if (e == "placa_uln_az")
         placa(x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
+    if (e == "placa_esp32")
         placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, alto_modulo_esp32 + espesor_pcb);
+    if (e == "placa_rele")
         placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
-    }
     if (e == "powerbank")
         translate([x_pb1 + pared_bolsillo + holgura_encastre, y_pb0 + pared_bolsillo + holgura_encastre, z_sup])
             cube([powerbank_alto, powerbank_largo, powerbank_ancho]);
@@ -400,11 +469,11 @@ function anclas(e) =
     e == "regulador" ? let (m = pared_soporte + holgura_encastre)
         [[x_col_a0 + m + regulador_ancho/2, y_reg0 + m + regulador_largo/2, z_sup + alto_soporte_placa + 4]] :
     e == "cable_laser" ? [[x_cara_int_brazo_cable, 0, z_eje_altura - dist_agujero_cable]] :
-    e == "placas" ? let (m = pared_soporte + holgura_encastre)   // centro de cada placa, bajo su apoyo
-        [[x_col_a0 + m + uln2003_ancho/2, y_uln_alt0 + m + uln2003_largo/2, z_sup],
-         [x_col_a0 + m + uln2003_ancho/2, y_uln_az0 + m + uln2003_largo/2, z_sup],
-         [x_col_b0 + m + esp32_ancho/2, y_esp32_0 + m + esp32_largo/2, z_sup],
-         [x_col_b0 + m + rele_ancho/2, y_rele_0 + m + rele_largo/2, z_sup]] :
+    // Placas: centro de cada una, bajo su apoyo
+    e == "placa_uln_alt" ? [[x_col_a0 + m_placa + uln2003_ancho/2, y_uln_alt0 + m_placa + uln2003_largo/2, z_sup]] :
+    e == "placa_uln_az" ? [[x_col_a0 + m_placa + uln2003_ancho/2, y_uln_az0 + m_placa + uln2003_largo/2, z_sup]] :
+    e == "placa_esp32" ? [[x_col_b0 + m_placa + esp32_ancho/2, y_esp32_0 + m_placa + esp32_largo/2, z_sup]] :
+    e == "placa_rele" ? [[x_col_b0 + m_placa + rele_ancho/2, y_rele_0 + m_placa + rele_largo/2, z_sup]] :
     e == "powerbank" ? [[x_pb1 + pared_bolsillo + holgura_encastre + powerbank_alto/2, y_pb0 + powerbank_largo/2, z_sup]] :
     e == "tapa" ? [[x_tapa_c, (y_tapa0 + y_tapa1)/2, z_sup + alto_tapa]] :
     e == "tornillos_tapa" ? [for (y = y_orejas_tapa) [x_tapa_c, y, z_sup + 10]] :

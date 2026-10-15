@@ -12,7 +12,8 @@ Lee (fuentes únicas):
     src/<diseño>_ensamblaje.scad   tabla de pasos, colores, contexto y cada elemento (vía OpenSCAD,
                                    con la biblioteca src/armado_comun.scad); si declara
                                    articulaciones, también la simulación de funcionamiento (ejes,
-                                   motores, emisores, objetivos y fotogramas de los deformables)
+                                   motores, emisores, objetivos y fotogramas de los deformables);
+                                   si declara nombres_elementos, el nombre y el tipo de cada elemento
     docs/<diseño>_guia.md          título y texto de cada paso
     scripts/plantilla_visor.html   la página
     scripts/vendor/three-0.160.0/  motor 3D, incrustado para funcionar sin internet
@@ -24,8 +25,9 @@ La página guarda una huella de las fuentes del ensamblaje: si no cambiaron, se 
 y no se ejecuta OpenSCAD. Con --comprobar no escribe nada y termina con 1 si el visor no está al día
 (tampoco ejecuta OpenSCAD). Con --reexportar exporta todo aunque la huella coincida.
 Con simulación, comprueba que cada articulación gire sus piezas como OpenSCAD en los extremos del rango.
-Contratos: specs/005-visor-armado-3d/contracts/scripts.md y
-specs/007-simulacion-funcionamiento/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
+Contratos: specs/005-visor-armado-3d/contracts/scripts.md,
+specs/007-simulacion-funcionamiento/contracts/scripts.md y
+specs/008-identificacion-componentes/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
 """
 import argparse
 import base64
@@ -45,9 +47,10 @@ RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 OPENSCAD = os.path.join(RAIZ, ".tools", "bin", "openscad")
 PLANTILLA = os.path.join(RAIZ, "scripts", "plantilla_visor.html")
 MOTOR = os.path.join(RAIZ, "scripts", "vendor", "three-0.160.0")
-VERSION = 2             # formato de los datos incrustados (2: simulación de funcionamiento)
+VERSION = 3             # formato de los datos incrustados (2: simulación; 3: nombre y tipo de cada elemento)
 FN_VISOR = 32           # resolución de las curvas en el visor (las STL de impresión usan 64)
 TAMANO_MAXIMO = 10e6    # bytes por diseño (FR-005)
+TIPOS = ("impresa", "comprada")
 TOLERANCIA_PIVOTE = 0.5  # mm entre la pieza girada por el visor y la de OpenSCAD (007, SC-002)
 RE_DATOS = re.compile(r'<script type="application/json" id="datos-visor">(.*?)</script>', re.S)
 
@@ -133,7 +136,9 @@ def datos_del_ensamblaje(ensamblaje, carpeta):
               "contexto": contextos.get(n, [])}
              for n, entradas in enumerate(tabla, start=1)]
     lista = lambda clave: vector(m.group(1)) if (m := re.search(rf'^ECHO: "{clave};(.*)"$', texto, re.M)) else []
-    return pasos, colores, simulacion_declarada(lista)
+    # El nombre va al final y sin escapar: se toma todo hasta la última comilla (contrato 008)
+    nombres = {e: (tipo, nombre) for e, tipo, nombre in re.findall(r'^ECHO: "NOMBRE;([^;]+);([^;]+);(.*)"$', texto, re.M)}
+    return pasos, colores, nombres, simulacion_declarada(lista)
 
 
 def simulacion_declarada(lista):
@@ -257,7 +262,7 @@ def comprobar_pivotes(ensamblaje, carpeta, sim, mallas, hilos):
 
 def exportar(ensamblaje):
     with tempfile.TemporaryDirectory(prefix="visor_") as carpeta:
-        pasos, colores, sim = datos_del_ensamblaje(ensamblaje, carpeta)
+        pasos, colores, nombres_declarados, sim = datos_del_ensamblaje(ensamblaje, carpeta)
         de_pasos = {en["e"] for p in pasos for en in p["entradas"]} | {e for p in pasos for e in p["contexto"]}
         solo_simulacion = elementos_de_simulacion(sim) - de_pasos if sim else set()
         nombres = sorted(de_pasos | solo_simulacion)
@@ -279,6 +284,9 @@ def exportar(ensamblaje):
                     errores.append(f"No se pudo exportar '{nombre}' (paso {donde.get(nombre, '-')}): {error}")
                 else:
                     elementos[nombre] = {"color": colores.get(nombre, ""), "malla": b64}
+                    if nombres_declarados:
+                        tipo, legible = nombres_declarados.get(nombre, ("", ""))
+                        elementos[nombre].update(nombre=legible, tipo=tipo)
             for (e, a, d), (coords, error) in zip(fotogramas, cuadros):
                 if error:
                     errores.append(f"No se pudo exportar '{e}' con {variable[d['articulacion']]}={a}: {error}")
@@ -327,6 +335,10 @@ def validar(datos, pagina):
             el = datos["elementos"].get(e)
             if not el or not el["color"] or not el["malla"]:
                 raise Fallo(f"El elemento '{e}' (paso {p['n']}) no tiene color o malla")
+    if any("nombre" in el for el in datos["elementos"].values()):
+        for e, el in sorted(datos["elementos"].items()):
+            if not el.get("nombre") or el.get("tipo") not in TIPOS:
+                raise Fallo(f"El elemento '{e}' no tiene nombre o su tipo no es {' ni '.join(TIPOS)}")
     sim = datos.get("simulacion")
     if sim:
         for e in sorted(elementos_de_simulacion(sim)):
@@ -404,7 +416,8 @@ def ejecutar(diseno, carpeta_spec, comprobar_solo=False, reexportar=False):
             f.write(pagina)
         sim = datos.get("simulacion")
         articulaciones = f"{len(sim['articulaciones'])} articulaciones, " if sim else ""
-        print(f"✓ Visor 3D: {rel(ruta)} ({tamano/1e6:.1f} MB, {len(datos['elementos'])} piezas, "
+        con_nombres = " con nombres" if any("nombre" in el for el in datos["elementos"].values()) else ""
+        print(f"✓ Visor 3D: {rel(ruta)} ({tamano/1e6:.1f} MB, {len(datos['elementos'])} piezas{con_nombres}, "
               f"{articulaciones}{'mallas reutilizadas' if reutiliza else 'mallas exportadas'})")
         return 0
     except Fallo as error:
