@@ -28,7 +28,7 @@ cuadrática) y 1,35° en el peor caso.
 
 | Archivo | Uso |
 |---------|-----|
-| `exports/puntero_laser_*.stl` (13 archivos) | Piezas listas para el laminador (valores por defecto) |
+| `exports/puntero_laser_*.stl` (14 archivos) | Piezas listas para el laminador (valores por defecto) |
 | `src/puntero_laser_parametros.scad` | Medidas compartidas: el único archivo que hay que editar para adaptar el diseño (sección 4) |
 | `src/puntero_laser_<pieza>.scad` | Una pieza por archivo |
 | `src/puntero_laser_ensamblaje.scad` | Vista del conjunto con comprobaciones de choque (no se imprime) |
@@ -44,7 +44,7 @@ cuadrática) y 1,35° en el peor caso.
 | `dientes_polea_conducida` | 80 | `largo_correa` | 200 mm |
 | `espesor_brazo` | 12 mm | `ajuste_608` | +0,10 mm |
 | `holgura_encastre` | 0,25 mm | `holgura_colimacion` | 2 mm por lado |
-| `largo_tubo_cuna` | 80 mm | | |
+| `largo_tubo_cuna` | 80 mm | `paso_escala` / `angulo_escala_max` | 15° / 90° (escala de altura) |
 | `diametro_hueco_bateria` | 18,5 mm (18650) | `profundidad_hueco_bateria` | 65 mm |
 | `diametro_zona_tapa` | 20 mm | `largo_zona_tapa` | 10 mm |
 | `largo_tapa_original` | 20 mm | `tuercas_lastre_tapa` | 0 (sin lastre) |
@@ -69,6 +69,7 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
 | Cables de los motores (recorrido hasta su ULN2003) | altura ≈ 135 mm, azimut ≈ 160 mm, de 230 mm de fábrica |
 | Centro de masa de la parte giratoria | a ≈ 5 mm del eje |
 | Masa total estimada del aparato | ≈ 930 g |
+| Brazo motor con la aguja de índice | 144,4 mm de largo; la aguja sube 42 mm sobre la cara exterior y pasa a 2,1 mm de la correa |
 
 ## Primeros pasos
 
@@ -77,13 +78,16 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
    (sección 4.1). Si difieren de los valores del diseño
    entregado, cargarlos en `src/puntero_laser_parametros.scad` y regenerar los STL (sección 4.3).
 2. **Imprimir la probeta del 608** y calibrar `ajuste_608` (sección 3.1). Si el valor cambia,
-   regenerar los 13 STL.
+   regenerar los 14 STL.
 3. **Imprimir el resto de las piezas** en PETG (sección 1).
 4. **Comprar los componentes** de la lista de materiales (sección 2). Con el relé, fijarse que sea
    compatible con 3,3 V (sección 5.4). Herramientas: un **multímetro** (para ajustar el regulador,
    probar el contacto del tubo y la barra de distribución), un **soldador de 30 a 40 W** y **estaño de
    0,8 mm con resina** (barra de distribución, interruptor, cable USB y regulador).
-5. **Armar** siguiendo los pasos de la sección 2 y hacer la **puesta a punto** (sección 3).
+5. **Armar** siguiendo los pasos de la sección 2 y hacer la **puesta a punto** (sección 3), con una
+   cinta métrica para el cero de la escala de altura (sección 3.7).
+6. **En el campo**, orientar la base al sur con el celular o una brújula y dejar el aparato en la
+   posición de partida antes de encenderlo (sección 2, "Orientación al sur").
 
 ## 1. Especificaciones de Impresión 3D
 
@@ -106,17 +110,18 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
 > imprimir el resto.
 
 **Orden de impresión**: imprimir **primero la probeta de ajuste del 608** (sección 3.1). Si el valor
-de `ajuste_608` cambia, hay que **regenerar los 13 STL** antes de imprimir el resto.
+de `ajuste_608` cambia, hay que **regenerar los 14 STL** antes de imprimir el resto.
 
 | Pieza | STL | Cant. | Orientación (cara sobre la cama) | Relleno | Perímetros | Soportes | Adherencia | Masa maciza* |
 |-------|-----|-------|----------------------------------|---------|------------|----------|------------|--------------|
 | Probeta de ajuste del 608 | `puntero_laser_probeta_ajuste_608.stl` | 1 | Plana, tal como viene | 15 % | 3 | No | — | 13 g |
 | Adaptador del trípode (base) | `puntero_laser_adaptador_tripode.stl` | 1 | Cara de apoyo del trípode | 40 % giroide | 4 | No | — | 254 g |
 | Plataforma de azimut | `puntero_laser_plataforma_azimut.stl` | 1 | Cara inferior | 20 % giroide | 3 | No | Borde (brim) de 5 mm si la cama despega esquinas | 220 g |
-| Brazo de la horquilla, motor | `puntero_laser_brazo_horquilla_motor.stl` | 1 | Cara interior (pilares hacia arriba) | 30 % | 4 | No | — | 101 g |
+| Brazo de la horquilla, motor | `puntero_laser_brazo_horquilla_motor.stl` | 1 | Cara interior (pilares y aguja de índice hacia arriba) | 30 % | 4 | No | — | 109 g |
 | Brazo de la horquilla, cable | `puntero_laser_brazo_horquilla_cable.stl` | 1 | Cara interior (canal hacia arriba) | 30 % | 4 | No | — | 57 g |
 | Cuna del láser | `puntero_laser_cuna_laser.stl` | 1 | De pie, sobre un anillo de colimación | 30 % | 4 | No | Borde (brim) de 5 mm | 35 g |
 | Polea de altura | `puntero_laser_polea_altitud.stl` | 1 | Cara exterior (cubo hacia arriba) | 40 % | 4; capa de 0,16 mm | No | — | 24 g |
+| Disco de la escala de altura | `puntero_laser_disco_escala.stl` | 1 | Plano, escala hacia arriba; mejor en un **color claro** | 100 % | — | No | — | 4 g |
 | Carro del motor | `puntero_laser_carro_motor.stl` | **2** | Plano | 40 % | 4 | No | — | 8 g c/u |
 | Separador y 3 arandelas | `puntero_laser_separador_azimut.stl` | 1 | De pie, tal como viene | 100 % | — | No | — | 2 g |
 | Tapa de la electrónica | `puntero_laser_tapa_electronica.stl` | 1 | Techo | 15 % | 3 | No | — | 58 g |
@@ -125,7 +130,9 @@ de `ajuste_608` cambia, hay que **regenerar los 13 STL** antes de imprimir el re
 | Grapa del cable | `puntero_laser_grapa_cable.stl` | 1 | Plana | 100 % | — | No | — | 1 g |
 
 \* Masa si la pieza fuera maciza de PETG. Con los ajustes de la tabla, el conjunto impreso pesa
-≈ 430 g; el laminador da el valor exacto.
+≈ 440 g; el laminador da el valor exacto. La aguja de índice del brazo motor (4 × 5 mm, 42 mm de
+alto) sale vertical y sin soportes; conviene imprimir el brazo a velocidad normal, sin ventilador al
+máximo en las últimas capas, para que la aguja no se tuerza.
 
 | | | |
 |---|---|---|
@@ -133,6 +140,7 @@ de `ajuste_608` cambia, hay que **regenerar los 13 STL** antes de imprimir el re
 | ![Brazo motor](img/puntero_laser_brazo_horquilla_motor.png) Brazo motor | ![Brazo cable](img/puntero_laser_brazo_horquilla_cable.png) Brazo cable | ![Polea de altura](img/puntero_laser_polea_altitud.png) Polea de altura |
 | ![Carro](img/puntero_laser_carro_motor.png) Carro (×2) | ![Separador](img/puntero_laser_separador_azimut.png) Separador y arandelas | ![Tapa](img/puntero_laser_tapa_electronica.png) Tapa |
 | ![Probeta](img/puntero_laser_probeta_ajuste_608.png) Probeta del 608 | ![Pila falsa](img/puntero_laser_pila_falsa.png) Pila falsa | ![Tapa trasera](img/puntero_laser_tapa_trasera.png) Tapa trasera |
+| ![Disco de la escala](img/puntero_laser_disco_escala.png) Disco de la escala | | |
 | ![Grapa](img/puntero_laser_grapa_cable.png) Grapa del cable | | |
 
 **Ninguna pieza necesita soportes.** Los únicos voladizos son puentes cortos: los techos de las
@@ -185,6 +193,7 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 * 2 × Tornillo M3 × 10 mm + 2 × tuerca M3: carro de azimut
 * 2 × Tornillo M3 × 12 mm: carro de altura, autorroscante en los pilares
 * 4 × Tornillo M3 × 8 mm + 4 × arandela M3: orejas de los motores, autorroscante en el carro
+* 2 × Tornillo M3 × 8 mm + 2 × arandela M3: disco de la escala de altura, autorroscante en la polea
 * 2 × Tornillo M3 × 16 mm: tensores, autorroscante en los topes
 * 6 × Prisionero M3 × 8 mm (DIN 916, punta plana): colimación del láser
 * 1 × Tornillo M3 × 12 mm para roscar previamente los agujeros de los prisioneros (se retira)
@@ -243,7 +252,10 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
    con la cabeza en el hexágono, y llevarlo con el cubo de la polea hacia el brazo motor: atraviesa el
    608 y el muñón y llega a la tuerca. Enroscarlo **girando la polea** mientras se sostiene la cuna,
    hasta que apriete; no hace falta llave. La cabeza hace de chaveta: la polea, el perno y la cuna
-   giran juntos. La punta queda 0,5 mm antes del interior del tubo y no toca el láser.
+   giran juntos. La punta queda 0,5 mm antes del interior del tubo y no toca el láser. Apoyar el
+   **disco de la escala** sobre la cara exterior de la polea, con las rayas hacia afuera, y fijarlo con
+   2 × M3 × 8 con arandela, autorroscantes por las ranuras en los 2 agujeros chicos de la polea, **sin
+   apretar**: el cero se pone en la puesta a punto (sección 3.7).
 8. **Horquilla a la plataforma.** Colocar una tuerca M3 en cada ranura del pie de los brazos,
    entrándola por la cara exterior del brazo. Bajar la horquilla armada (brazos, cuna y polea) a los
    marcos de la plataforma: el **brazo motor** en +X (lado de la tapa) y el **brazo cable** en −X (lado
@@ -337,14 +349,56 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
     - Ningún cable debe tocar correas ni poleas.
 18. **Tapa.** Bajar la tapa sobre el reborde de la plataforma (la palanca del interruptor entra por la
     ranura) y fijarla con 2 × M3 × 10 y tuerca en sus orejas.
-19. **Puesta a punto.** Equilibrar y colimar el láser (secciones 3.3 y 3.5) y hacer las pruebas del
-    láser de la sección 5.5.
+19. **Puesta a punto.** Equilibrar y colimar el láser (secciones 3.3 y 3.5), poner el cero de la
+    escala de altura (sección 3.7) y hacer las pruebas del láser de la sección 5.5.
 
 ### Montaje en el trípode
 
 Enroscar la base a mano sobre el tornillo 3/8"-16 de la cabeza del trípode hasta que apoye firme;
 no hacen falta herramientas y se hace en menos de 1 minuto. Nivelar el trípode a ojo (±2°): la
 alineación con 2 estrellas corrige el resto (sección 5.3).
+
+### Orientación al sur
+
+La base tiene grabadas una **«S»** (sur) y una **«O»** (oeste), cada una con una línea vertical
+debajo. El borde de la plataforma tiene una **raya** y un triángulo en la dirección a la que apunta el
+láser. Con la raya frente a la «S», el láser apunta hacia la «S»; frente a la «O», hacia la «O».
+
+1. **Buscar el sur geográfico** lejos del aparato, a más de 50 cm: los motores tienen imanes que
+   desvían la brújula. Elegir un objeto lejano (un árbol, una antena) que quede justo al sur.
+   - **Con el celular**: usar una app de brújula configurada en **norte verdadero** (o
+     "geográfico"); ya corrige la declinación. Apuntar a 180°.
+   - **Con una brújula magnética**: la aguja marca el norte magnético, que está corrido del
+     geográfico en la **declinación D** del lugar (positiva al este, negativa al oeste). El sur
+     geográfico está en el rumbo magnético **180° − D**. Consultar D para el lugar en el
+     [calculador de la NOAA](https://www.ngdc.noaa.gov/geomag/calculators/magcalc.shtml#declination).
+     Valores de referencia (NOAA, modelo WMM-2025, consultados el 17/10/2026; cambian ≈ 0,1 a 0,2°
+     por año):
+
+     | Lugar | Declinación D | Rumbo magnético del sur |
+     |-------|---------------|-------------------------|
+     | Buenos Aires | −10,3° (oeste) | 190° |
+     | Córdoba | −7,2° (oeste) | 187° |
+     | Salta | −9,4° (oeste) | 189° |
+     | Mendoza | −2,0° (oeste) | 182° |
+     | Ushuaia | +11,6° (este) | 168° |
+
+2. **Orientar la base**: girar la cabeza del trípode (no la base: se afloja la rosca) hasta que la
+   línea de la «S» apunte al objeto elegido.
+3. **Posición de partida**: agacharse frente a la base, a su altura y de frente a la «S», girar la
+   plataforma a mano hasta que la raya del borde quede justo sobre la línea de la «S», y llevar el
+   0° de la escala de altura frente a la aguja del brazo motor (sección 3.7). El láser queda
+   apuntando al **sur y horizontal** (si el trípode está nivelado). Es la posición que el firmware
+   toma al encender (sección 5.3).
+
+Mirar la raya y la «S» bien de frente: la raya está unos 6 cm más afuera que la letra, y mirar de
+costado corre la lectura. Con la brújula, la posición de partida queda a ±5° en azimut y ±2° en
+altura: alcanza para que la primera estrella de la alineación quede cerca, pero la precisión la da la
+alineación con 2 estrellas.
+
+Para leer las marcas de noche, rellenar los grabados (letras, líneas, raya del borde y rayas del
+disco) con pintura o marcador claro, o con pintura fosforescente, y alumbrarlos con una linterna de luz
+roja, que no encandila.
 
 ### Volver a la batería original
 
@@ -432,10 +486,34 @@ El rango de corrección es de ±1,2° (±2 mm en 94 mm).
 | Flexión de los brazos y hora | 0,06° | Brazos de 12 mm; hora por NTP |
 | **Total** | **0,50° (suma cuadrática); 1,35° (peor caso)** | Límite de 2° (objetivo 1°) |
 
+Las marcas de orientación (sección "Orientación al sur") dan solo la posición de partida (±5° en
+azimut, ±2° en altura) y no entran en este presupuesto: el apuntado lo corrige la alineación.
+
 **Cuándo repetir el cálculo estructural**: si el láser pesa más de 400 g (`masa_laser_g > 400`) o el
-brazo supera los 131 mm (`alto_brazo > 131`): por encima de ese largo, la flexión lateral del brazo
+brazo supera los 131 mm hasta el alojamiento (`alto_brazo > 131`; la oreja de la aguja de índice no
+cuenta, porque no lleva carga): por encima de ese largo, la flexión lateral del brazo
 pasa de 0,1°. La generación lo avisa con una línea `AVISO`. Ver la justificación en
 `specs/002-puntero-laser-estelar/plan.md` y `specs/006-laser-alimentacion-externa/research.md` (R5).
+
+### 3.7 Cero de la escala de altura
+
+El disco de la escala lleva una raya cada 15°, de 0° a 90°; las de 0°, 45° y 90° son más largas. Se
+lee contra la punta de la aguja del brazo motor. El cero se pone **una sola vez**, con el láser ya
+equilibrado y colimado: el ángulo de la polea respecto de la cuna depende de cuánto se apretó su perno,
+y por eso el disco tiene ranuras para girarlo hasta ±32°.
+
+1. Apoyar la base sobre una mesa firme, frente a una pared a 2 o 3 m, y encender el láser.
+2. Medir con una cinta la altura del punto sobre el plano de la mesa y subir o bajar el láser hasta
+   que quede a **180 mm**, la altura del eje de altura sobre la cara de apoyo de la base. Ahí el láser
+   está paralelo a la mesa: 5 mm de error a 3 m son 0,1°.
+3. Sin mover el láser, aflojar los 2 tornillos del disco, girarlo hasta que la raya larga del 0°
+   quede frente a la punta de la aguja y apretarlos.
+4. Comprobar: con el aparato a 1 m de la pared y la raya de 45° frente a la aguja, el punto queda
+   1 m más arriba que con el 0° (tan 45° = 1).
+
+También se puede hacer con una app de inclinación del celular: medir primero la mesa, después el
+tubo de la cuna, y llevarlo a la misma lectura. El 0° marca **paralelo a la base**: es horizontal
+solo si el trípode está nivelado. Si se desarma la polea, hay que volver a poner el cero.
 
 ## 4. Adaptación a tus componentes
 
@@ -479,7 +557,7 @@ pasa de 0,1°. La generación lo avisa con una línea `AVISO`. Ver la justificac
 
 ### 4.3 Regenerar todo
 
-Después de **cualquier** cambio, regenerar los **13 STL**, no solo el de la pieza tocada. Los comandos
+Después de **cualquier** cambio, regenerar los **14 STL**, no solo el de la pieza tocada. Los comandos
 están en `specs/002-puntero-laser-estelar/quickstart.md`, escenario 2, y en
 `specs/006-laser-alimentacion-externa/quickstart.md`, escenario 2 (las 3 piezas del láser sin batería).
 
@@ -558,14 +636,18 @@ Además:
 
 ### 5.3 Alineación con 2 estrellas
 
-Al encender, la posición es desconocida (no hay finales de carrera).
+No hay finales de carrera: al encender, el firmware toma como **estimación inicial** la posición de
+partida (azimut **180°**, el sur, y altura **0°**; ver "Orientación al sur" en la sección 2). Si se
+arrancó con la raya en la «O», el azimut es **270°**. Los azimuts son de brújula: 0° al norte,
+creciendo en sentido horario visto desde arriba, como el paso positivo de la sección 5.1. Con esa
+estimación, la primera estrella de la alineación ya queda cerca, a unos 5°.
 
 1. Centrar manualmente el haz en una estrella conocida y confirmar.
 2. Repetir con una segunda estrella.
 3. El firmware calcula la transformación entre las coordenadas del cielo y las de los motores (por
    ejemplo, con el método de Taki).
 
-Así se corrigen la nivelación del trípode y la orientación al norte, sin brújula. Conviene usar
+Así se corrigen la nivelación del trípode y el error de la orientación inicial. Conviene usar
 estrellas separadas entre 60° y 120° en azimut y con alturas de 20° a 70°.
 
 La hora se toma por NTP (WiFi) o RTC/GPS: un minuto de error equivale a 0,25°.
@@ -754,10 +836,13 @@ Resumen de las recomendaciones de esta guía, en el orden en que aparecen al con
   auto al sol (sección 1).
 - **Sin alisado (ironing)** en las caras de apoyo de los rodamientos, y capa de 0,16 mm en las poleas
   para que los dientes GT2 salgan definidos (sección 1).
+- **Disco de la escala en un color claro**: las rayas se leen mejor, sobre todo de noche (sección 1).
 - **Limpiar los alojamientos** de restos de impresión antes de armar (sección 2).
 - **Tensar las correas con medida**: deben ceder ≈ 2 mm con un dedo. Floja agrega juego; muy tensa
   frena el motor (sección 3.2).
 - **Equilibrar el láser con los motores sin energía** antes de fijarlo con los prisioneros (sección 3.3).
+- **Poner el cero de la escala de altura** con el láser ya equilibrado y colimado, con el método de la
+  pared, y volver a ponerlo si se desarma la polea (sección 3.7).
 - **Medir el láser antes de imprimir la pila falsa y la tapa trasera**: sus medidas por defecto son
   supuestas (sección 4.1).
 - **Probar la continuidad del tubo** antes de cerrar la tapa trasera, y poner la pila falsa con su
@@ -769,6 +854,9 @@ Resumen de las recomendaciones de esta guía, en el orden en que aparecen al con
 - **Ajustar el regulador a 3,7 V antes de conectar el láser**: 5 V directos lo queman (sección 5.4).
 - **Equilibrar con el láser ya convertido**, con la pila falsa y la tapa puestas
   (sección 3.3).
+- **Orientar al sur girando la cabeza del trípode**, no la base, con el rumbo tomado lejos de los
+  imanes de los motores; rellenar los grabados con pintura clara para leerlos con luz roja
+  (sección 2, "Orientación al sur").
 - **Relé compatible con 3,3 V**: con un módulo de 5 V por nivel bajo, el láser puede no apagarse
   (sección 5.4).
 - **Usar la constante de pasos correcta** (45,2864 medios pasos por grado), no 4096 pasos por vuelta
