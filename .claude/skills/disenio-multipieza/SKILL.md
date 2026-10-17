@@ -133,6 +133,20 @@ La maquinaria común está en `src/armado_comun.scad`; el contrato completo, en
    (`"Tuerca M3: tapa (2)"`). Un elemento solo agrupa piezas **iguales**: el visor identifica
    elementos, así que componentes distintos (el ESP32, el relé y los drivers) van cada uno en el suyo. Lo impreso usa el nombre de la pieza en la guía. Contrato:
    `specs/008-identificacion-componentes/contracts/ensamblaje.md`.
+10. **Cables (opcional)**: si el diseño tiene electrónica, declarar `cables` para que el visor tenga
+    la pestaña Cableado y la web el botón "Ver el cableado". Contrato y ejemplo:
+    `specs/011-vista-cableado/contracts/ensamblaje.md`; modelo: el puntero láser.
+    - Un cable por renglón de la **Tabla de cables** de la guía, con el mismo texto de desde y hasta:
+      el generador compara las dos listas y falla si no coinciden.
+    - Los recorridos salen de la posición de los pines (constantes con nombre por placa y una función
+      `pin()`), por niveles y carriles distintos para que dos cables no compartan un tramo. Nada de
+      coordenadas sueltas.
+    - `obstaculos_cableado` (placas, soportes, plataforma, paredes de la tapa) y
+      `pasos_tapa_cableado` (aberturas): la biblioteca comprueba que ningún cable atraviese nada y
+      que el cable comprado alcance (`largo_comprado` más `reserva_cable`).
+    - Un cable que ya es un elemento (porque se mueve con un eje) se referencia con `elemento`; su
+      recorrido, si tiene, es el tramo fijo.
+    - Revisar los recorridos en OpenSCAD con `-D ver_cables=true -D ver_tapa=false`.
 
 ## 5. Lista de control
 

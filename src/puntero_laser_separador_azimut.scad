@@ -4,7 +4,8 @@
 // Descripción: Separador entre los aros interiores de los dos 608 de azimut (0,1 mm más corto que
 //              el resalte de la base, para precargarlos) y 3 arandelas de contacto que apoyan solo
 //              en el aro interior: entre la plataforma y el 608 superior, entre la autoblocante y
-//              el 608 inferior, y en el eje de altura del lado del cable.
+//              el 608 inferior, y en el eje de altura del lado del cable (esta, de alto_arandela_cable:
+//              ajusta el largo comercial del perno).
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
@@ -26,7 +27,8 @@ module ensamblaje_principal() {
 module pieza_separador_azimut() {
     separador();
     for (i = [1:cantidad_arandelas])
-        translate([i*(d_ext_separador + separacion_piezas), 0, 0]) arandela_contacto();
+        translate([i*(d_ext_separador + separacion_piezas), 0, 0])
+            arandela_contacto(i == cantidad_arandelas ? alto_arandela_cable : alto_arandela_contacto);
 }
 
 module separador() {
@@ -36,9 +38,9 @@ module separador() {
     }
 }
 
-module arandela_contacto() {
+module arandela_contacto(alto) {
     difference() {
-        cylinder(d = d_contacto_aro, h = alto_arandela_contacto);
-        translate([0, 0, -1]) cylinder(d = d_agujero_m8, h = alto_arandela_contacto + 2);
+        cylinder(d = d_contacto_aro, h = alto);
+        translate([0, 0, -1]) cylinder(d = d_agujero_m8, h = alto + 2);
     }
 }

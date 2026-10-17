@@ -3,7 +3,7 @@
 // Componente: Parámetros compartidos
 // Descripción: Medidas compartidas por todas las piezas del puntero láser motorizado alt-az:
 //              parámetros editables, constantes de componentes estándar, valores derivados,
-//              reglas de validación (V-01…V-25) y módulos utilitarios (dentado GT2, etc.).
+//              reglas de validación (V-01…V-25, V-27…V-29) y módulos utilitarios (dentado GT2, etc.).
 //              Desde la 006, el láser va sin batería: lo alimenta el power bank a través de una pila
 //              falsa y una tapa trasera impresa con lastre.
 //              No dibuja nada; al renderizarlo solo imprime los derivados con echo.
@@ -19,23 +19,23 @@
 
 /* [Componentes comprados] */
 // Diámetro del cuerpo del láser 303 (medir el ejemplar real)
-diametro_laser = 30; // [20:0.5:40]
+diametro_laser = 20; // [20:0.5:40]
 // Largo total del láser con su tapa original (medir el ejemplar real)
-largo_laser = 190; // [120:1:260]
+largo_laser = 152; // [120:1:260]
 // Distancia del extremo trasero del láser a su punto de equilibrio, con batería y tapa original (medir apoyándolo sobre un borde)
-distancia_trasera_centro_masa = 95; // [48:1:156]
+distancia_trasera_centro_masa = 76; // [48:1:156]
 // Masa del láser con su batería y su tapa original, en gramos (solo para los cálculos)
-masa_laser_g = 180; // [80:5:400]
+masa_laser_g = 130; // [80:5:400]
 // Largo del power bank (medir el ejemplar real)
-powerbank_largo = 100; // [60:1:150]
+powerbank_largo = 147; // [60:1:150]
 // Ancho del power bank; queda vertical porque el power bank va de pie (medir)
-powerbank_ancho = 65; // [40:1:75]
+powerbank_ancho = 71; // [40:1:75]
 // Espesor del power bank (medir)
-powerbank_alto = 25; // [10:1:30]
+powerbank_alto = 16; // [10:1:30]
 // Largo de la placa ESP32 DevKit (medir)
-esp32_largo = 55; // [48:0.5:60]
+esp32_largo = 48; // [48:0.5:60]
 // Ancho de la placa ESP32 DevKit (medir)
-esp32_ancho = 28; // [25:0.5:32]
+esp32_ancho = 25.5; // [25:0.5:32]
 // Largo del módulo relé (medir)
 rele_largo = 50; // [35:0.5:55]
 // Ancho del módulo relé (medir)
@@ -53,17 +53,17 @@ diametro_hueco_bateria = 18.5; // [16:0.1:22]
 // Del borde trasero del tubo al contacto del cabezal, con el resorte libre (medir con la varilla del calibre)
 profundidad_hueco_bateria = 65; // [34:0.5:70]
 // Diámetro exterior de la rosca donde enroscaba la tapa original (medir)
-diametro_zona_tapa = 30; // [20:0.1:40]
+diametro_zona_tapa = 20; // [20:0.1:40]
 // Largo de esa rosca (medir)
-largo_zona_tapa = 12; // [8:0.5:20]
+largo_zona_tapa = 10; // [8:0.5:20]
 // Cuánto sobresale la tapa original del borde del tubo (medir)
 largo_tapa_original = 20; // [5:0.5:40]
 // Masa de la batería que se quita, en gramos
 masa_bateria_g = 45; // [15:1:60]
 // Masa de la tapa original que se quita, en gramos
-masa_tapa_original_g = 20; // [5:1:40]
+masa_tapa_original_g = 10; // [5:1:40]
 // Tuercas M10 de lastre en la tapa impresa (devuelven el centro de masa hacia atrás)
-tuercas_lastre_tapa = 2; // [0:1:3]
+tuercas_lastre_tapa = 0; // [0:1:3]
 // 0 = se calcula; si no, punto de equilibrio medido desde el extremo trasero de la tapa impresa
 distancia_trasera_centro_masa_nueva = 0; // [0:1:200]
 // Largo del módulo reductor de tensión (MP1584EN: 22 mm)
@@ -90,6 +90,12 @@ ancho_enchufe_usb = 11; // [8:0.5:14]
 alto_enchufe_usb = 7.5; // [5:0.5:10]
 // Largo del cable de fábrica del motor 28BYJ-48, del motor al enchufe (medir)
 largo_cable_motor = 230; // [150:5:400]
+// Pines de cada tira de la barra de distribución (+5 V y GND): destinos + reserva (010)
+pines_barra = 6; // [6:1:10]
+// Largo del trozo de placa perforada de la barra (medir; 3 × 10 agujeros = 25,4 mm)
+barra_largo = 25.4; // [20:0.1:36]
+// Ancho del trozo de placa perforada de la barra (medir)
+barra_ancho = 7.6; // [7:0.1:10]
 
 /* [Transmisión] */
 // Dientes de la polea conducida impresa (≥ 80 para la relación ≥ 1:4 de FR-005)
@@ -127,7 +133,7 @@ ancho_brazo = 36; // [30:1:45]
 // Pared del tubo de la cuna del láser
 pared_tubo_cuna = 3; // [2:0.5:4]
 // Largo del tubo de la cuna del láser
-largo_tubo_cuna = 100; // [70:1:140]
+largo_tubo_cuna = 80; // [70:1:140]
 // Holgura radial entre el láser y la cuna (rango de colimación por lado)
 holgura_colimacion = 2; // [1:0.25:3]
 // Alto del resalte que separa los dos 608 de azimut
@@ -216,10 +222,19 @@ holgura_techo_tapa = 2;        // entre lo más alto bajo la tapa y su techo
 holgura_usb = 0.75;            // entre la funda del enchufe USB y la abertura de la tapa
 reserva_cable_motor = 20;      // cable de motor que queda para el enchufe y la curva dentro de la tapa
 paso_pines = 2.54;
-separacion_filas_esp32 = 25.4; // entre las dos filas de pines del ESP32
+separacion_filas_esp32 = 22.86; // entre las dos filas de pines del ESP32 (NodeMCU-32S: 0,9")
 alto_conector_usb_esp32 = 3;   // conector USB soldado sobre el ESP32
-pad_soporte_esp32 = 2.5;       // apoyos de las esquinas bajo el ESP32
+pad_soporte_esp32 = 2.5;       // largo de los 2 apoyos bajo los extremos del ESP32
 pierna_soporte = 5;            // largo de cada lado de los postes en L de los soportes
+pad_soporte = 3;               // apoyos de las esquinas bajo las placas bajas
+alto_labio_soporte = 1;        // labio con chaflán de los postes, sobre el borde de la placa
+ancho_entrada_cable = 8;       // entradas de los cables de los motores en la pared −X de la tapa
+alto_entrada_cable = 6;
+// Barra de distribución (010, research R2 y R5)
+destinos_5v = 5;               // ESP32 VIN, 2 × ULN2003, relé VCC y relé COM
+destinos_gnd = 5;              // ESP32, 2 × ULN2003, relé y regulador IN−
+masa_barra_g = 3;
+pad_soporte_barra = 2;         // apoyos de las esquinas: dejan libre la soldadura del agujero 2
 altura_libre_central = 5;
 eps = 0.01;
 cama_max = 200;
@@ -236,7 +251,7 @@ par_motor_mNm = 34;
 rendimiento_correa = 0.9;
 g_gravedad = 9.81;
 // Masas estimadas para el centro de masa (R9), en gramos
-masa_powerbank_g = 200;
+masa_powerbank_g = 226;
 masa_motor_g = 35;
 masa_placas_g = 45;
 masa_cuna_g = 60;
@@ -329,6 +344,7 @@ iso7380_m3_cabeza_alto = 1.65;
 largo_tornillo_contacto = 8;
 espesor_ojal = 0.8;            // terminal de ojal M3
 compresion_resorte = 2;        // compresión del resorte del cabezal con la pila falsa puesta
+pared_min_tubo_laser = 0.5;    // pared del tubo de aluminio del láser alrededor del hueco de la batería
 d_hilo = 1.3;                  // hilo de silicona de 26 AWG
 ohm_por_m_26awg = 0.134;
 corriente_laser_a = 0.5;       // peor caso de un 303 verde
@@ -428,18 +444,35 @@ masa_laser_mod_g = sum_lista([for (m = masas_laser_mod) m[0]]);
 cm_mod_desde_borde = sum_lista([for (m = masas_laser_mod) m[0]*m[1]])/masa_laser_mod_g;
 caida_cable_v = 2*largo_cable_laser/1000*ohm_por_m_26awg*corriente_laser_a;
 
+// Conectores (009): un Dupont conectado ocupa la tira, su cuerpo y la curva del cable
+curva_cable = radio_curva_cable + diametro_cable_dupont;
+alto_dupont_conectado = alto_tira_pines + largo_dupont + curva_cable;
+elevacion_esp32 = alto_dupont_conectado + holgura_conector;   // los Dupont del ESP32 van hacia abajo
+alto_conectores_arriba = alto_soporte_placa + espesor_pcb + alto_dupont_conectado;   // ULN2003 y relé
+alto_enchufes_motor = alto_soporte_placa + espesor_pcb + alto_enchufe_motor + curva_cable;
+alto_esp32_total = elevacion_esp32 + espesor_pcb + alto_modulo_esp32;
+alto_interior_tapa = max(altura_placas, alto_conectores_arriba, alto_esp32_total) + holgura_techo_tapa;
+alto_tapa = alto_interior_tapa + techo_tapa;
+// Carro del motor: borde exterior medido desde el eje del motor (ver más abajo)
+carro_x_max = motor_desplazamiento_eje + motor_d_cuerpo/2 + motor_tapa_saliente + 2;
+
 // Barrido del láser y altura del eje de altura (sobre la cara superior de la plataforma)
 l_trasero = distancia_trasera_centro_masa_nueva > 0 ? distancia_trasera_centro_masa_nueva
                                                      : cm_mod_desde_borde + largo_tapa_fuera;
 l_delantero = largo_laser_mod - l_trasero;
 hueco_equilibrado = l_trasero - largo_tapa_trasera - largo_tubo_cuna/2;
 radio_barrido = max(l_trasero + r_funda_ext*sin(5), l_delantero + diametro_laser/2*sin(5));
-altura_eje = radio_barrido + holgura_barrido + altura_libre_central;
+altura_eje_barrido = radio_barrido + holgura_barrido + altura_libre_central;
+// El carro del motor de altura (en el brazo, debajo del eje) tiene que quedar por encima del motor de
+// azimut y de la tapa de la electrónica: con un láser corto, esto manda sobre el barrido
+altura_eje_motores = distancia_centros + carro_x_max
+                     + max(recorrido_tensor + espesor_carro + motor_alto_cuerpo + holgura_zonas,
+                           alto_tapa + holgura_tapa_carro) + 1;
+altura_eje = max(altura_eje_barrido, altura_eje_motores);
 alto_brazo = altura_eje + rod608_d_ext/2 + pared_alojamiento_608 + 1;
 
 // Carro del motor (sistema del carro: eje del motor en el origen, +X hacia afuera de la polea conducida)
 carro_x_min = -(motor_d_resalte/2 + holgura_encastre + 3);
-carro_x_max = motor_desplazamiento_eje + motor_d_cuerpo/2 + motor_tapa_saliente + 2;
 ranura_carro_x = motor_desplazamiento_eje;
 ranura_carro_y = motor_entre_orejas/2 + motor_d_oreja/2 + 2 + d_pilar/2;
 carro_semiancho = ranura_carro_y + d_pilar/2 + 1;
@@ -479,18 +512,18 @@ z_polea20_az_inf = z_plataforma_sup - polea20_alto_total;
 z_eje_altura = z_plataforma_sup + altura_eje;
 largo_separador_azimut = separacion_608_azimut - 0.1;   // 0,1 mm menos que el resalte: precarga
 
-// Pernos del eje de altura. Lado del cable: cabeza M8 en el muñón −X, metida desde dentro del tubo.
-// Lado del motor: tuerca M8 común en el muñón +X (entra por el tubo) y perno desde afuera, con la cabeza
-// en el hexágono de la polea; un perno de cabeza adentro no entra en el tubo. La profundidad del
-// hexágono de la polea ajusta el largo comercial para que la punta llegue a margen_punta_perno del tubo:
-// la cabeza puede sobresalir de la polea, alcanza con que el hexágono tome la mitad de su altura.
-x_cabeza_m8_cuna = diametro_interior_cuna/2 + m8_cabeza_alto + holgura_tuerca;
+// Pernos del eje de altura: en cada muñón, una tuerca M8 común (entra por el tubo) y un perno desde
+// afuera; un perno de cabeza adentro no entra en un tubo de 20 mm. Lado del motor: la cabeza va en el
+// hexágono de la polea, cuya profundidad ajusta el largo comercial para que la punta llegue a
+// margen_punta_perno del tubo (alcanza con que el hexágono tome la mitad de la cabeza). Lado del cable:
+// la cabeza apoya en la arandela de contacto, cuyo alto ajusta el largo comercial de la misma manera.
 x_tuerca_m8_cuna = diametro_interior_cuna/2 + m8_tuerca_alto;   // fondo del alojamiento (abierto al tubo)
 x_punta_perno_alt_motor = diametro_interior_cuna/2 + margen_punta_perno;
 largo_perno_alt_motor = largo_estandar(x_ext_polea_alt - x_punta_perno_alt_motor - m8_cabeza_alto);
 prof_cabeza_polea_alt = x_ext_polea_alt - x_punta_perno_alt_motor - largo_perno_alt_motor;
 rosca_tuerca_munon = x_tuerca_m8_cuna - x_punta_perno_alt_motor;
-largo_perno_alt_cable = largo_estandar(x_cara_ext_brazo + alto_arandela_contacto + m8_autoblocante_alto + 2 - x_cabeza_m8_cuna);
+largo_perno_alt_cable = largo_estandar(x_cara_ext_brazo + alto_arandela_contacto - x_punta_perno_alt_motor);
+alto_arandela_cable = largo_perno_alt_cable - (x_cara_ext_brazo - x_punta_perno_alt_motor);
 
 // Topes tensores (distancia desde el eje conducido)
 r_carro_int = distancia_centros + carro_x_min;
@@ -513,6 +546,9 @@ largo_soporte_uln = uln2003_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_esp32 = esp32_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_rele = rele_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_regulador = regulador_largo + 2*holgura_encastre + 2*pared_soporte;
+// Barra de distribución (010, research R1): al lado (+X) del regulador, en la columna de los ULN2003
+ancho_soporte_barra = barra_ancho + 2*holgura_encastre + 2*pared_soporte;
+largo_soporte_barra = barra_largo + 2*holgura_encastre + 2*pared_soporte;
 alto_col_a = 2*largo_soporte_uln + largo_soporte_regulador + 2*holgura_zonas;
 alto_col_b = largo_soporte_esp32 + largo_soporte_rele + holgura_zonas;
 y_uln_alt0 = -alto_col_a/2;
@@ -520,22 +556,18 @@ y_uln_az0 = y_uln_alt0 + largo_soporte_uln + holgura_zonas;
 y_reg0 = y_uln_az0 + largo_soporte_uln + holgura_zonas;
 y_esp32_0 = -alto_col_b/2;
 y_rele_0 = y_esp32_0 + largo_soporte_esp32 + holgura_zonas;
-// Conectores (009): un Dupont conectado ocupa la tira, su cuerpo y la curva del cable
-curva_cable = radio_curva_cable + diametro_cable_dupont;
-alto_dupont_conectado = alto_tira_pines + largo_dupont + curva_cable;
-elevacion_esp32 = alto_dupont_conectado + holgura_conector;   // los Dupont del ESP32 van hacia abajo
-alto_conectores_arriba = alto_soporte_placa + espesor_pcb + alto_dupont_conectado;   // ULN2003 y relé
-alto_enchufes_motor = alto_soporte_placa + espesor_pcb + alto_enchufe_motor + curva_cable;
-alto_esp32_total = elevacion_esp32 + espesor_pcb + alto_modulo_esp32;
-alto_interior_tapa = max(altura_placas, alto_conectores_arriba, alto_esp32_total) + holgura_techo_tapa;
-alto_tapa = alto_interior_tapa + techo_tapa;
+x_reg1 = x_col_a0 + regulador_ancho + 2*holgura_encastre + 2*pared_soporte;
+x_barra0 = x_reg1 + holgura_zonas;
+y_barra0 = y_reg0;
 x_tapa0 = x_col_a0 - holgura_encastre - pared_tapa;
 // ESP32 en su celda: borde en X y centro; filas de Dupont (largo y separación de los apoyos)
 x_esp32_0 = x_col_b0 + pared_soporte + holgura_encastre;
 x_esp32_c = x_esp32_0 + esp32_ancho/2;
 largo_fila_esp32 = pines_por_lado_esp32*paso_pines;
-margen_fila_esp32 = (esp32_largo - largo_fila_esp32)/2 - (pad_soporte_esp32 - holgura_encastre);
 ancho_franja_esp32 = (esp32_ancho - separacion_filas_esp32)/2 + paso_pines/2 + curva_cable;
+// El ESP32 apoya en los extremos de la franja central, entre las curvas de los Dupont: las filas de pines
+// pueden ocupar todo el largo de la placa (NodeMCU-32S: 19 × 2,54 = 48,3 mm)
+ancho_apoyo_esp32 = esp32_ancho - 2*ancho_franja_esp32 - 2*holgura_conector;
 // Abertura USB de la tapa: centrada en el conector del ESP32 (009, research R5)
 z_usb_esp32 = elevacion_esp32 + espesor_pcb + alto_conector_usb_esp32/2;
 ancho_abertura_usb = ancho_enchufe_usb + 2*holgura_usb;
@@ -543,7 +575,7 @@ alto_abertura_usb = alto_enchufe_usb + 2*holgura_usb;
 x_tapa1 = x_col_b1 + holgura_encastre + pared_tapa;
 y_tapa0 = min(y_uln_alt0, y_esp32_0) - holgura_encastre - pared_tapa;
 // Hueco para el cable sobrante (FR-012) e interruptor general (FR-013), dentro de la tapa
-y_sob0 = max(y_reg0 + largo_soporte_regulador, y_rele_0 + largo_soporte_rele) + holgura_zonas;
+y_sob0 = max(y_reg0 + largo_soporte_regulador, y_rele_0 + largo_soporte_rele, y_barra0 + largo_soporte_barra) + holgura_zonas;
 y_sob1 = y_sob0 + alto_sobrante_cables;
 x_interruptor = x_col_b1 - espesor_soporte_interruptor;
 y_interruptor = (y_sob0 + y_sob1)/2;
@@ -579,7 +611,8 @@ zona_uln_altura = [x_col_a0, y_uln_alt0, x_col_a1, y_uln_alt0 + largo_soporte_ul
 zona_uln_azimut = [x_col_a0, y_uln_az0, x_col_a1, y_uln_az0 + largo_soporte_uln, altura_placas, "uln azimut"];
 zona_esp32 = [x_col_b0, y_esp32_0, x_col_b1, y_esp32_0 + largo_soporte_esp32, alto_esp32_total, "esp32"];
 zona_rele = [x_col_b0, y_rele_0, x_col_b1, y_rele_0 + largo_soporte_rele, altura_placas, "rele"];
-zona_regulador = [x_col_a0, y_reg0, x_col_a1, y_reg0 + largo_soporte_regulador, altura_placas, "regulador"];
+zona_regulador = [x_col_a0, y_reg0, x_reg1, y_reg0 + largo_soporte_regulador, altura_placas, "regulador"];
+zona_barra = [x_barra0, y_barra0, x_barra0 + ancho_soporte_barra, y_barra0 + largo_soporte_barra, altura_placas, "barra"];
 y_puente_brida_az = y_carro_az1 + holgura_zonas + ancho_puente_brida/2 + 1;   // brida del cable del motor de azimut
 zona_sobrante_cables = [x_col_a0, y_sob0, x_col_b1, y_sob1, 0, "sobrante de cables"];
 zona_tapa = [x_tapa0, y_tapa0 - largo_oreja_tapa, x_tapa1, y_tapa1 + largo_oreja_tapa, alto_tapa, "tapa"];
@@ -591,7 +624,7 @@ zona_contrapeso = [x_contrapeso - d_contrapeso/2, y_contrapeso - d_contrapeso/2,
 
 zonas_componentes = concat(
     [zona_cubo, zona_brazo_motor, zona_brazo_cable, zona_motor_azimut, zona_tope_azimut,
-     zona_powerbank, zona_uln_altura, zona_uln_azimut, zona_esp32, zona_rele, zona_regulador],
+     zona_powerbank, zona_uln_altura, zona_uln_azimut, zona_esp32, zona_rele, zona_regulador, zona_barra],
     con_contrapeso ? [zona_contrapeso] : []);
 zonas_todas = concat(zonas_componentes, [zona_tapa, zona_conducto]);
 
@@ -647,7 +680,8 @@ masas_giratorias = [
     [10, (x_col_a0+x_col_a1)/2, y_uln_az0 + largo_soporte_uln/2],
     [masa_placas_g - 35, (x_col_b0+x_col_b1)/2, y_esp32_0 + largo_soporte_esp32/2],
     [15, (x_col_b0+x_col_b1)/2, y_rele_0 + largo_soporte_rele/2],
-    [masa_regulador_g, (x_col_a0+x_col_a1)/2, y_reg0 + largo_soporte_regulador/2],
+    [masa_regulador_g, (x_col_a0+x_reg1)/2, y_reg0 + largo_soporte_regulador/2],
+    [masa_barra_g, x_barra0 + ancho_soporte_barra/2, y_barra0 + largo_soporte_barra/2],
     [masa_tapa_g, (x_tapa0+x_tapa1)/2, (y_tapa0+y_tapa1)/2],
     [masa_grupo_az_g, 0, distancia_centros + motor_desplazamiento_eje],
     [masa_motor_g + masa_carro_g + masa_polea20_g, x_cara_int_carro_alt - motor_alto_cuerpo/2, 0],
@@ -769,6 +803,25 @@ assert(r_tope_int >= rod608_d_ext/2 + pared_alojamiento_608 + 2,
 assert(distancia_centros >= (d_exterior_conducida + polea20_d_brida)/2 + 3,
     str("largo_correa=", largo_correa, ": distancia entre centros ", distancia_centros, " mm < ",
         (d_exterior_conducida + polea20_d_brida)/2 + 3, " mm; las poleas se tocan, use una correa más larga"));
+// V-27…V-29: barra de distribución (010, data-model §4)
+comprobar_rango("pines_barra", pines_barra, 6, 10);
+comprobar_rango("barra_largo", barra_largo, 20, 36);
+comprobar_rango("barra_ancho", barra_ancho, 7, 10);
+// V-27: un pin por destino en cada tira, más uno de reserva
+assert(pines_barra >= max(destinos_5v, destinos_gnd) + 1,
+    str("pines_barra=", pines_barra, ": la barra necesita al menos ", max(destinos_5v, destinos_gnd) + 1,
+        " pines por tira (", max(destinos_5v, destinos_gnd), " destinos + reserva)"));
+// V-28: la placa tiene lugar para los pines, la entrada y las esquinas libres sobre los apoyos (research R2)
+assert(barra_largo >= (pines_barra + 4)*paso_pines - 0.5,
+    str("barra_largo=", barra_largo, ": la placa no tiene lugar para ", pines_barra,
+        " pines, la entrada y las esquinas libres (mín. ", (pines_barra + 4)*paso_pines - 0.5, " mm)"));
+assert(barra_ancho >= 3*paso_pines - 0.5,
+    str("barra_ancho=", barra_ancho, ": la placa no tiene lugar para las dos tiras separadas (mín. ",
+        3*paso_pines - 0.5, " mm)"));
+// V-29: la barra entra al lado del regulador, dentro de la columna de los ULN2003
+assert(x_barra0 + ancho_soporte_barra <= x_col_a1,
+    str("barra_ancho=", barra_ancho, ": la barra no entra al lado del regulador (máx. ",
+        x_col_a1 - x_barra0 - 2*holgura_encastre - 2*pared_soporte, " mm)"));
 // V-08: zonas de la plataforma sin solaparse
 assert(len(choques_componentes) == 0,
     str(len(choques_componentes) > 0 ? choques_componentes[0] : "", "_ancho: componentes solapados en la plataforma: ",
@@ -787,9 +840,9 @@ assert(eje_en_cubo20 >= 5,
     str("espesor_plataforma=", espesor_plataforma, ": el eje del motor entra solo ", eje_en_cubo20,
         " mm en el cubo de la polea 20T (mín. 5)"));
 // Pernos del eje de altura: se pueden colocar y agarran lo suficiente
-assert(largo_perno_alt_cable + m8_cabeza_alto <= x_cabeza_m8_cuna + diametro_interior_cuna/2,
-    str("diametro_laser=", diametro_laser, ": el perno M8 × ", largo_perno_alt_cable,
-        " del lado del cable no se puede meter desde dentro del tubo"));
+assert(alto_arandela_cable >= alto_arandela_contacto && alto_arandela_cable <= alto_arandela_contacto + 5,
+    str("diametro_laser=", diametro_laser, ": la arandela de contacto del lado del cable mide ", alto_arandela_cable,
+        " mm (entre ", alto_arandela_contacto, " y ", alto_arandela_contacto + 5, ")"));
 assert(prof_cabeza_polea_alt >= m8_cabeza_alto/2,
     str("margen_punta_perno=", margen_punta_perno, ": el hexágono de la polea toma solo ", prof_cabeza_polea_alt,
         " mm de la cabeza del perno M8 × ", largo_perno_alt_motor, " (mín. ", m8_cabeza_alto/2, ")"));
@@ -853,9 +906,9 @@ comprobar_rango("regulador_largo", regulador_largo, 15, 25);
 comprobar_rango("regulador_ancho", regulador_ancho, 10, 18);
 assert(tuercas_lastre_tapa == floor(tuercas_lastre_tapa),
     str("tuercas_lastre_tapa=", tuercas_lastre_tapa, ": debe ser un número entero de tuercas"));
-assert(diametro_hueco_bateria + 2*espesor_min_pared <= diametro_zona_tapa,
+assert(diametro_hueco_bateria + 2*pared_min_tubo_laser <= diametro_zona_tapa,
     str("diametro_hueco_bateria=", diametro_hueco_bateria, ": el hueco de la batería no entra en el tubo de ",
-        diametro_zona_tapa, " mm (pared mín. ", espesor_min_pared, " mm)"));
+        diametro_zona_tapa, " mm (pared mín. ", pared_min_tubo_laser, " mm)"));
 assert(d_pila_falsa/2 - descentrado_hilo_pila - d_paso_hilo/2 >= espesor_min_pared
        && descentrado_hilo_pila - d_paso_hilo/2 >= r_esquina_tuerca_contacto + 0.4,
     str("diametro_hueco_bateria=", diametro_hueco_bateria, ": la pila falsa es muy fina para el paso del hilo"));
@@ -893,11 +946,10 @@ assert(max(alto_conectores_arriba, alto_enchufes_motor, alto_esp32_total) + holg
 // V-23: los Dupont del ESP32 (hacia abajo, con la curva del cable) quedan sobre la plataforma
 assert(elevacion_esp32 - alto_dupont_conectado >= holgura_conector,
     str("largo_dupont=", largo_dupont, ": los Dupont del ESP32 tocan la plataforma"));
-// V-24: las filas de Dupont del ESP32 no tocan los apoyos de las esquinas de su soporte, y las
-// curvas de las dos filas (hacia el centro) no se cruzan
-assert(margen_fila_esp32 >= holgura_conector,
-    str("pines_por_lado_esp32=", pines_por_lado_esp32, ": los Dupont del ESP32 tocan los apoyos del soporte (",
-        margen_fila_esp32, " mm de separación)"));
+// V-24: entre las curvas de los Dupont de las dos filas del ESP32 queda lugar para sus apoyos
+assert(ancho_apoyo_esp32 >= 3,
+    str("separacion_filas_esp32=", separacion_filas_esp32, ": entre las curvas de los Dupont del ESP32 quedan ",
+        ancho_apoyo_esp32, " mm para los apoyos (mín. 3)"));
 assert(2*ancho_franja_esp32 + holgura_conector <= esp32_ancho,
     str("radio_curva_cable=", radio_curva_cable, ": las curvas de los cables de las dos filas del ESP32 se cruzan"));
 // V-25: el enchufe USB pasa entre los postes del soporte y la abertura deja material en el techo

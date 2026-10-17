@@ -3,7 +3,8 @@
 // Componente: Plataforma de azimut
 // Descripción: Plataforma giratoria que lleva los dos brazos de la horquilla (en marcos de
 //              alineación), el carro y el tope tensor del motor de azimut (+Y), el bolsillo del
-//              power bank (−X), los soportes de las placas y del interruptor bajo la tapa (+X), el
+//              power bank (−X), los soportes de las placas, de la barra de distribución y del
+//              interruptor bajo la tapa (+X), el
 //              conducto elevado de cables que cruza la franja del láser y el alojamiento del
 //              contrapeso. Gira sobre el perno M8 central, con la cabeza embutida en el cubo.
 //              Se imprime con la cara inferior sobre la cama.
@@ -18,8 +19,6 @@ alto_nervio = 6;
 alto_puente_canal = 1.2;
 ancho_puente_canal = 4;
 cantidad_puentes_canal = 3;
-pad_soporte = 3;
-alto_labio_soporte = 1;
 ancho_reborde_tapa = 1.6;
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
@@ -132,12 +131,14 @@ module bolsillo_powerbank() {
 module soportes_placas() {
     soporte_placa(x_col_a0, y_uln_alt0, uln2003_ancho, uln2003_largo, alto_soporte_placa, pad_soporte);
     soporte_placa(x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo, alto_soporte_placa, pad_soporte);
-    soporte_placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, pad_soporte_esp32);
+    soporte_placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, pad_soporte_esp32, ancho_apoyo_esp32);
     soporte_placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, pad_soporte);
     soporte_placa(x_col_a0, y_reg0, regulador_ancho, regulador_largo, alto_soporte_placa, pad_soporte);   // regulador (006)
+    soporte_placa(x_barra0, y_barra0, barra_ancho, barra_largo, alto_soporte_placa, pad_soporte_barra);   // barra de distribución (010)
 }
 // Celda que empieza en [x0, y0]; placa de a × l (a en X, l en Y) apoyada a z_apoyo sobre la plataforma
-module soporte_placa(x0, y0, a, l, z_apoyo, pad) {
+// Con ancho_central > 0, en lugar de los 4 apoyos de las esquinas van 2, centrados en los extremos
+module soporte_placa(x0, y0, a, l, z_apoyo, pad, ancho_central = 0) {
     bx0 = x0 + pared_soporte + holgura_encastre;
     by0 = y0 + pared_soporte + holgura_encastre;
     alto_poste = z_apoyo + espesor_pcb + holgura_pcb + alto_labio_soporte;
@@ -154,8 +155,11 @@ module soporte_placa(x0, y0, a, l, z_apoyo, pad) {
                 translate([i == 0 ? 0 : -pierna_soporte + pared_soporte, 0, 0])
                     cube([pierna_soporte, pared_soporte, alto_poste + eps]);
             }
-            // Apoyo bajo la esquina de la placa
-            translate([i == 0 ? cx : cx - pad, j == 0 ? cy : cy - pad, 0]) cube([pad, pad, z_apoyo + eps]);
+            // Apoyo bajo la esquina de la placa, o bajo el centro de su extremo
+            if (ancho_central == 0)
+                translate([i == 0 ? cx : cx - pad, j == 0 ? cy : cy - pad, 0]) cube([pad, pad, z_apoyo + eps]);
+            else if (i == 0)
+                translate([bx0 + a/2 - ancho_central/2, j == 0 ? cy : cy - pad, 0]) cube([ancho_central, pad, z_apoyo + eps]);
             // Labio con chaflán de entrada sobre la placa
             translate([cx, cy, z_apoyo + espesor_pcb + holgura_pcb])
                 hull() {

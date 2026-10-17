@@ -37,35 +37,38 @@ cuadrática) y 1,35° en el peor caso.
 
 | Parámetro | Valor | Parámetro | Valor |
 |-----------|-------|-----------|-------|
-| `diametro_laser` | 30 mm | `largo_laser` | 190 mm |
-| `distancia_trasera_centro_masa` | 95 mm | `masa_laser_g` | 180 g |
-| `powerbank_largo × _ancho × _alto` | 100 × 65 × 25 mm | `esp32_largo × _ancho` | 55 × 28 mm |
+| `diametro_laser` | 20 mm (medido) | `largo_laser` | 152 mm (medido) |
+| `distancia_trasera_centro_masa` | 76 mm | `masa_laser_g` | 130 g |
+| `powerbank_largo × _ancho × _alto` | 147 × 71 × 16 mm | `esp32_largo × _ancho` | 48 × 25,5 mm (NodeMCU-32S, filas a 22,86 mm) |
 | `rele_largo × _ancho` | 50 × 26 mm | `uln2003_largo × _ancho` | 35 × 32 mm |
 | `dientes_polea_conducida` | 80 | `largo_correa` | 200 mm |
 | `espesor_brazo` | 12 mm | `ajuste_608` | +0,10 mm |
 | `holgura_encastre` | 0,25 mm | `holgura_colimacion` | 2 mm por lado |
+| `largo_tubo_cuna` | 80 mm | | |
 | `diametro_hueco_bateria` | 18,5 mm (18650) | `profundidad_hueco_bateria` | 65 mm |
-| `diametro_zona_tapa` | 30 mm | `largo_zona_tapa` | 12 mm |
-| `largo_tapa_original` | 20 mm | `tuercas_lastre_tapa` | 2 (M10) |
-| `masa_bateria_g` / `masa_tapa_original_g` | 45 g / 20 g | `regulador_largo × _ancho` | 22 × 17 mm (MP1584EN) |
+| `diametro_zona_tapa` | 20 mm | `largo_zona_tapa` | 10 mm |
+| `largo_tapa_original` | 20 mm | `tuercas_lastre_tapa` | 0 (sin lastre) |
+| `masa_bateria_g` / `masa_tapa_original_g` | 45 g / 10 g | `regulador_largo × _ancho` | 22 × 17 mm (MP1584EN) |
 
-> **Las medidas del láser sin batería son supuestas.** Hay que reemplazarlas por las de tu ejemplar
-> antes de imprimir la pila falsa y la tapa trasera (sección 4.1).
+> **Del láser solo están medidos el diámetro del tubo (20 mm) y el largo (152 mm).** El punto de
+> equilibrio, la masa, el hueco de la batería y la rosca de la tapa son supuestos para un 303 de
+> 20 mm con batería 18650. Hay que reemplazarlos por los de tu ejemplar antes de imprimir la pila
+> falsa y la tapa trasera (sección 4.1).
 
 Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
 
 | Cota | Valor |
 |------|-------|
 | Distancia entre los centros de las poleas | 45,97 mm |
-| Altura del eje de altura sobre la plataforma | 109,3 mm (179,8 mm sobre el trípode) |
-| Plataforma | 194,3 × 165,9 mm |
-| Láser convertido (sin batería, con pila falsa, tapa, lastre y grapa) | ≈ 167 g, equilibrado a 92,7 mm de la cola |
-| Hueco entre la tapa trasera y la cuna (grapa y equilibrado) | 13,0 mm |
+| Altura del eje de altura sobre la plataforma | 109,5 mm (180,0 mm sobre el trípode); con un láser corto la fija el motor de altura, que tiene que pasar por encima del de azimut y de la tapa |
+| Plataforma | 173,3 × 185,9 mm |
+| Láser convertido (sin batería, con pila falsa, tapa y grapa; sin lastre) | ≈ 98 g, equilibrado a 72,9 mm de la cola |
+| Hueco entre la tapa trasera y la cuna (grapa y equilibrado) | 15,3 mm |
 | Caída de tensión en el cable del láser | 0,08 V |
 | Tapa de la electrónica | 33,5 mm de alto; el ESP32 queda a 23,9 mm de la plataforma (espacio para los Dupont) |
-| Cables de los motores (recorrido hasta su ULN2003) | altura ≈ 115 mm, azimut ≈ 139 mm, de 230 mm de fábrica |
+| Cables de los motores (recorrido hasta su ULN2003) | altura ≈ 135 mm, azimut ≈ 160 mm, de 230 mm de fábrica |
 | Centro de masa de la parte giratoria | a ≈ 5 mm del eje |
-| Masa total estimada del aparato | ≈ 972 g |
+| Masa total estimada del aparato | ≈ 930 g |
 
 ## Primeros pasos
 
@@ -77,8 +80,9 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
    regenerar los 13 STL.
 3. **Imprimir el resto de las piezas** en PETG (sección 1).
 4. **Comprar los componentes** de la lista de materiales (sección 2). Con el relé, fijarse que sea
-   compatible con 3,3 V (sección 5.4). Hace falta un **multímetro** para ajustar el regulador y probar
-   el contacto del tubo.
+   compatible con 3,3 V (sección 5.4). Herramientas: un **multímetro** (para ajustar el regulador,
+   probar el contacto del tubo y la barra de distribución), un **soldador de 30 a 40 W** y **estaño de
+   0,8 mm con resina** (barra de distribución, interruptor, cable USB y regulador).
 5. **Armar** siguiendo los pasos de la sección 2 y hacer la **puesta a punto** (sección 3).
 
 ## 1. Especificaciones de Impresión 3D
@@ -95,8 +99,8 @@ Cotas que resultan (las imprime `src/puntero_laser_parametros.scad` con `echo`):
 >
 > Las piezas del láser sin batería toman sus holguras de `src/perfil_impresora.scad`, que tiene
 > `perfil_medido = false`, así que también son **valores por defecto, no medidos**: la funda de la
-> tapa trasera es deslizante (+0,30 mm), la pila falsa entra suelta (−0,40 mm), y la grapa y las
-> tuercas M10 del lastre van a presión (0,15 mm).
+> tapa trasera es deslizante (+0,30 mm), la pila falsa entra suelta (−0,40 mm) y la grapa va a
+> presión (0,15 mm).
 >
 > Los más críticos son los alojamientos de los 608: calibrarlos con la probeta (3.1) antes de
 > imprimir el resto.
@@ -108,20 +112,20 @@ de `ajuste_608` cambia, hay que **regenerar los 13 STL** antes de imprimir el re
 |-------|-----|-------|----------------------------------|---------|------------|----------|------------|--------------|
 | Probeta de ajuste del 608 | `puntero_laser_probeta_ajuste_608.stl` | 1 | Plana, tal como viene | 15 % | 3 | No | — | 13 g |
 | Adaptador del trípode (base) | `puntero_laser_adaptador_tripode.stl` | 1 | Cara de apoyo del trípode | 40 % giroide | 4 | No | — | 254 g |
-| Plataforma de azimut | `puntero_laser_plataforma_azimut.stl` | 1 | Cara inferior | 20 % giroide | 3 | No | Borde (brim) de 5 mm si la cama despega esquinas | 213 g |
+| Plataforma de azimut | `puntero_laser_plataforma_azimut.stl` | 1 | Cara inferior | 20 % giroide | 3 | No | Borde (brim) de 5 mm si la cama despega esquinas | 220 g |
 | Brazo de la horquilla, motor | `puntero_laser_brazo_horquilla_motor.stl` | 1 | Cara interior (pilares hacia arriba) | 30 % | 4 | No | — | 101 g |
 | Brazo de la horquilla, cable | `puntero_laser_brazo_horquilla_cable.stl` | 1 | Cara interior (canal hacia arriba) | 30 % | 4 | No | — | 57 g |
-| Cuna del láser | `puntero_laser_cuna_laser.stl` | 1 | De pie, sobre un anillo de colimación | 30 % | 4 | No | Borde (brim) de 5 mm | 55 g |
-| Polea de altura | `puntero_laser_polea_altitud.stl` | 1 | Cara exterior (cubo hacia arriba) | 40 % | 4; capa de 0,16 mm | No | — | 23 g |
+| Cuna del láser | `puntero_laser_cuna_laser.stl` | 1 | De pie, sobre un anillo de colimación | 30 % | 4 | No | Borde (brim) de 5 mm | 35 g |
+| Polea de altura | `puntero_laser_polea_altitud.stl` | 1 | Cara exterior (cubo hacia arriba) | 40 % | 4; capa de 0,16 mm | No | — | 24 g |
 | Carro del motor | `puntero_laser_carro_motor.stl` | **2** | Plano | 40 % | 4 | No | — | 8 g c/u |
-| Separador y 3 arandelas | `puntero_laser_separador_azimut.stl` | 1 | De pie, tal como viene | 100 % | — | No | — | 1 g |
-| Tapa de la electrónica | `puntero_laser_tapa_electronica.stl` | 1 | Techo | 15 % | 3 | No | — | 61 g |
-| Pila falsa | `puntero_laser_pila_falsa.stl` | 1 | De pie, cara trasera (la de la ranura) | 30 % | 3 | No | Borde (brim) de 3 mm | 20 g |
-| Tapa trasera del láser | `puntero_laser_tapa_trasera.stl` | 1 | De pie, piso trasero | 40 % | 4 | No | — | 21 g |
+| Separador y 3 arandelas | `puntero_laser_separador_azimut.stl` | 1 | De pie, tal como viene | 100 % | — | No | — | 2 g |
+| Tapa de la electrónica | `puntero_laser_tapa_electronica.stl` | 1 | Techo | 15 % | 3 | No | — | 58 g |
+| Pila falsa | `puntero_laser_pila_falsa.stl` | 1 | De pie, cara trasera (la de la ranura) | 30 % | 3 | No | Borde (brim) de 3 mm | 19 g |
+| Tapa trasera del láser | `puntero_laser_tapa_trasera.stl` | 1 | De pie, piso trasero | 40 % | 4 | No | — | 8 g |
 | Grapa del cable | `puntero_laser_grapa_cable.stl` | 1 | Plana | 100 % | — | No | — | 1 g |
 
 \* Masa si la pieza fuera maciza de PETG. Con los ajustes de la tabla, el conjunto impreso pesa
-≈ 440 g; el laminador da el valor exacto.
+≈ 430 g; el laminador da el valor exacto.
 
 | | | |
 |---|---|---|
@@ -163,11 +167,10 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 
 * 1 × Perno M8 × 50 mm cabeza hexagonal (eje de azimut)
 * 1 × Perno M8 × 55 mm cabeza hexagonal (eje de altura, lado del motor: entra desde afuera por la polea)
-* 1 × Perno M8 × 30 mm cabeza hexagonal (eje de altura, lado del cable)
-* 2 × Tuerca autoblocante M8
-* 1 × Tuerca M8 común de 6,5 mm de alto (DIN 934), para el muñón +X de la cuna
+* 1 × Perno M8 × 25 mm cabeza hexagonal (eje de altura, lado del cable: entra desde afuera por la arandela de contacto)
+* 1 × Tuerca autoblocante M8 (eje de azimut)
+* 2 × Tuerca M8 común de 6,5 mm de alto (DIN 934), para los muñones de la cuna
 * 1 × Tuerca 3/8"-16 UNC (tornillo del trípode)
-* 2 × Tuerca M10 (DIN 934): lastre de la tapa trasera del láser
 * 2–4 × Arandela M8 fina (solo si hace falta ajustar la horquilla a la plataforma, paso 8)
 * 4 × Tuerca M8 extra como contrapeso (opcional, sección 3.4)
 
@@ -186,18 +189,21 @@ nocturna y la temperatura dentro de un auto al sol. El PLA sirve para pruebas, p
 
 **Electrónica**
 
-* 1 × ESP32 DevKit (30 o 38 pines)
+* 1 × ESP32 NodeMCU-32S de 38 pines (48 × 25,5 mm, filas a 22,86 mm)
 * 2 × Motor paso a paso 28BYJ-48 de 5 V con su placa driver ULN2003
 * 1 × Módulo relé de 1 canal **compatible con lógica de 3,3 V**: disparo por nivel alto, o con puente "H/L" en H
 * 1 × Resistencia de 10 kΩ 1/4 W, entre IN y GND del relé (láser apagado con el ESP32 apagado)
 * 1 × Módulo reductor de tensión ajustable MP1584EN (o mini-360), ajustado a 3,7 V
 * 2 × Terminal de ojal M3 para cable de 26 AWG (contactos + y − del láser)
 * 1 × Puntero láser verde "303" (se usa sin su batería: la batería y la tapa original se guardan)
-* 1 × Power bank USB de 5 V y ≥ 2 A
+* 1 × Power bank USB de 5 V y ≥ 2 A (Energizer Max de 10 000 mAh o similar)
 * 1 × Interruptor de palanca miniatura con rosca M6 (tipo MTS-102)
 * 1 × Cable USB-A con salida a bornes (o cable USB cortado)
-* 60 cm de cable de silicona de 2 × 26 AWG, rojo y negro (regulador → láser)
+* 70 cm de cable de silicona de 2 × 26 AWG, rojo y negro (regulador → láser e interruptor → barra de distribución)
+* 1 × Placa perforada (placa experimental) de paso 2,54 mm: se corta un trozo de 3 × 10 agujeros para la barra de distribución +5 V / GND
+* 1 × Tira de pines macho 1 × 40 de paso 2,54 mm (se cortan 2 tiras de 6 para la barra de distribución)
 * Cables Dupont hembra-hembra rectos (conector de 14 mm)
+* 20 cm de tubo termocontraíble de 2,5 mm (soldaduras del interruptor, del cable USB y del regulador)
 * Bridas de 3 mm
 * Una banda elástica o una tira de velcro para el power bank
 <!-- BOM:fin -->
@@ -213,19 +219,21 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
    el segundo 608 por la ventana lateral y prensarlo hacia arriba en el alojamiento inferior: se puede
    tirar de él con el perno M8 × 50, arandelas y una tuerca. Los dos quedan apoyados contra el resalte
    central.
-3. **Cuna: perno del lado del cable.** Antes de colocar el láser, meter el perno M8 × 30 desde
-   **dentro del tubo**, con la punta primero, por el muñón −X (el que está junto a la canaleta del cable),
-   hasta que la cabeza entre en su hexágono. El perno queda apuntando hacia afuera.
+3. **Cuna: tuerca del lado del cable.** Meter una tuerca M8 común por un extremo del tubo y encajarla
+   en el hexágono del muñón −X (el que está junto a la canaleta del cable). Se sostiene con un dedo
+   hasta el paso 6; un poco de cinta de papel por dentro del tubo evita que se caiga.
 4. **Brazos: rodamientos.** Prensar un 608ZZ en cada brazo desde la cara exterior, hasta que quede
    enrasado y apoyado en el labio interior.
 5. **Cuna entre los brazos.** La horquilla se arma con los brazos **sueltos**: atornillados a la
-   plataforma quedan a 50 mm, y la cuna con sus anillos de contacto mide 60 mm. Calzar el **brazo
-   cable** sobre el perno M8 × 30 hasta que el anillo de contacto del muñón −X apoye en el aro interior
-   del 608. Del otro lado, calzar el **brazo motor** sobre el anillo del muñón +X. Las caras interiores
+   plataforma quedan a 40 mm, y la cuna con sus anillos de contacto mide 50 mm. Calzar el **brazo
+   cable** sobre el anillo de contacto del muñón −X hasta que apoye en el aro interior del 608. Del otro lado, calzar el **brazo motor** sobre el anillo del muñón +X. Las caras interiores
    de los brazos miran hacia la cuna.
-6. **Lado del cable.** Poner una arandela de contacto impresa y una tuerca autoblocante M8 en el perno
-   M8 × 30. Apretar sin frenar el giro.
-7. **Polea de altura.** Meter la tuerca M8 común por un extremo del tubo y encajarla en el hexágono del
+6. **Lado del cable.** Pasar el perno M8 × 25 por la arandela de contacto **gruesa** (la de 5,3 mm
+   del separador impreso) y meterlo desde afuera por el 608 del brazo cable y el muñón hasta la tuerca
+   del paso 3. Enroscarlo con una llave de 13 mm sosteniendo la cuna, hasta que apriete: la cabeza
+   apoya en la arandela, la arandela en el aro interior del 608, y el perno gira con la cuna. La punta
+   queda 0,5 mm antes del interior del tubo y no toca el láser.
+7. **Polea de altura.** Meter la otra tuerca M8 común por un extremo del tubo y encajarla en el hexágono del
    muñón +X; sostenerla con un dedo. Pasar el perno M8 × 55 por la polea 80T desde la cara exterior,
    con la cabeza en el hexágono, y llevarlo con el cubo de la polea hacia el brazo motor: atraviesa el
    608 y el muñón y llega a la tuerca. Enroscarlo **girando la polea** mientras se sostiene la cuna,
@@ -235,8 +243,8 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
    entrándola por la cara exterior del brazo. Bajar la horquilla armada (brazos, cuna y polea) a los
    marcos de la plataforma: el **brazo motor** en +X (lado de la tapa) y el **brazo cable** en −X (lado
    del power bank). Fijar cada brazo con 2 × M3 × 12 desde abajo de la plataforma. Si para que los pies
-   entren en los marcos hay que separar los brazos, la cuna queda corta: retirar el brazo cable, poner
-   arandelas M8 finas en el perno entre el muñón y el 608, y volver a armar ese lado.
+   entren en los marcos hay que separar los brazos, la cuna queda corta: sacar el perno del lado cable y el
+   brazo cable, poner arandelas M8 finas entre el anillo del muñón y el 608, y volver a armar ese lado.
 9. **Motores a los carros.** Atornillar cada 28BYJ-48 a un carro con 2 × M3 × 8 y arandela,
    autorroscantes en los agujeros de las orejas. El cuerpo del motor queda hacia +X del carro, del
    lado contrario al agujero del eje.
@@ -268,8 +276,6 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
       tornillo M3 × 8 de cabeza alomada. Pasar el hilo por el agujero axial y sacarlo por la ranura de
       la cara trasera. Meter la pila en el tubo con la cabeza del tornillo hacia donde iba el + de la
       batería.
-    - **Lastre**: meter a presión las 2 tuercas M10 en el hexágono de la tapa trasera (si quedan
-      flojas, una gota de cianoacrilato).
     - **Tapa trasera**: pasar el hilo rojo por la ranura del escalón y la ventana. Girar la pila falsa
       hasta que su ranura quede alineada con la ventana, y calzar la tapa sobre la rosca hasta que el
       borde del tubo apoye en el escalón (empuja la pila y comprime el resorte del cabezal).
@@ -288,18 +294,36 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
     3 puentes de la **canaleta** de la cuna (lado −X, abajo), desde el borde trasero hasta el muñón −X.
     Pasarlos por el agujero del brazo cable dejando un **bucle de 40 mm** y bajarlos por el canal de la
     cara exterior del brazo.
-16. **Electrónica.** Encajar las placas en sus soportes (lado +X): los 2 ULN2003, el **regulador** (en el
-    tercer soporte de la misma columna) y el relé apoyados, y el ESP32 elevado, con los pines hacia
-    abajo como viene de fábrica. **Antes de encajar el ESP32, conectarle los Dupont** desde abajo y
-    doblar los cables hacia el centro de la placa (hacia afuera chocan con la columna de los ULN2003):
-    con la placa puesta, los conectores de abajo no se alcanzan. Los Dupont del relé y de los ULN2003
-    van rectos hacia arriba; la tapa tiene lugar para ellos y la curva del cable. Soldar la **resistencia de 10 kΩ** entre los pines IN y GND del relé (o meterla en el cable
-    Dupont). Atornillar el interruptor en su soporte, con la palanca hacia +X. Colocar el power bank de
-    pie en su bolsillo (−X), con el conector USB hacia el extremo bajo de la pared (−Y), y sujetarlo
-    con la banda elástica alrededor del bolsillo.
+16. **Electrónica.** Armar y probar la **barra de distribución** en el banco (sección 5.4). Encajar las
+    placas en sus soportes (lado +X): los 2 ULN2003, el **regulador** (en el tercer soporte de la misma
+    columna), la **barra** (en el soporte angosto al lado del regulador, con los pines hacia arriba y
+    las entradas soldadas hacia +Y) y el relé apoyados, y el ESP32 elevado, con los pines hacia
+    abajo como viene de fábrica (sin la placa base que trae; apoya en los dos apoyos centrales de los
+    extremos, entre las filas de pines). Cada placa va en un sentido, para que los cables lleguen cortos:
+    - Los **ULN2003**, con la ficha del motor hacia −X (la pared por donde entran los cables de los
+      motores) y las entradas IN1–IN4 y la alimentación hacia el ESP32 (+X).
+    - El **relé**, con la tira VCC/GND/IN hacia el ESP32 (−Y) y la bornera hacia el interruptor (+Y).
+    - El **regulador**, con la entrada (IN+ e IN−) hacia −Y y la salida hacia +Y.
+    - El **ESP32**, con el USB hacia −Y, frente a la abertura de la tapa.
+    - **Antes de encajar el ESP32, conectarle los Dupont** desde abajo y doblar los cables hacia el
+      centro de la placa (hacia afuera chocan con la columna de los ULN2003): con la placa puesta, los
+      conectores de abajo no se alcanzan. Los cables salen por debajo de la placa hacia los ULN2003,
+      por el tramo cercano al relé, y el de GPIO23 sale entre el ESP32 y el relé.
+    - Los Dupont del relé y de los ULN2003 van rectos hacia arriba; la tapa tiene lugar para ellos y
+      la curva del cable.
+    - Soldar la **resistencia de 10 kΩ** entre los pines IN y GND del relé, del lado de las
+      soldaduras (o meterla en el cable Dupont). Atornillar el interruptor en su soporte, con la
+      palanca hacia +X.
+    - Colocar el power bank de pie en su bolsillo (−X), con el conector USB hacia el extremo bajo de
+      la pared (−Y), y sujetarlo con la banda elástica alrededor del bolsillo.
 17. **Cableado.** Conectar según la sección 5.4. **Antes de conectar los hilos del láser, ajustar el
     regulador a 3,7 V** (sección 5.4): 5 V directos queman el láser.
-    - El cable de alimentación y los hilos del láser cruzan por el **conducto elevado** (Y = −30 mm).
+    - Todos los +5 V y GND salen de la **barra de distribución**, un Dupont por pin (tabla de la
+      sección 5.4). Las señales van del ESP32 a cada placa con su Dupont.
+    - El cable de alimentación y los hilos del láser cruzan por el **conducto elevado** (Y = −30 mm):
+      el USB del lado −Y y los hilos del láser del lado +Y.
+    - El **enchufe USB** va al puerto del power bank, por la pared baja del bolsillo. Sus hilos ya
+      tienen identificados el +5 V y el GND (sección 5.4).
     - Los hilos del láser van al regulador: el rojo a OUT+ y el negro a OUT−.
     - El cable del motor de altura baja por el canal de la cara exterior del brazo motor.
     - El cable del motor de azimut se fija con una brida al puente de la plataforma y entra a la tapa
@@ -323,7 +347,7 @@ Para usar el láser a mano, sin el aparato:
 
 1. Apagar el interruptor general y soltar los hilos del láser del regulador.
 2. Sacar el láser de la cuna con la grapa y la tapa trasera puestas.
-3. Aflojar los 2 prisioneros de la tapa trasera, retirar la tapa (con el lastre) y sacar la pila
+3. Aflojar los 2 prisioneros de la tapa trasera, retirar la tapa y sacar la pila
    falsa tirando del hilo rojo.
 4. Poner la batería con su + hacia donde estaba y enroscar la tapa original con la llave.
 
@@ -357,7 +381,7 @@ juego; una muy tensa frena el motor. El carro tiene ±3 mm de recorrido.
 
 ### 3.3 Equilibrado del láser
 
-Se hace con el láser **ya convertido**: pila falsa, tapa trasera con su lastre y grapa puestas. Con
+Se hace con el láser **ya convertido**: pila falsa, tapa trasera y grapa puestas. Con
 los motores **sin energía**, deslizar el láser dentro de la cuna (con los prisioneros flojos) hasta que
 quede **quieto a 0°, 45° y 90°**. El diseño deja ±3,5 mm de recorrido entre la tapa trasera y la
 cuna. Si el punto de equilibrio real queda fuera de ese recorrido, medirlo desde el extremo trasero de
@@ -374,7 +398,7 @@ ser ≤ 0,2° en 5 minutos.
 
 ### 3.4 Contrapeso (opcional)
 
-El centro de masa de la parte giratoria queda a ≈ 4 mm del eje. Si un power bank más pesado lo
+El centro de masa de la parte giratoria queda a ≈ 5 mm del eje. Si un power bank más pesado lo
 desplaza, se pueden apilar hasta 4 tuercas M8 en el alojamiento del contrapeso (esquina −X, +Y).
 
 ### 3.5 Colimación del haz
@@ -427,12 +451,13 @@ pasa de 0,1°. La generación lo avisa con una línea `AVISO`. Ver la justificac
 | Regulador | Largo y ancho del módulo | `regulador_largo`, `regulador_ancho` |
 | Power bank | Largo, ancho (queda vertical) y espesor | `powerbank_largo`, `_ancho`, `_alto` |
 | ESP32, relé, ULN2003 | Largo y ancho de cada placa | `esp32_*`, `rele_*`, `uln2003_*` |
-| ESP32 | Pines de cada fila (15 o 19) | `pines_por_lado_esp32` |
+| ESP32 | Pines de cada fila (15 o 19) y distancia entre las dos filas, de centro a centro (22,86 mm en el NodeMCU-32S, 25,4 mm en el DevKitC) | `pines_por_lado_esp32`, `separacion_filas_esp32` |
 | Cables Dupont | Largo del cuerpo plástico del conector hembra (los estándar miden 14 mm; **la tapa admite hasta ≈ 14,8 mm**: con más, falla la validación) | `largo_dupont` |
 | Placas | Alto del plástico de las tiras de pines | `alto_tira_pines` |
 | Cables Dupont | Cuánto hay que dejar para doblar el cable sin forzarlo (radio, al eje del cable) | `radio_curva_cable` |
 | Motores | Alto del enchufe blanco conectado en su ULN2003, y largo del cable del motor al enchufe | `alto_enchufe_motor`, `largo_cable_motor` |
 | Cable USB | Ancho y alto de la funda del enchufe que va al ESP32 | `ancho_enchufe_usb`, `alto_enchufe_usb` |
+| Barra de distribución | Largo y ancho del trozo de placa perforada cortado, y pines por tira si se agregan accesorios (mín. 6) | `barra_largo`, `barra_ancho`, `pines_barra` |
 
 ### 4.2 Cómo cambiar los parámetros
 
@@ -472,16 +497,21 @@ están en `specs/002-puntero-laser-estelar/quickstart.md`, escenario 2, y en
 | Base | `diametro_apoyo_tripode=` | La base toca la polea 20T o su cono baja hasta la cámara | Reducir `diametro_apoyo_tripode` |
 | V-15 | `<parámetro>=<valor>: fuera de rango` | Un parámetro del láser sin batería está fuera de su rango | Usar un valor dentro del rango indicado |
 | V-16 | `diametro_hueco_bateria=` | El hueco de la batería no entra en el tubo, o la pila falsa queda muy fina para el hilo | Repetir las mediciones del tubo |
-| V-17 | `tuercas_lastre_tapa=` | Las tuercas M10 no dejan escalón para el borde del tubo | Menos tuercas de lastre |
+| V-17 | `tuercas_lastre_tapa=` | Las tuercas M10 no dejan escalón para el borde del tubo (pasa con tubos de menos de ≈ 22 mm) | `tuercas_lastre_tapa = 0` |
+| Ejes | `diametro_laser=…: la arandela de contacto del lado del cable` | El largo comercial del perno M8 del lado del cable no se puede compensar con la arandela | Revisar `diametro_laser` y `holgura_colimacion` |
 | V-18 | `espesor_resalte_prisionero=` | El prisionero M3 × 12 no alcanza para el ojal y la contratuerca | — (constante del diseño) |
-| V-19 | `distancia_trasera_centro_masa_nueva=` | La tapa trasera queda muy cerca de la cuna: no entran la grapa y el equilibrado | Más lastre, o revisar el punto de equilibrio medido |
+| V-19 | `distancia_trasera_centro_masa_nueva=` | La tapa trasera queda muy cerca de la cuna: no entran la grapa y el equilibrado | Acortar `largo_tubo_cuna`, cambiar el lastre o revisar el punto de equilibrio medido |
 | V-20 | `largo_cable_laser=` | El cable del láser hace caer más de 0,1 V | Cable más corto o más grueso |
 | V-21 | `regulador_ancho=` | El regulador no entra en la columna de los ULN2003 | Usar un módulo más chico (mini-360) |
 | V-22 | `largo_dupont=…: un conector toca el techo de la tapa` | Un conector de arriba no entra bajo la tapa | Revisar las medidas de los conectores |
 | V-23 | `largo_dupont=…: los Dupont del ESP32 tocan la plataforma` | No hay lugar bajo el ESP32 | Revisar `largo_dupont` y `alto_tira_pines` |
-| V-24 | `pines_por_lado_esp32=` o `radio_curva_cable=` | Los Dupont del ESP32 tocan los apoyos del soporte, o las curvas de las dos filas se cruzan | Revisar la cantidad de pines; doblar los cables más cerrado |
+| V-24 | `separacion_filas_esp32=` o `radio_curva_cable=` | Entre las curvas de los Dupont de las dos filas del ESP32 no queda lugar para sus apoyos centrales, o las curvas se cruzan | Revisar la distancia entre filas; doblar los cables más cerrado |
 | V-25 | `ancho_enchufe_usb=` o `alto_enchufe_usb=` | El enchufe USB toca el soporte del ESP32 o la abertura llega al techo de la tapa | Usar un cable USB de funda más chica |
-| V-26 | `largo_cable_motor=…: el cable del motor de <eje> no llega` | El cable del motor no alcanza su ULN2003 por el recorrido de la guía | Empalmar un alargue de 4 hilos |
+| C-03 | `cables: '<cable>' atraviesa …` | El recorrido de un cable pasa por una placa, un soporte, la plataforma o la tapa (suele pasar al cambiar las medidas de las placas) | Revisar las medidas de las placas y de los conectores |
+| C-04 | `cables: '<cable>' mide … mm y el cable comprado … mm` | El cable comprado (Dupont de 20 cm o cable de fábrica del motor) no alcanza por el recorrido de la Tabla de cables | Usar un cable más largo o, en los motores, empalmar un alargue de 5 hilos |
+| V-27 | `pines_barra=…: la barra necesita al menos` | Faltan pines para los 5 destinos y la reserva | Usar al menos 6 pines por tira |
+| V-28 | `barra_largo=` o `barra_ancho=…: la placa no tiene lugar` | El trozo de placa perforada es chico para los pines, la entrada y las esquinas libres | Cortar un trozo más grande (3 × (pines + 4) agujeros) |
+| V-29 | `barra_ancho=…: la barra no entra al lado del regulador` | La barra no cabe en la columna de los ULN2003 junto al regulador | Placa más angosta (3 agujeros) o un regulador más chico |
 | — | `altura_placas=…, largo_dupont=…: la tapa (… mm) toca el carro o el motor de altura` | Los conectores hacen crecer la tapa hasta el carro del motor de altura | Conectores más cortos o a 90° |
 | Aviso | `AVISO: alto_brazo=` | El brazo supera 131 mm | Repetir el cálculo de flexión (sección 3.6) |
 
@@ -538,20 +568,103 @@ La hora se toma por NTP (WiFi) o RTC/GPS: un minuto de error equivale a 0,25°.
 ### 5.4 Conexiones
 
 ```text
-Power bank USB 5V ──(conducto)──> interruptor general (bajo la tapa) ──┬──> ESP32 5V/VIN (GND común)
-                                                                     ├──> ULN2003 azimut +5V
-                                                                     ├──> ULN2003 altura +5V
-                                                                     ├──> Relé VCC
-                                                                     └──> Relé COM
+Power bank USB 5V ──(conducto)──> interruptor general (bajo la tapa) ──(10 cm, 26 AWG rojo)──> barra +5V (E+)
+Power bank USB GND ──(conducto)───────────────────────────────────────────────────────> barra GND (E−)
+Barra +5V ──┬──> ESP32 5V/VIN          Barra GND ──┬──> ESP32 GND
+            ├──> ULN2003 azimut +5V                ├──> ULN2003 azimut −
+            ├──> ULN2003 altura +5V                ├──> ULN2003 altura −
+            ├──> Relé VCC                          ├──> Relé GND
+            └──> Relé COM                          └──> Regulador IN−
 ESP32 GPIO16, 17, 18, 19 ──> ULN2003 azimut IN1…IN4 ──> 28BYJ-48 azimut
 ESP32 GPIO25, 26, 27, 33 ──> ULN2003 altura IN1…IN4 ──> 28BYJ-48 altura
 ESP32 GPIO23             ──> Relé IN (activo en nivel alto) ──[10 kΩ]──> GND
-Relé NA                  ──> Regulador MP1584 IN+  (IN− a GND)
+Relé NA                  ──> Regulador MP1584 IN+  (IN− a la barra GND)
 Regulador OUT+ (3,7 V)   ──> hilo rojo 26 AWG  ──> pila falsa (+, tornillo de la punta)
 Regulador OUT−           ──> hilo negro 26 AWG ──> prisionero de la tapa trasera (−, cuerpo del láser)
 ```
 
 - No usar los pines de arranque (0, 2, 12 y 15) ni los de solo entrada (34–39).
+- **Barra de distribución**: un Dupont no se puede bifurcar, así que los 5 destinos de +5 V y los 5 de
+  GND salen de una barra. Es un trozo de placa perforada de 3 × 10 agujeros con una tira de 6 pines
+  macho en cada columna de los costados (la del medio queda vacía). Su soporte está al lado del
+  regulador.
+
+  | Pin | Tira +5 V | Tira GND | Conexión |
+  |-----|-----------|----------|----------|
+  | 1 | ESP32 VIN | ESP32 GND | Dupont hembra-hembra |
+  | 2 | ULN2003 azimut + | ULN2003 azimut − | Dupont hembra-hembra |
+  | 3 | ULN2003 altura + | ULN2003 altura − | Dupont hembra-hembra |
+  | 4 | Relé VCC | Relé GND | Dupont hembra-hembra |
+  | 5 | Relé COM | Regulador IN− | Dupont con un extremo cortado: pelado y apretado en la bornera COM; soldado al pad IN− y aislado con termocontraíble |
+  | 6 | Reserva | Reserva | Libre (p. ej., la resistencia de carga de 100 Ω) |
+  | Entrada (agujero 8) | Cable rojo de 26 AWG desde el interruptor | Hilo negro del cable USB | Soldada |
+
+  **Armado**:
+  1. Cortar la placa perforada en un trozo de 3 × 10 agujeros (≈ 7,6 × 25,4 mm) y limar los bordes.
+  2. Soldar una tira de 6 pines en los agujeros 2 a 7 de cada columna de los costados, con el plástico
+     del lado de los componentes. Los agujeros 1 y 10 quedan libres, porque apoyan en el soporte.
+  3. Por abajo, unir los 6 pines de cada tira y su agujero 8 con un hilo de cobre desnudo (de un
+     Dupont pelado de los que sobran), soldado en cada pin. Las dos tiras **no** deben tocarse.
+  4. Soldar las entradas en el agujero 8: en la tira +5 V, 10 cm de cable rojo de 26 AWG, cuyo otro
+     extremo va a una pata del interruptor; en la tira GND, el hilo negro del cable USB. El hilo rojo
+     del cable USB va a la otra pata del interruptor. Aislar las patas del interruptor con
+     termocontraíble.
+  5. **Probar con el multímetro antes de conectar ninguna placa**: sin continuidad entre las dos tiras;
+     con continuidad entre los pines de una misma tira; con el power bank enchufado, ≈ 5 V entre las
+     tiras con el interruptor cerrado y 0 V con el interruptor abierto. Con la punta roja en la tira
+     +5 V y la negra en la GND tiene que marcar **+5 V**; si marca −5 V, los hilos del USB están
+     invertidos.
+- **Cable USB: cuál hilo es +5 V y cuál GND** (antes de soldarlo). En el enchufe USB-A los 4
+  contactos están en fila: los dos de los **extremos** (un poco más largos) son la alimentación, +5 V
+  (pin 1) y GND (pin 4), y los dos del medio son datos. Por norma, el hilo **rojo** es +5 V, el
+  **negro** GND y el blanco y el verde son datos, pero muchos cables baratos no la respetan o traen
+  solo 2 hilos de otros colores. Por eso **siempre se mide**:
+  1. Pelar unos 5 mm de cada hilo y separarlos para que no se toquen.
+  2. Enchufar el cable al power bank y encenderlo. Algunos se apagan solos si nada consume: medir
+     apenas se aprieta su botón.
+  3. Con el multímetro en tensión continua (escala de 20 V), probar pares de hilos hasta leer ≈ 5 V.
+  4. Si marca **+5 V**, la punta roja está en el +5 V y la negra en GND; si marca **−5 V**, es al
+     revés. Marcar el +5 V con termocontraíble rojo o cinta antes de desenchufar.
+  5. Los hilos que quedan son datos: cortarlos al ras y aislarlos con termocontraíble.
+
+  Un cable "con salida a bornes" suele traer los bornes marcados "+" y "−" (o "VCC" y "GND"): igual
+  conviene comprobarlo. El +5 V va a una pata del interruptor y GND a la entrada de la tira GND de la
+  barra. Invertirlos pone −5 V en todas las placas y las quema.
+
+**Tabla de cables**:
+
+| N.º | Desde | Hasta | Conectores | Largo |
+|-----|-------|-------|------------|-------|
+| 1 | Power bank USB +5 V | Interruptor | Enchufe USB-A (hilo rojo) / soldado | ≈ 430 mm |
+| 2 | Power bank USB GND | Barra GND (entrada) | Enchufe USB-A (hilo negro) / soldado | ≈ 435 mm |
+| 3 | Interruptor | Barra +5 V (entrada) | Soldado / soldado | ≈ 90 mm |
+| 4 | Barra +5 V pin 1 | ESP32 VIN | Dupont hembra / Dupont hembra | ≈ 185 mm |
+| 5 | Barra +5 V pin 2 | ULN2003 azimut + | Dupont hembra / Dupont hembra | ≈ 70 mm |
+| 6 | Barra +5 V pin 3 | ULN2003 altura + | Dupont hembra / Dupont hembra | ≈ 115 mm |
+| 7 | Barra +5 V pin 4 | Relé VCC | Dupont hembra / Dupont hembra | ≈ 110 mm |
+| 8 | Barra +5 V pin 5 | Relé COM | Dupont hembra / pelado en la bornera | ≈ 70 mm |
+| 9 | Barra GND pin 1 | ESP32 GND | Dupont hembra / Dupont hembra | ≈ 170 mm |
+| 10 | Barra GND pin 2 | ULN2003 azimut − | Dupont hembra / Dupont hembra | ≈ 65 mm |
+| 11 | Barra GND pin 3 | ULN2003 altura − | Dupont hembra / Dupont hembra | ≈ 110 mm |
+| 12 | Barra GND pin 4 | Relé GND | Dupont hembra / Dupont hembra | ≈ 95 mm |
+| 13 | Barra GND pin 5 | Regulador IN− | Dupont hembra / soldado | ≈ 70 mm |
+| 14 | ESP32 GPIO 16 | ULN2003 azimut IN1 | Dupont hembra / Dupont hembra | ≈ 125 mm |
+| 15 | ESP32 GPIO 17 | ULN2003 azimut IN2 | Dupont hembra / Dupont hembra | ≈ 125 mm |
+| 16 | ESP32 GPIO 18 | ULN2003 azimut IN3 | Dupont hembra / Dupont hembra | ≈ 125 mm |
+| 17 | ESP32 GPIO 19 | ULN2003 azimut IN4 | Dupont hembra / Dupont hembra | ≈ 120 mm |
+| 18 | ESP32 GPIO 25 | ULN2003 altura IN1 | Dupont hembra / Dupont hembra | ≈ 135 mm |
+| 19 | ESP32 GPIO 26 | ULN2003 altura IN2 | Dupont hembra / Dupont hembra | ≈ 145 mm |
+| 20 | ESP32 GPIO 27 | ULN2003 altura IN3 | Dupont hembra / Dupont hembra | ≈ 145 mm |
+| 21 | ESP32 GPIO 33 | ULN2003 altura IN4 | Dupont hembra / Dupont hembra | ≈ 125 mm |
+| 22 | ESP32 GPIO 23 | Relé IN | Dupont hembra / Dupont hembra | ≈ 95 mm |
+| 23 | Relé NA | Regulador IN+ | Pelado en la bornera / soldado | ≈ 95 mm |
+| 24 | Motor de azimut | ULN2003 azimut (ficha del motor) | Ficha del motor / ficha del ULN2003 | ≈ 160 mm |
+| 25 | Motor de altura | ULN2003 altura (ficha del motor) | Ficha del motor / ficha del ULN2003 | ≈ 135 mm |
+| 26 | Regulador OUT± | Láser (pila falsa y tapa trasera) | Soldado / pila falsa y prisionero | ≈ 410 mm |
+
+Los largos son los del recorrido del diseño; los Dupont de 20 cm alcanzan para todos. En la web, "Ver el
+cableado" muestra cada uno de estos cables en 3D: al tocar un renglón de su lista se resalta el cable.
+
 - Los motores **no** se alimentan desde el pin 3V3 ni a través del USB del ESP32.
 - **Relé**: los módulos de 5 V con disparo por nivel bajo y optoacoplador no se apagan del todo con
   los 3,3 V del ESP32. Usar uno marcado "3.3V", uno con disparo por nivel alto, o uno con puente H/L en
@@ -581,8 +694,8 @@ Regulador OUT−           ──> hilo negro 26 AWG ──> prisionero de la ta
 |-------|-----------|
 | Alimentación y láser | Conducto elevado que cruza la franja del láser (Y = −30 mm) |
 | Láser | Ventana de la tapa trasera → grapa → canaleta de la cuna (lado −X, abajo) → bucle de 40 mm → agujero y canal del brazo cable |
-| Motor de altura | Canal de la cara exterior del brazo motor → pared −X de la tapa (≈ 115 mm hasta su ULN2003) |
-| Motor de azimut | Brida en el puente de la plataforma → pared −X de la tapa (≈ 139 mm hasta su ULN2003) |
+| Motor de altura | Canal de la cara exterior del brazo motor → pared −X de la tapa → sube junto a la pared y baja a la ficha de su ULN2003 (≈ 135 mm) |
+| Motor de azimut | Brida en el puente de la plataforma → pared −X de la tapa → sube junto a la pared y baja a la ficha de su ULN2003 (≈ 160 mm) |
 
 Ningún cable cruza el eje de azimut, así que el aparato gira sin límite.
 
@@ -646,8 +759,10 @@ Resumen de las recomendaciones de esta guía, en el orden en que aparecen al con
   tornillo donde iba el + de la batería (paso 14).
 - **Ningún cable debe tocar correas ni poleas**, y el del láser necesita su bucle de 40 mm para
   acompañar el giro (pasos 15 y 17).
+- **Probar la barra de distribución con el multímetro antes de conectar las placas**: un puente de
+  estaño entre las dos tiras es un cortocircuito del power bank (sección 5.4).
 - **Ajustar el regulador a 3,7 V antes de conectar el láser**: 5 V directos lo queman (sección 5.4).
-- **Equilibrar con el láser ya convertido**, con la pila falsa, la tapa y el lastre puestos
+- **Equilibrar con el láser ya convertido**, con la pila falsa y la tapa puestas
   (sección 3.3).
 - **Relé compatible con 3,3 V**: con un módulo de 5 V por nivel bajo, el láser puede no apagarse
   (sección 5.4).
