@@ -17,8 +17,6 @@ largo_rejilla = 15;
 paso_rejilla = 6;
 z_rejilla = 14;
 margen_rejilla = 8;
-ancho_entrada_cable = 8;
-alto_entrada_cable = 6;
 ancho_ranura_interruptor = d_interruptor + 2;
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---

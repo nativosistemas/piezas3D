@@ -13,8 +13,10 @@ Lee (fuentes únicas):
                                    con la biblioteca src/armado_comun.scad); si declara
                                    articulaciones, también la simulación de funcionamiento (ejes,
                                    motores, emisores, objetivos y fotogramas de los deformables);
-                                   si declara nombres_elementos, el nombre y el tipo de cada elemento
-    docs/<diseño>_guia.md          título y texto de cada paso
+                                   si declara nombres_elementos, el nombre y el tipo de cada elemento;
+                                   si declara cables, el modo Cableado (cada cable de pin a pin)
+    docs/<diseño>_guia.md          título y texto de cada paso; con cables, su Tabla de cables, que
+                                   tiene que tener los mismos cables que el ensamblaje
     scripts/plantilla_visor.html   la página
     scripts/vendor/three-0.160.0/  motor 3D, incrustado para funcionar sin internet
 
@@ -26,8 +28,9 @@ y no se ejecuta OpenSCAD. Con --comprobar no escribe nada y termina con 1 si el 
 (tampoco ejecuta OpenSCAD). Con --reexportar exporta todo aunque la huella coincida.
 Con simulación, comprueba que cada articulación gire sus piezas como OpenSCAD en los extremos del rango.
 Contratos: specs/005-visor-armado-3d/contracts/scripts.md,
-specs/007-simulacion-funcionamiento/contracts/scripts.md y
-specs/008-identificacion-componentes/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
+specs/007-simulacion-funcionamiento/contracts/scripts.md,
+specs/008-identificacion-componentes/contracts/scripts.md y
+specs/011-vista-cableado/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
 """
 import argparse
 import base64
@@ -47,7 +50,7 @@ RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 OPENSCAD = os.path.join(RAIZ, ".tools", "bin", "openscad")
 PLANTILLA = os.path.join(RAIZ, "scripts", "plantilla_visor.html")
 MOTOR = os.path.join(RAIZ, "scripts", "vendor", "three-0.160.0")
-VERSION = 3             # formato de los datos incrustados (2: simulación; 3: nombre y tipo de cada elemento)
+VERSION = 4             # formato de los datos (2: simulación; 3: nombre y tipo de cada elemento; 4: cableado)
 FN_VISOR = 32           # resolución de las curvas en el visor (las STL de impresión usan 64)
 TAMANO_MAXIMO = 10e6    # bytes por diseño (FR-005)
 TIPOS = ("impresa", "comprada")
@@ -107,6 +110,44 @@ def pasos_de_la_guia(diseno):
     return titulo, pasos
 
 
+def tabla_de_cables(diseno):
+    """Pares (desde, hasta) de la Tabla de cables de la guía, en orden (contrato 011, guia.md)."""
+    ruta = os.path.join(RAIZ, "docs", f"{diseno}_guia.md")
+    with open(ruta, encoding="utf-8") as f:
+        lineas = f.read().split("\n")
+    try:
+        inicio = next(i for i, l in enumerate(lineas) if l.strip() == "**Tabla de cables**:")
+    except StopIteration:
+        raise Fallo(f"{rel(ruta)} no tiene la **Tabla de cables** (el ensamblaje declara cables)")
+    filas = []
+    for linea in lineas[inicio + 1:]:
+        if not linea.strip():
+            if filas:
+                break
+            continue
+        if not linea.lstrip().startswith("|"):
+            break
+        filas.append([c.strip().replace("**", "").strip() for c in linea.strip().strip("|").split("|")])
+    if len(filas) < 3 or filas[0][:3] != ["N.º", "Desde", "Hasta"]:
+        raise Fallo(f"{rel(ruta)}: la Tabla de cables debe empezar con las columnas N.º, Desde y Hasta")
+    cuerpo = filas[2:]
+    if [f[0] for f in cuerpo] != [str(i) for i in range(1, len(cuerpo) + 1)]:
+        raise Fallo(f"{rel(ruta)}: la Tabla de cables no está numerada 1, 2, 3…")
+    return [(f[1], f[2]) for f in cuerpo]
+
+
+def comparar_cables(diseno, cableado):
+    """C-05: la guía y el ensamblaje tienen los mismos cables (pares desde → hasta)."""
+    guia = tabla_de_cables(diseno)
+    modelo = {(c["desde"], c["hasta"]): c["id"] for c in cableado["cables"]}
+    diferencias = [f"La Tabla de cables de la guía tiene «{d} → {h}» y el ensamblaje no"
+                   for d, h in guia if (d, h) not in modelo]
+    diferencias += [f"El ensamblaje tiene el cable '{i}' («{d} → {h}») y la Tabla de cables de la guía no"
+                    for (d, h), i in modelo.items() if (d, h) not in set(guia)]
+    if diferencias:
+        raise Fallo("\n".join(diferencias))
+
+
 # --- OpenSCAD ---
 def openscad(ensamblaje, salida, *definiciones):
     args = [OPENSCAD]
@@ -138,7 +179,43 @@ def datos_del_ensamblaje(ensamblaje, carpeta):
     lista = lambda clave: vector(m.group(1)) if (m := re.search(rf'^ECHO: "{clave};(.*)"$', texto, re.M)) else []
     # El nombre va al final y sin escapar: se toma todo hasta la última comilla (contrato 008)
     nombres = {e: (tipo, nombre) for e, tipo, nombre in re.findall(r'^ECHO: "NOMBRE;([^;]+);([^;]+);(.*)"$', texto, re.M)}
-    return pasos, colores, nombres, simulacion_declarada(lista)
+    return pasos, colores, nombres, simulacion_declarada(lista), cableado_declarado(texto, vector, lista)
+
+
+def tipo_de_cable(extremos):
+    if extremos == ["dupont", "dupont"]:
+        return "Dupont"
+    if "jst" in extremos:
+        return "Cable del motor"
+    if "usb" in extremos:
+        return "Cable USB"
+    return "Cable"
+
+
+def cableado_declarado(texto, vector, lista):
+    """Los cables del ensamblaje (contrato 011) con su nombre visible; None si no declara cables.
+    `desde` y `hasta` sirven para compararlos con la Tabla de cables de la guía."""
+    lineas = re.findall(r'^ECHO: "CABLE;([^;]+);(\[.*\]);([^;]*);(.*)"$', texto, re.M)
+    if not lineas:
+        return None
+    redondear = lambda p: [round(v, 1) for v in p]
+    cables = []
+    for id_, datos, desde, hasta in lineas:
+        funcion, grupo, hilos, diametro, recorrido, extremos, largo, elemento = vector(datos)
+        cable = {"id": id_, "desde": desde, "hasta": hasta, "funcion": funcion, "grupo": grupo,
+                 "nombre": f"{tipo_de_cable(extremos)}: {desde} → {hasta}", "hilos": hilos,
+                 "diametro": diametro, "extremos": extremos, "largo": round(largo, 1)}
+        if recorrido is not None:
+            cable["recorrido"] = [redondear(p) for p in recorrido]
+        if elemento is not None:
+            cable["elemento"] = elemento
+        cables.append(cable)
+    radio = re.search(r'^ECHO: "RADIO_CURVA_CABLEADO;([^"]*)"$', texto, re.M)
+    return {"cables": cables,
+            "grupos": [{"id": g[0], "titulo": g[1]} for g in lista("GRUPOS_CABLEADO")],
+            "conectores": {t[0]: {"medidas": t[1], "color": t[2]} for t in lista("CONECTORES_CABLEADO")},
+            "radio_curva": float(radio.group(1)) if radio else 0,
+            "transparentes": lista("TRANSPARENTES_CABLEADO"), "ocultos": lista("OCULTOS_CABLEADO")}
 
 
 def simulacion_declarada(lista):
@@ -172,7 +249,9 @@ def vertices(ensamblaje, carpeta, nombre, *definiciones):
     las coordenadas x, y, z de sus triángulos, o (None, error)."""
     sufijo = "".join("_" + re.sub(r"\W", "", d.replace("-", "m")) for d in definiciones)
     stl = os.path.join(carpeta, f"{nombre}{sufijo}.stl")
-    ok, error, _ = openscad(ensamblaje, stl, f'solo_elemento="{nombre}"', f"$fn={FN_VISOR}", *definiciones)
+    ok, error, texto = openscad(ensamblaje, stl, f'solo_elemento="{nombre}"', f"$fn={FN_VISOR}", *definiciones)
+    if "top level object is empty" in texto:
+        return None, "la malla está vacía"   # OpenSCAD no escribe el STL de un elemento sin geometría
     if not ok or not os.path.isfile(stl):
         return None, error
     with open(stl, encoding="utf-8") as f:
@@ -262,10 +341,12 @@ def comprobar_pivotes(ensamblaje, carpeta, sim, mallas, hilos):
 
 def exportar(ensamblaje):
     with tempfile.TemporaryDirectory(prefix="visor_") as carpeta:
-        pasos, colores, nombres_declarados, sim = datos_del_ensamblaje(ensamblaje, carpeta)
+        pasos, colores, nombres_declarados, sim, cableado = datos_del_ensamblaje(ensamblaje, carpeta)
         de_pasos = {en["e"] for p in pasos for en in p["entradas"]} | {e for p in pasos for e in p["contexto"]}
         solo_simulacion = elementos_de_simulacion(sim) - de_pasos if sim else set()
-        nombres = sorted(de_pasos | solo_simulacion)
+        de_cableado = ({c["elemento"] for c in cableado["cables"] if "elemento" in c}
+                       | set(cableado["transparentes"])) - de_pasos if cableado else set()
+        nombres = sorted(de_pasos | solo_simulacion | de_cableado)
         donde = {}
         for n, p in enumerate(pasos, start=1):
             for e in [en["e"] for en in p["entradas"]] + p["contexto"]:
@@ -303,7 +384,7 @@ def exportar(ensamblaje):
             del a["variable"]
         for d in sim["deformables"].values():
             del d["angulos"]
-    return pasos, elementos, sim
+    return pasos, elementos, sim, cableado
 
 
 # --- Página ---
@@ -353,6 +434,15 @@ def validar(datos, pagina):
         pesados = sorted(datos["elementos"].items(), key=lambda kv: -len(kv[1]["malla"]))[:5]
         raise Fallo(f"El visor pesa {tamano/1e6:.1f} MB (máx. {TAMANO_MAXIMO/1e6:.0f}). Más pesados: "
                     + ", ".join(f"{k} ({len(v['malla'])*3/4/1e6:.1f} MB)" for k, v in pesados))
+    cab = datos.get("cableado")
+    if cab:
+        for c in cab["cables"]:
+            if "recorrido" not in c and "elemento" not in c:
+                raise Fallo(f"El cable '{c['id']}' no tiene recorrido")
+            if "recorrido" in c and len(c["recorrido"]) < 2:
+                raise Fallo(f"El cable '{c['id']}' no tiene recorrido")
+            if "elemento" in c and c["elemento"] not in datos["elementos"]:
+                raise Fallo(f"El cable '{c['id']}' referencia el elemento '{c['elemento']}', que no está en el visor")
     if re.search(r"""(?:src|href)\s*=\s*["']https?://""", pagina):
         raise Fallo("La página carga recursos de internet: el visor tiene que funcionar sin conexión")
     return tamano
@@ -371,15 +461,19 @@ def generar(diseno, carpeta_spec, reexportar=False):
                  and actual.get("huella") == firma)
     if reutiliza:
         pasos = [{"entradas": p["entradas"], "contexto": p["contexto"]} for p in actual["pasos"]]
-        elementos, sim = actual["elementos"], actual.get("simulacion")
+        elementos, sim, cableado = actual["elementos"], actual.get("simulacion"), actual.get("cableado")
     else:
-        pasos, elementos, sim = exportar(ensamblaje)
+        pasos, elementos, sim, cableado = exportar(ensamblaje)
     if len(pasos) != len(guia):
         raise Fallo(f"La tabla de pasos de {rel(ensamblaje)} tiene {len(pasos)} pasos y la guía {len(guia)}")
+    if cableado:
+        comparar_cables(diseno, cableado)
     datos = {"version": VERSION, "diseno": diseno, "huella": firma, "fn": FN_VISOR,
              "pasos": [{**g, **p} for g, p in zip(guia, pasos)], "elementos": elementos}
     if sim:
         datos["simulacion"] = sim
+    if cableado:
+        datos["cableado"] = cableado
     pagina = armar_pagina(titulo, datos)
     return ruta, pagina, datos, actual, reutiliza
 
@@ -417,8 +511,10 @@ def ejecutar(diseno, carpeta_spec, comprobar_solo=False, reexportar=False):
         sim = datos.get("simulacion")
         articulaciones = f"{len(sim['articulaciones'])} articulaciones, " if sim else ""
         con_nombres = " con nombres" if any("nombre" in el for el in datos["elementos"].values()) else ""
+        cab = datos.get("cableado")
+        cables = f"{len(cab['cables'])} cables, " if cab else ""
         print(f"✓ Visor 3D: {rel(ruta)} ({tamano/1e6:.1f} MB, {len(datos['elementos'])} piezas{con_nombres}, "
-              f"{articulaciones}{'mallas reutilizadas' if reutiliza else 'mallas exportadas'})")
+              f"{articulaciones}{cables}{'mallas reutilizadas' if reutiliza else 'mallas exportadas'})")
         return 0
     except Fallo as error:
         sys.stdout.flush()

@@ -70,6 +70,16 @@
   .automatico select { width: 90px; }
   .estado { margin: 0; font-size: 13px; min-height: 1.5em; }
   .aviso { color: #a4511f; font-weight: 600; }
+  .casilla { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .casilla input { width: 18px; height: 18px; accent-color: var(--acento); }
+  .cables { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+  .cables .grupo-cables { font-weight: 600; margin-top: 8px; color: var(--texto); }
+  .cables ul { list-style: none; padding: 0; margin: 2px 0 0; font-weight: 400; color: var(--suave); }
+  .cables li[data-c] { display: flex; gap: 6px; align-items: center; border-radius: 6px; padding: 1px 4px; cursor: default; }
+  .cables li[data-c]:hover, .cables li[data-c]:focus { background: #eef5f2; color: var(--texto); outline: none; }
+  .muestra { display: inline-flex; flex: none; width: 18px; height: 10px; border: 1px solid var(--borde);
+             border-radius: 2px; overflow: hidden; }
+  .muestra span { flex: 1; }
   @media (max-width: 760px) {
     main { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55vh auto; height: auto; }
     aside { border-left: 0; border-top: 1px solid var(--borde); }
@@ -95,6 +105,7 @@
     <div class="pestanas" id="pestanas" role="tablist" hidden>
       <button id="pestana-armado" role="tab" aria-selected="true">Armado</button>
       <button id="pestana-funcionamiento" role="tab" aria-selected="false">Funcionamiento</button>
+      <button id="pestana-cableado" role="tab" aria-selected="false">Cableado</button>
     </div>
     <div class="panel" id="panel-armado">
     <select id="selector" aria-label="Ir a un paso"></select>
@@ -133,6 +144,15 @@
       </div>
       <p class="leyenda">Simulación cinemática: el cable y las correas se muestran aproximados; no se calculan
         choques ni fuerzas. Pasá el puntero (o tocá) una pieza para ver qué es. Teclado: L enciende o apaga el láser, A el modo automático, Inicio la vista inicial.</p>
+    </div>
+    <div class="panel" id="panel-cableado" hidden>
+      <h1>Cableado</h1>
+      <p class="texto">Cada cable de pin a pin. +5 V en rojo, GND en negro; las señales, en colores.</p>
+      <label class="casilla"><input type="checkbox" id="atenuar" checked> Atenuar las piezas</label>
+      <ul class="cables" id="cables"></ul>
+      <button id="inicial-cab">Vista inicial</button>
+      <p class="leyenda">Los recorridos son orientativos: muestran por dónde pasa cada cable, no su forma exacta.
+        Pasá el puntero (o tocá) un cable para ver qué conecta. Teclado: Inicio para la vista inicial.</p>
     </div>
   </aside>
 </main>
@@ -289,36 +309,44 @@ const TOQUE_MS = 500, TOQUE_PX = 6;
 const raycaster = new THREE.Raycaster();
 const mallasSim = [];          // piezas del modo Funcionamiento (rígidas y fotogramas de los deformables)
 let senalada = null;           // malla resaltada
+let senaladas = [];            // mallas resaltadas con ella (todas las de un cable)
 let puntero = null;            // { x, y, tactil } último punto señalado en el lienzo (coordenadas de la ventana)
 let pendiente = false;         // recalcular la selección en el próximo cuadro
 let arrastrando = false;       // la persona está moviendo la vista
 
+const materiales = m => [].concat(m.material);
 function realzar(m) {
-  m.material.emissive.copy(COLOR_REALCE);
-  m.material.emissiveIntensity = 0.55;
-  if (m.material.transparent) m.material.opacity = Math.max(m.material.opacity, ALFA_REALCE);
+  for (const mat of materiales(m)) {
+    mat.emissive.copy(COLOR_REALCE);
+    mat.emissiveIntensity = 0.55;
+    if (mat.transparent) mat.opacity = Math.max(mat.opacity, ALFA_REALCE);
+  }
 }
+// Resalta una pieza o, si es parte de un cable, todas las mallas del cable (hilos, conectores y su tramo móvil)
 function resaltar(malla) {
   if (malla === senalada) return;
   soltar();
   if (!malla) return;
   senalada = malla;
-  realzar(malla);
+  senaladas = malla.userData.cable ? mallasDeCable[malla.userData.cable] : [malla];
+  senaladas.forEach(realzar);
 }
 // Quita el resalte: el emisivo vuelve a negro (nada más lo usa) y la opacidad a la de su estado
 function soltar() {
   $("etiqueta").hidden = true;
   if (!senalada) return;
-  const m = senalada.material;
-  m.emissive.setRGB(0, 0, 0);
-  m.emissiveIntensity = 1;
-  if (m.transparent) m.opacity = ALFA_ARMADO;
+  for (const m of senaladas) for (const mat of materiales(m)) {
+    mat.emissive.setRGB(0, 0, 0);
+    mat.emissiveIntensity = 1;
+    if (mat.transparent) mat.opacity = ALFA_ARMADO;
+  }
   senalada = null;
+  senaladas = [];
 }
 
 // Piezas que se pueden señalar: solo las visibles del modo actual (ni el haz, ni las marcas, ni flechas)
 const seleccionables = () =>
-  (modo === "funcionamiento" ? mallasSim : Object.values(piezas)).filter(m => m.visible);
+  (modo === "funcionamiento" ? mallasSim : modo === "cableado" ? mallasCab : Object.values(piezas)).filter(m => m.visible);
 
 // Pieza en un punto de la ventana: la opaca más cercana; si no hay, la atenuada más cercana
 function elegir(x, y) {
@@ -327,14 +355,20 @@ function elegir(x, y) {
   escena.updateMatrixWorld();
   camara.updateMatrixWorld();   // la cámara no está en la escena
   const cortes = raycaster.intersectObjects(seleccionables(), false);
-  return (cortes.find(c => !c.object.material.transparent) ?? cortes[0])?.object ?? null;
+  const opaco = cortes.find(c => !materiales(c.object)[0].transparent);
+  // Los cables pasan pegados a las placas: gana el cable si está a menos de 3 mm de la pieza opaca
+  const cable = cortes.find(c => c.object.userData.cable);
+  if (cable && (!opaco || cable.distance <= opaco.distance + 3)) return cable.object;
+  return (opaco ?? cortes[0])?.object ?? null;
 }
 
-// Etiqueta junto al punto (x, y relativos a la escena), dentro del lienzo
-function mostrarEtiqueta(e, x, y) {
-  const etiqueta = $("etiqueta");
-  $("etiqueta-nombre").textContent = nombreDe(e);
-  $("etiqueta-tipo").textContent = tipoDe(e);
+// Etiqueta de una malla junto al punto (x, y relativos a la escena), dentro del lienzo
+const cerca5 = mm => Math.round(mm / 5) * 5;
+function mostrarEtiqueta(malla, x, y) {
+  const etiqueta = $("etiqueta"), cable = malla.userData.cable && cablePorId[malla.userData.cable];
+  $("etiqueta-nombre").textContent = cable ? cable.nombre : nombreDe(malla.userData.elemento);
+  $("etiqueta-tipo").textContent = cable ? `Cable · ≈ ${cerca5(cable.largo).toLocaleString("es-AR")} mm`
+                                         : tipoDe(malla.userData.elemento);
   etiqueta.hidden = false;
   const ancho = contenedor.clientWidth, alto = contenedor.clientHeight;
   let izquierda = x + 14, arriba = y + 14;
@@ -353,7 +387,7 @@ function senalarEn(x, y) {
   }
   resaltar(malla);
   const r = contenedor.getBoundingClientRect();
-  mostrarEtiqueta(malla.userData.elemento, x - r.left, y - r.top);
+  mostrarEtiqueta(malla, x - r.left, y - r.top);
 }
 
 // Mouse: señalar al moverse sin botones. Tacto o lápiz: un toque corto sin arrastre.
@@ -395,16 +429,19 @@ for (const tipo of ["pointerover", "focusin", "click"])
 for (const tipo of ["pointerout", "focusout"])
   $("piezas").addEventListener(tipo, ev => { if (renglon(ev)) soltar(); });
 
-// Revisión: ?senalar=<elemento> resalta esa pieza con su etiqueta en el centro de su caja
+// Revisión: ?senalar=<elemento o cable> resalta esa pieza con su etiqueta en el centro de su caja (un cable,
+// en el punto del medio de su recorrido)
 function senalarElemento(e) {
   escena.updateMatrixWorld();
   camara.updateMatrixWorld();
-  const malla = seleccionables().find(m => m.userData.elemento === e);
+  const malla = seleccionables().find(m => m.userData.cable === e) ?? seleccionables().find(m => m.userData.elemento === e);
   if (!malla) return;
   if (!malla.geometry.boundingBox) malla.geometry.computeBoundingBox();
-  const p = malla.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(malla.matrixWorld).project(camara);
+  const recorrido = malla.userData.cable && cablePorId[malla.userData.cable].recorrido;
+  const p = (recorrido ? vec(recorrido[Math.floor(recorrido.length / 2)])
+                       : malla.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(malla.matrixWorld)).project(camara);
   resaltar(malla);
-  mostrarEtiqueta(e, (p.x + 1) / 2 * contenedor.clientWidth, (1 - p.y) / 2 * contenedor.clientHeight);
+  mostrarEtiqueta(malla, (p.x + 1) / 2 * contenedor.clientWidth, (1 - p.y) / 2 * contenedor.clientHeight);
 }
 
 function aplicar() {
@@ -472,6 +509,10 @@ $("tiempo").oninput = e => { t = +e.target.value; reproduciendo = false; aplicar
 addEventListener("keydown", e => {
   if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
   if (modo === "funcionamiento") return teclaFuncionamiento(e);
+  if (modo === "cableado") {
+    if (e.key === "Home") { vistaCableado(); e.preventDefault(); }
+    return;
+  }
   if (e.key === "ArrowRight") mostrarPaso(indice + 1);
   else if (e.key === "ArrowLeft") mostrarPaso(indice - 1);
   else if (e.key === " ") { t = 0; reproduciendo = DATOS.pasos[indice].entradas.length > 0; }
@@ -483,6 +524,7 @@ addEventListener("hashchange", () => {
   const m = location.hash.match(/^#paso-(\d+)$/);
   if (m && indiceDePaso(+m[1]) >= 0) { cambiarModo("armado"); mostrarPaso(indiceDePaso(+m[1])); }
   else if (location.hash === "#funcionamiento") cambiarModo("funcionamiento");
+  else if (location.hash === "#cableado") cambiarModo("cableado");
 });
 
 // Paso inicial: #paso-N (enlaces de la web) o ?paso=N&t=0.5 (revisión: congela ese momento)
@@ -653,9 +695,6 @@ if (SIM) {
     emisorEncendido[e.nombre] = false;
   }
   construirPanel();
-  $("pestanas").hidden = false;
-  $("pestana-armado").onclick = () => cambiarModo("armado");
-  $("pestana-funcionamiento").onclick = () => cambiarModo("funcionamiento");
   aplicarSim();
 }
 
@@ -737,20 +776,22 @@ function reposo() {
   apagarTodo();
 }
 
+const MODOS = ["armado", "funcionamiento", "cableado"];
+const raices = () => ({ armado: raizArmado, funcionamiento: raizSim, cableado: raizCableado });
+let cableadoEncuadrado = false;
 function cambiarModo(nuevo) {
-  if (!SIM || nuevo === modo) return;
+  if (nuevo === modo || (nuevo === "funcionamiento" && !SIM) || (nuevo === "cableado" && !CAB)) return;
+  if (modo === "funcionamiento") { detenerAutomatico(); apagarTodo(); }
   modo = nuevo;
-  const sim = modo === "funcionamiento";
-  if (!sim) { detenerAutomatico(); apagarTodo(); }
   soltar();
   if (puntero?.tactil) puntero = null;
-  raizSim.visible = sim;
-  raizArmado.visible = !sim;
-  $("panel-armado").hidden = sim;
-  $("panel-funcionamiento").hidden = !sim;
-  $("progreso").style.visibility = sim ? "hidden" : "";
-  $("pestana-armado").setAttribute("aria-selected", !sim);
-  $("pestana-funcionamiento").setAttribute("aria-selected", sim);
+  for (const m of MODOS) {
+    raices()[m].visible = m === modo;
+    $("panel-" + m).hidden = m !== modo;
+    $("pestana-" + m).setAttribute("aria-selected", m === modo);
+  }
+  $("progreso").style.visibility = modo === "armado" ? "" : "hidden";
+  if (modo === "cableado" && !cableadoEncuadrado) { vistaCableado(); cableadoEncuadrado = true; }
 }
 
 function teclaFuncionamiento(e) {
@@ -811,6 +852,150 @@ function avanzarAutomatico(dt) {
   }
   aplicarSim();
 }
+
+// --- Cableado: cada cable de pin a pin (specs/011-vista-cableado) ---
+// Las piezas del catálogo en su posición final y, encima, los cables: un tubo por hilo que sigue el recorrido
+// con las esquinas redondeadas, y una caja por conector. Un cable con elemento suma la malla de ese elemento.
+const CAB = DATOS.cableado;
+const raizCableado = new THREE.Group();
+raizCableado.visible = false;
+escena.add(raizCableado);
+const mallasCab = [], mallasDeCable = {}, piezasCab = [], cablePorId = {};
+const cajaCables = new THREE.Box3();   // tubos y conectores (sin el tramo que dibuja un elemento)
+// Vista inicial: más desde arriba que la del armado (35° de la vertical), para ver los cables bajo la tapa
+const direccionCableado = new THREE.Vector3(Math.sin(35 * Math.PI / 180) * Math.sin(25 * Math.PI / 180),
+                                            -Math.sin(35 * Math.PI / 180) * Math.cos(25 * Math.PI / 180),
+                                            Math.cos(35 * Math.PI / 180));
+const vistaCableado = () => encuadrar(cajaCables, direccionCableado);
+
+// Desplazamiento lateral de cada punto para el hilo h de n (los hilos van uno al lado del otro, en el plano
+// horizontal; en los tramos verticales se usa el lateral del tramo horizontal más cercano)
+function lateralesDe(puntos) {
+  const arriba = new THREE.Vector3(0, 0, 1);
+  const tramos = puntos.slice(1).map((p, i) => {
+    const l = new THREE.Vector3().crossVectors(p.clone().sub(puntos[i]), arriba);
+    return l.lengthSq() > 1e-6 ? l.normalize() : null;
+  });
+  const primero = tramos.find(l => l) ?? new THREE.Vector3(1, 0, 0);
+  for (let i = 0, ultimo = primero; i < tramos.length; i++) tramos[i] = ultimo = tramos[i] ?? ultimo;
+  return puntos.map((p, i) => {
+    const a = tramos[Math.max(0, i - 1)], b = tramos[Math.min(tramos.length - 1, i)];
+    const m = a.clone().add(b);
+    if (m.lengthSq() < 1e-6) return a.clone();
+    m.normalize();
+    return m.multiplyScalar(1 / Math.max(0.5, m.dot(a)));   // inglete: los hilos quedan paralelos
+  });
+}
+
+// Recorrido con las esquinas redondeadas (radio o mitad del tramo más corto que toca la esquina)
+function curvaRedondeada(puntos, radio) {
+  const camino = new THREE.CurvePath();
+  let desde = puntos[0];
+  for (let i = 1; i < puntos.length - 1; i++) {
+    const p = puntos[i], entra = p.clone().sub(puntos[i - 1]), sale = puntos[i + 1].clone().sub(p);
+    const r = Math.min(radio, entra.length() / 2, sale.length() / 2);
+    if (r < 0.05 || entra.clone().normalize().dot(sale.clone().normalize()) > 0.999) continue;
+    const a = p.clone().addScaledVector(entra.normalize(), -r), b = p.clone().addScaledVector(sale.normalize(), r);
+    if (a.distanceTo(desde) > 1e-3) camino.add(new THREE.LineCurve3(desde, a));
+    camino.add(new THREE.QuadraticBezierCurve3(a, p.clone(), b));
+    desde = b;
+  }
+  camino.add(new THREE.LineCurve3(desde, puntos[puntos.length - 1]));
+  return camino;
+}
+
+function mallaDeCable(c, geo, color) {
+  const malla = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: new THREE.Color().setStyle(color.toLowerCase()),
+                                                                      roughness: 0.5, metalness: 0.05 }));
+  malla.userData.cable = c.id;
+  raizCableado.add(malla);
+  mallasCab.push(malla);
+  mallasDeCable[c.id].push(malla);
+  return malla;
+}
+
+function construirCable(c) {
+  cablePorId[c.id] = c;
+  mallasDeCable[c.id] = [];
+  if (c.elemento) {
+    const m = mallaDeCable(c, piezas[c.elemento].geometry, DATOS.elementos[c.elemento].color);
+    m.userData.elemento = c.elemento;
+  }
+  if (!c.recorrido) return;
+  const puntos = c.recorrido.map(vec), laterales = lateralesDe(puntos), n = c.hilos.length;
+  c.hilos.forEach((color, h) => {
+    const desp = (h - (n - 1) / 2) * c.diametro;
+    const camino = curvaRedondeada(puntos.map((p, i) => p.clone().addScaledVector(laterales[i], desp)), CAB.radio_curva);
+    const segmentos = Math.min(600, Math.max(8, Math.ceil(camino.getLength() / 1.5)));
+    const tubo = mallaDeCable(c, new THREE.TubeGeometry(camino, segmentos, c.diametro / 2, 8, false), color);
+    tubo.geometry.computeBoundingBox();
+    cajaCables.union(tubo.geometry.boundingBox);
+  });
+  // Conectores: una caja por extremo, apoyada en el pin y alineada con su tramo
+  const extremos = [[puntos[0], puntos[1]], [puntos[puntos.length - 1], puntos[puntos.length - 2]]];
+  extremos.forEach(([p, siguiente], i) => {
+    const tipo = CAB.conectores[c.extremos[i]];
+    if (!tipo || tipo.medidas[2] <= 0) return;
+    const [ancho, alto, largo] = tipo.medidas, eje = siguiente.clone().sub(p).normalize();
+    const m = mallaDeCable(c, new THREE.BoxGeometry(ancho, alto, largo), tipo.color);
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), eje);
+    m.position.copy(p).addScaledVector(eje, largo / 2);
+    m.updateMatrixWorld();
+    cajaCables.union(new THREE.Box3().setFromObject(m));
+  });
+}
+
+// Piezas impresas transparentes mientras "Atenuar las piezas" está marcada; las de transparentes, siempre
+function atenuarPiezas() {
+  soltar();
+  const atenuar = $("atenuar").checked;
+  for (const m of piezasCab) {
+    const e = m.userData.elemento;
+    const opaca = !CAB.transparentes.includes(e) && !(atenuar && DATOS.elementos[e].tipo === "impresa");
+    m.material.transparent = !opaca;
+    m.material.opacity = opaca ? 1 : ALFA_ARMADO;
+    m.material.depthWrite = opaca;
+    m.material.needsUpdate = true;
+  }
+}
+
+const muestra = c => `<span class="muestra">` + (c.hilos.length ? c.hilos : [DATOS.elementos[c.elemento].color])
+  .map(color => `<span style="background:${escapar(color.toLowerCase())}"></span>`).join("") + `</span>`;
+
+if (CAB) {
+  const deCables = new Set(CAB.cables.filter(c => c.elemento).map(c => c.elemento));
+  for (const [nombre, original] of Object.entries(piezas)) {
+    if (CAB.ocultos.includes(nombre) || deCables.has(nombre)) continue;
+    const malla = new THREE.Mesh(original.geometry, material(DATOS.elementos[nombre].color, true));
+    malla.userData.elemento = nombre;
+    raizCableado.add(malla);
+    mallasCab.push(malla);
+    piezasCab.push(malla);
+  }
+  CAB.cables.forEach(construirCable);
+  atenuarPiezas();
+  $("cables").innerHTML = CAB.grupos.map(g => `<li class="grupo-cables">${escapar(g.titulo)}<ul>` +
+    CAB.cables.filter(c => c.grupo === g.id).map(c =>
+      `<li tabindex="0" data-c="${escapar(c.id)}">${muestra(c)}${escapar(c.nombre)}</li>`).join("") + `</ul></li>`).join("");
+  const renglonCable = ev => ev.target.closest?.("li[data-c]");
+  for (const tipo of ["pointerover", "focusin", "click"])
+    $("cables").addEventListener(tipo, ev => { const li = renglonCable(ev); if (li) resaltar(mallasDeCable[li.dataset.c][0]); });
+  for (const tipo of ["pointerout", "focusout"])
+    $("cables").addEventListener(tipo, ev => { if (renglonCable(ev)) soltar(); });
+  $("atenuar").onchange = atenuarPiezas;
+  $("inicial-cab").onclick = vistaCableado;
+}
+
+// Pestañas: aparecen si hay otro modo además del armado; cada una, si su modo existe
+if (SIM || CAB) {
+  $("pestanas").hidden = false;
+  $("pestana-funcionamiento").hidden = !SIM;
+  $("pestana-cableado").hidden = !CAB;
+  for (const m of MODOS) $("pestana-" + m).onclick = () => cambiarModo(m);
+}
+
+// Modo inicial: #cableado o ?modo=cableado
+if (CAB && (consulta.get("modo") === "cableado" || location.hash === "#cableado")) cambiarModo("cableado");
 
 // Modo inicial: #funcionamiento o ?modo=funcionamiento&<articulación>=<grados>&<emisor>=1&auto=1&vel=N
 if (SIM && (consulta.get("modo") === "funcionamiento" || location.hash === "#funcionamiento")) {

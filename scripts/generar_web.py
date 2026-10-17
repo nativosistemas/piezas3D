@@ -35,7 +35,7 @@ import generar_visor
 
 RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 COLUMNAS_BOM = ["categoria", "texto_cantidad", "descripcion", "cantidad", "unidad", "paquete",
-                "opcional", "en_guia", "precio", "moneda", "tienda", "url", "fecha", "nota"]
+                "opcional", "en_guia", "tengo", "precio", "moneda", "tienda", "url", "fecha", "nota"]
 MARCA_INICIO = "<!-- BOM:inicio"
 MARCA_FIN = "<!-- BOM:fin"
 
@@ -53,11 +53,15 @@ def leer_bom(ruta):
     if filas and list(filas[0].keys()) != COLUMNAS_BOM:
         errores.append(f"columnas esperadas: {';'.join(COLUMNAS_BOM)}")
     for n, f in enumerate(filas, start=2):
+        if None in f:
+            errores.append(f"línea {n}: tiene más columnas que la cabecera (¿un ';' en el texto?)")
         for campo in ("categoria", "descripcion", "cantidad", "unidad", "paquete"):
             if not f[campo]:
                 errores.append(f"línea {n}: falta '{campo}'")
         if f["opcional"] not in ("si", "no") or f["en_guia"] not in ("si", "no"):
             errores.append(f"línea {n}: 'opcional' y 'en_guia' deben ser si o no")
+        if f["tengo"] and not re.fullmatch(r"\d+(\.\d+)?", f["tengo"]):
+            errores.append(f"línea {n}: 'tengo' es la cantidad que ya tenés, en la unidad de la fila")
         # Un precio sin fuente es un precio inventado: no se acepta
         if f["precio"]:
             for campo in ("moneda", "tienda", "url", "fecha"):
@@ -79,12 +83,17 @@ def leer_tipo_cambio(ruta):
     return max(filas, key=lambda f: f["fecha"])  # la más reciente
 
 
+def a_comprar(fila):
+    """Lo que falta comprar: la cantidad menos lo que ya se tiene (columna 'tengo')."""
+    return max(0.0, float(fila["cantidad"]) - float(fila["tengo"] or 0))
+
+
 def costos(fila, ars_por_usd):
     """Costo en ARS comprando paquetes completos y costo prorrateado por lo que se usa."""
     if not fila["precio"]:
         return None
     precio = float(fila["precio"]) * (ars_por_usd if fila["moneda"] == "USD" else 1)
-    cantidad, paquete = float(fila["cantidad"]), float(fila["paquete"])
+    cantidad, paquete = a_comprar(fila), float(fila["paquete"])
     paquetes = math.ceil(cantidad / paquete - 1e-9)
     return {"paquetes": paquetes, "compra": paquetes * precio, "prorrateado": cantidad / paquete * precio}
 
@@ -319,7 +328,8 @@ def precio_unitario(f):
 
 def seccion_componentes(md, filas, tc):
     ars_por_usd = float(tc["valor_ars"])
-    obligatorias = [f for f in filas if f["opcional"] == "no"]
+    tengo = [f for f in filas if f["opcional"] == "no" and not a_comprar(f)]
+    obligatorias = [f for f in filas if f["opcional"] == "no" and a_comprar(f)]
     con_precio = [(f, costos(f, ars_por_usd)) for f in obligatorias if f["precio"]]
     sin_precio = [f for f in obligatorias if not f["precio"]]
     total_compra = sum(c["compra"] for _, c in con_precio)
@@ -334,10 +344,15 @@ def seccion_componentes(md, filas, tc):
         descripcion = md.inline(f["descripcion"])
         if f["opcional"] == "si":
             descripcion += ' <span class="etiqueta">opcional</span>'
+        if f["tengo"] and a_comprar(f):
+            descripcion += (f'<small>Ya tenés {numero(f["tengo"])} {f["unidad"]}: '
+                            f'falta comprar {numero(a_comprar(f))} {f["unidad"]}.</small>')
         if f["nota"]:
             descripcion += f'<small>{md.inline(f["nota"])}</small>'
         c = costos(f, ars_por_usd)
-        if c:
+        if not a_comprar(f):
+            precio, subtotal = f'<span class="tengo">ya lo tenés ({numero(f["tengo"])} {f["unidad"]})</span>', "—"
+        elif c:
             paquetes = f" ({c['paquetes']} paq.)" if f["unidad"] != "u" and c["paquetes"] > 1 else ""
             precio = (f"{precio_unitario(f)}{paquetes}<small>"
                       f'<a href="{html.escape(f["url"])}" rel="noopener" target="_blank">'
@@ -360,6 +375,9 @@ def seccion_componentes(md, filas, tc):
 </div>"""
     else:
         aviso = '<p class="fuente">Todos los componentes tienen precio verificado.</p>'
+    if tengo:
+        aviso += (f'<p class="fuente">Ya tenés {len(tengo)} componente{"s" if len(tengo) > 1 else ""} '
+                  "(marcados en la columna <code>tengo</code> de la lista de materiales): no suman al precio.</p>")
     periodo = (f"verificados entre {fechas[0]} y {fechas[-1]}" if fechas
                else "todavía sin precios verificados")
     resumen = f"""
@@ -391,7 +409,7 @@ def vistas_de_pasos(html_txt, diseno, docs, prefijo, visor):
     """Agrega a cada paso de armado su vista explotada (docs/img/<diseño>_paso_NN.png, generada por
     scripts/capturas_armado.sh). Los pasos sin imagen quedan solo con texto. Si el diseño tiene visor
     3D (visor: sus datos; None si no tiene), cada vista lleva un enlace a ese paso del visor y la lista,
-    uno al visor completo y, si el visor tiene simulación, uno a su modo Funcionamiento."""
+    uno al visor completo y, si el visor tiene simulación o cableado, uno a cada uno de esos modos."""
     apertura = '<ol class="pasos">'
     inicio = html_txt.find(apertura)
     if inicio < 0:
@@ -427,6 +445,9 @@ def vistas_de_pasos(html_txt, diseno, docs, prefijo, visor):
     if visor and visor.get("simulacion"):
         leyenda += ('<p><a class="boton-3d" href="armado_3d.html#funcionamiento">Ver cómo funciona</a> '
                     "<span class=\"fuente\">Se mueven los ejes y se ve girar cada motor.</span></p>")
+    if visor and visor.get("cableado"):
+        leyenda += ('<p><a class="boton-3d" href="armado_3d.html#cableado">Ver el cableado</a> '
+                    "<span class=\"fuente\">Cada cable de pin a pin, con sus conectores.</span></p>")
     return html_txt[:inicio] + leyenda + html_txt[inicio:]
 
 
@@ -499,7 +520,7 @@ def generar(diseno, carpeta_spec):
     if filamento:
         datos.append(f"<li><strong>≈ {numero(filamento['cantidad'])} {filamento['unidad']}</strong> "
                      f"de filamento</li>")
-    datos.append(f"<li><strong>{sum(1 for f in filas if f['opcional'] == 'no')}"
+    datos.append(f"<li><strong>{sum(1 for f in filas if f['opcional'] == 'no' and a_comprar(f))}"
                  f"</strong> componentes para comprar</li>")
     datos.append(f'<li><strong>{ars(total)}</strong> + {faltan} sin precio</li>')
 
@@ -529,7 +550,7 @@ def main():
     p.add_argument("--comprobar", action="store_true", help="no escribir; fallar si algo no está al día")
     a = p.parse_args()
 
-    # El visor va primero: la web enlaza su modo Funcionamiento si el visor tiene simulación
+    # El visor va primero: la web enlaza sus modos Funcionamiento y Cableado si el visor los tiene
     if not a.comprobar and tiene_visor(a.diseno):
         codigo = generar_visor.ejecutar(a.diseno, a.carpeta_spec)
         if codigo:
@@ -634,6 +655,7 @@ tr.categoria th { background: var(--acento-suave); color: var(--texto); text-tra
 .etiqueta { font-size: .72rem; border: 1px solid var(--borde); border-radius: 999px; padding: 0 7px;
   color: var(--suave); }
 .falta { color: var(--aviso); font-weight: 600; }
+.tengo { color: var(--acento); font-weight: 600; }
 .precio { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
 .tarjeta { display: flex; flex-direction: column; border: 1px solid var(--borde); border-radius: 10px; padding: 14px 16px; }
 .tarjeta.destacada { border-color: var(--acento); background: var(--acento-suave); }

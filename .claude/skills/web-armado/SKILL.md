@@ -112,6 +112,16 @@ y su etiqueta aparece en el centro de su caja (p. ej. `?paso=11&t=1&senalar=pern
 - Pasar el puntero, arrastrar y tocar no se prueban con capturas: pedirle al usuario que lo pruebe
   en su navegador.
 
+**Pestaña Cableado** (si el ensamblaje declara `cables`; skill `disenio-multipieza`, sección 4,
+punto 10). Al generar, el visor ya comparó los cables con la Tabla de cables de la guía y el
+ensamblaje comprobó choques y largos. Capturar con `?modo=cableado&senalar=<cable>` (p. ej.
+`?modo=cableado&senalar=sen_az_in4`) y revisar:
+
+- La lista tiene todos los renglones de la Tabla de cables, agrupados, con su muestra de color.
+- La etiqueta del cable señalado dice qué conecta y su largo; el cable se resalta entero.
+- La tapa transparente y, con "Atenuar las piezas", las piezas impresas también.
+- Cambiar una conexión en la guía obliga a cambiar el ensamblaje: si no, la generación falla.
+
 Revisar la página en un navegador. Captura sin abrir ventanas (fuera del sandbox, con el Edge de
 Windows):
 
@@ -133,6 +143,6 @@ Windows):
 - [ ] El tipo de cambio es del mismo período que los precios.
 - [ ] Las vistas explotadas se revisaron una por una.
 - [ ] Si el diseño tiene ensamblaje, el visor 3D se generó y se revisó sin red (`t=0` contra cada
-  captura y los pasos con origen), los nombres de las piezas y, si tiene partes móviles, la
-  pestaña Funcionamiento.
+  captura y los pasos con origen), los nombres de las piezas y, si tiene partes móviles o cables,
+  las pestañas Funcionamiento y Cableado.
 - [ ] La página se revisó en un navegador.

@@ -40,6 +40,7 @@ línea de la lista y en el orden en que aparece en la guía.
 | `paquete` | Cuánto trae lo que se compra, en la misma unidad (1, 100 cm, 1000 g) |
 | `opcional` | `si` o `no`: lo opcional no suma al precio |
 | `en_guia` | `no` para lo que no va en la lista de la guía (por ejemplo, el filamento) |
+| `tengo` | Cuánto ya tiene el usuario, en la misma unidad (vacío = nada). La web cobra solo lo que falta; si alcanza, muestra "ya lo tenés" y no lo cuenta como compra ni como "sin precio". La guía no cambia |
 | `precio`, `moneda`, `tienda`, `url`, `fecha`, `nota` | Se completan en la fase 5 (skill `web-armado`); en la fase 4 pueden quedar vacíos |
 
 Después de editar el CSV:
