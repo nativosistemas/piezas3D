@@ -4,7 +4,9 @@
 // Descripción: Brazo que sostiene un 608ZZ del eje de altura. Se imprime plano (cara interior sobre
 //              la cama) para que las capas no trabajen a flexión y el alojamiento salga redondo.
 //              Variante "motor": pilares para el carro del motor de altura, tope tensor y canal
-//              del cable del motor. Variante "cable": agujero y canal para los 2 hilos del láser.
+//              del cable del motor, y desde la 012 una oreja con la aguja de índice de altura, que sube
+//              hasta el plano del disco de la escala, arriba de la polea (las 12 en el conjunto).
+//              Variante "cable": agujero y canal para los 2 hilos del láser.
 // ==========================================
 
 // --- PARÁMETROS Y CONSTANTES ---
@@ -23,6 +25,11 @@ largo_tornillo_pilar = 12;
 y_ancho0 = y_eje_motor_brazo - carro_x_max - recorrido_tensor;
 y_ancho1 = altura_eje - r_tope_int;
 ancho_resalte_canal = 0.8;
+// Aguja de índice de altura (012), sobre el eje (+Y de impresión = +Z del conjunto)
+y_aguja_int = altura_eje + r_aguja_int;
+y_aguja_ext = altura_eje + r_aguja_ext;
+semiancho_aguja = seccion_aguja[1]/2;
+semiancho_oreja = semiancho_aguja + espesor_min_pared;
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
 ensamblaje_principal();
@@ -36,12 +43,16 @@ module ensamblaje_principal() {
 module pieza_brazo_horquilla(lado) {
     assert(lado == "motor" || lado == "cable", str("lado=", lado, ": debe ser \"motor\" o \"cable\""));
     assert(alto_brazo <= cama_max, str("largo_laser=", largo_laser, ": el brazo mide ", alto_brazo, " mm"));
+    // M-04: con la aguja, el brazo del motor también entra en la cama
+    assert(lado == "cable" || alto_brazo_motor <= cama_max,
+           str("holgura_aguja=", holgura_aguja, ": el brazo del motor mide ", alto_brazo_motor, " mm con la aguja"));
     difference() {
         union() {
             cuerpo_brazo(lado);
             if (lado == "motor") {
                 pilares_motor();
                 tope_tensor_brazo();
+                aguja_indice_altura();
             }
         }
         alojamiento_608();
@@ -58,8 +69,11 @@ module cuerpo_brazo(lado) {
         hull() {
             translate([-ancho_brazo/2, alto_marco]) square([ancho_brazo, 1]);
             translate([0, altura_eje]) circle(r = r_alojamiento);
-            if (lado == "motor")
+            if (lado == "motor") {
                 translate([-carro_semiancho, y_ancho0]) square([2*carro_semiancho, y_ancho1 - y_ancho0]);
+                // Oreja de la aguja de índice (012)
+                translate([-semiancho_oreja, altura_eje]) square([2*semiancho_oreja, alto_brazo_motor - altura_eje]);
+            }
         }
     }
 }
@@ -101,6 +115,15 @@ module tope_tensor_brazo() {
         translate([0, altura_eje - (r_tope_ext + r_tope_int)/2, z_tornillo_tope])
             rotate([0, 0, 90]) agujero_gota(diametro_autorroscante_m3, largo_tope + 2);
     }
+}
+
+// Aguja de índice de altura (012): columna sobre la cara exterior, hasta el plano de la escala, con la
+// sección en punta hacia el eje para leer la raya del disco
+module aguja_indice_altura() {
+    translate([0, 0, espesor_brazo - eps])
+        linear_extrude(height = alto_aguja + eps)
+            polygon([[0, y_aguja_int], [semiancho_aguja, y_aguja_int + semiancho_aguja], [semiancho_aguja, y_aguja_ext],
+                     [-semiancho_aguja, y_aguja_ext], [-semiancho_aguja, y_aguja_int + semiancho_aguja]]);
 }
 
 // Canal para el cable del motor de altura en la cara exterior, hasta el pie

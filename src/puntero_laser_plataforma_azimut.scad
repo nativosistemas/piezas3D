@@ -7,6 +7,9 @@
 //              interruptor bajo la tapa (+X), el
 //              conducto elevado de cables que cruza la franja del láser y el alojamiento del
 //              contrapeso. Gira sobre el perno M8 central, con la cabeza embutida en el cubo.
+//              Desde la 012 lleva el índice de azimut en el borde +Y (la dirección del láser): una raya
+//              vertical en la cara del borde y un triángulo en la cara superior, que se alinean con la
+//              «S» o la «O» de la base.
 //              Se imprime con la cara inferior sobre la cama.
 // ==========================================
 
@@ -20,6 +23,16 @@ alto_puente_canal = 1.2;
 ancho_puente_canal = 4;
 cantidad_puentes_canal = 3;
 ancho_reborde_tapa = 1.6;
+// Índice de azimut (012)
+lado_triangulo_indice = 8;
+y_punta_triangulo = y_plat1 - ancho_nervio - 1;
+y_base_triangulo = y_punta_triangulo - lado_triangulo_indice;
+// M-09: el triángulo no toca la abertura de la polea de azimut, el contrapeso ni la tapa
+assert(y_base_triangulo > distancia_centros + recorrido_tensor + (polea20_d_brida + 3)/2 + 1
+       && x_tapa0 > lado_triangulo_indice/2 + 1
+       && (!con_contrapeso || norm([x_contrapeso, y_contrapeso - y_base_triangulo]) > d_contrapeso/2 + pared_soporte
+                                                        + lado_triangulo_indice),
+       "indice_azimut: el triángulo del índice choca con la abertura de la polea, el contrapeso o la tapa");
 
 // --- MÓDULOS PRINCIPALES Y ENSAMBLAJE ---
 ensamblaje_principal();
@@ -49,6 +62,7 @@ module pieza_plataforma_azimut() {
         asiento_carro_azimut();
         abertura_polea_azimut();
         orejas_tapa_tuercas();
+        indice_azimut();
         if (con_contrapeso)
             translate([x_contrapeso, y_contrapeso, espesor_plataforma])
                 alojamiento_hex(m8_tuerca_ec, tuercas_contrapeso*alto_tuerca_m8 + 2);
@@ -232,4 +246,15 @@ module orejas_tapa_tuercas() {
 module alojamiento_contrapeso() {
     translate([x_contrapeso, y_contrapeso, espesor_plataforma - eps])
         cylinder(d = d_contrapeso + 2*pared_soporte, h = tuercas_contrapeso*alto_tuerca_m8 + 1);
+}
+
+// Índice de azimut (012): raya vertical en la cara del borde +Y, en x = 0, y triángulo en la cara superior
+// de la placa que apunta hacia +Y
+module indice_azimut() {
+    translate([-ancho_linea_referencia/2, y_plat1 - profundidad_grabado, -1])
+        cube([ancho_linea_referencia, profundidad_grabado + 1, espesor_plataforma + alto_nervio + 2]);
+    translate([0, 0, espesor_plataforma - profundidad_grabado])
+        linear_extrude(height = profundidad_grabado + 1)
+            polygon([[-lado_triangulo_indice/2, y_base_triangulo], [lado_triangulo_indice/2, y_base_triangulo],
+                     [0, y_punta_triangulo]]);
 }

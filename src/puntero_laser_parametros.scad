@@ -145,6 +145,32 @@ con_contrapeso = true;
 // Ventana en la cuna para llegar al pulsador del láser
 con_ventana_pulsador = true;
 
+/* [Marcas] */
+// Profundidad de los grabados (letras, índices y escala)
+profundidad_grabado = 0.6; // [0.4:0.1:1]
+// Ancho de las rayas de la escala de altura
+ancho_raya = 1.0; // [0.8:0.1:1.5]
+// Ancho de las líneas de referencia (bajo las letras e índice de azimut)
+ancho_linea_referencia = 1.2; // [0.8:0.1:2]
+// Alto de las letras «S» y «O» de la base
+alto_letra = 10; // [6:1:14]
+// Tipografía de las letras
+fuente_marcas = "Liberation Sans:style=Bold";
+// Espesor del disco de la escala de altura
+espesor_disco_escala = 2; // [1.6:0.2:3]
+// Agujero central del disco (deja pasar la llave tubo de 13 mm del perno M8)
+d_interior_disco_escala = 20; // [18:0.5:24]
+// Giro de las ranuras del disco a cada lado (≥ 30° para cubrir el escalón de 60° del hexágono)
+giro_ranura_disco = 32; // [20:1:40]
+// Ángulo entre rayas de la escala
+paso_escala = 15; // [5:5:30]
+// Última raya de la escala
+angulo_escala_max = 90; // [45:5:95]
+// Holgura radial entre la pestaña de la polea de altura y la aguja de índice
+holgura_aguja = 2.5; // [0.5:0.5:6]
+// Sección de la aguja de índice: [radial, tangencial]
+seccion_aguja = [5, 4];
+
 /* [Calidad] */
 // Resolución de los círculos
 $fn = 64; // [24:8:128]
@@ -169,6 +195,8 @@ m3_d = 3;
 m3_tuerca_ec = 5.5;
 m3_tuerca_alto = 2.4;
 m3_cabeza_d = 5.5;
+d_arandela_m3 = 7;           // arandela M3 (DIN 125)
+alto_arandela_m3 = 0.5;
 diametro_autorroscante_m3 = 2.6;   // 85 % de M3
 // Tuerca 3/8"-16 UNC del trípode
 tuerca_3_8_ec = 14.29;
@@ -198,6 +226,7 @@ polea20_espesor_brida = 1;
 paso_gt2 = 2;
 profundidad_diente_gt2 = 0.75;
 pld_gt2 = 0.254;
+espesor_correa_gt2 = 1.38;   // espesor total de la correa GT2 (catálogo)
 radio_hueco_gt2 = 0.555;
 // Relación interna real del 28BYJ-48
 relacion_motor = (32/9)*(22/11)*(26/9)*(31/10);
@@ -485,6 +514,23 @@ x_inicio_cubo20_alt = x_cara_int_carro_alt + espesor_carro;
 plano_correa_altura = x_inicio_cubo20_alt + polea20_alto_cubo + polea20_espesor_brida + ancho_correa/2 + 0.5;
 largo_cubo_polea_altitud = plano_correa_altura - ancho_correa/2 - 0.5 - polea20_espesor_brida - x_cara_ext_brazo;
 x_ext_polea_alt = plano_correa_altura + h_dentado/2 + espesor_brida;
+// Marcas de altura (012): disco de la escala sobre la polea y aguja de índice del brazo del motor
+r_borde_polea_alt = d_exterior_conducida/2 + espesor_brida;          // radio de las pestañas
+r_raiz_polea_alt = d_exterior_conducida/2 - profundidad_diente_gt2;
+r_hex_polea_alt = (m8_tuerca_ec + holgura_tuerca)/cos(30)/2;
+r_aligerado = (r_hex_polea_alt + r_raiz_polea_alt)/2;                 // aligerados a 30° + k·60°
+r_exterior_disco_escala = r_borde_polea_alt;
+r_agujeros_disco = r_aligerado;                                       // agujeros guía a 0° y 180°
+r_aguja_int = r_borde_polea_alt + holgura_aguja;
+r_aguja_ext = r_aguja_int + seccion_aguja[0];
+x_punta_aguja = x_ext_polea_alt + espesor_disco_escala;               // plano de la escala
+alto_aguja = x_punta_aguja - x_cara_ext_brazo;
+r_correa_ext_alt = d_primitivo_conducida/2 + espesor_correa_gt2 - pld_gt2;   // cara exterior de la correa
+alto_brazo_motor = max(alto_brazo, altura_eje + r_aguja_ext + espesor_min_pared);
+// Marcas de azimut (012): con el láser hacia +Y (posición modelada) apunta al sur
+azimut_reposo = 180;          // azimut de brújula del láser en la posición modelada (+Y = sur)
+angulo_marca_sur = 90;        // ángulo de la «S» en el plano XY (desde +X, antihorario): +Y
+angulo_marca_oeste = angulo_marca_sur - 90;   // 90° en sentido horario visto desde arriba: +X
 x_dientes_polea20_alt = x_inicio_cubo20_alt + polea20_alto_cubo + polea20_espesor_brida + h_dentado/2;
 eje_en_cubo20 = motor_largo_eje - espesor_carro;
 
@@ -778,6 +824,16 @@ comprobar_rango("largo_tubo_cuna", largo_tubo_cuna, 70, 140);
 comprobar_rango("holgura_colimacion", holgura_colimacion, 1, 3);
 comprobar_rango("separacion_608_azimut", separacion_608_azimut, 10, 30);
 comprobar_rango("diametro_apoyo_tripode", diametro_apoyo_tripode, 60, 90);
+comprobar_rango("profundidad_grabado", profundidad_grabado, 0.4, 1);
+comprobar_rango("ancho_raya", ancho_raya, 0.8, 1.5);
+comprobar_rango("ancho_linea_referencia", ancho_linea_referencia, 0.8, 2);
+comprobar_rango("alto_letra", alto_letra, 6, 14);
+comprobar_rango("espesor_disco_escala", espesor_disco_escala, 1.6, 3);
+comprobar_rango("d_interior_disco_escala", d_interior_disco_escala, 18, 24);
+comprobar_rango("giro_ranura_disco", giro_ranura_disco, 20, 40);
+comprobar_rango("paso_escala", paso_escala, 5, 30);
+comprobar_rango("angulo_escala_max", angulo_escala_max, 45, 95);
+comprobar_rango("holgura_aguja", holgura_aguja, 0.5, 6);
 assert(is_bool(con_contrapeso), str("con_contrapeso=", con_contrapeso, ": debe ser true o false"));
 assert(is_bool(con_ventana_pulsador), str("con_ventana_pulsador=", con_ventana_pulsador, ": debe ser true o false"));
 
@@ -793,6 +849,10 @@ assert(largo_plataforma <= plataforma_max && ancho_plataforma <= plataforma_max,
 assert(alto_brazo <= plataforma_max,
     str("largo_laser=", largo_laser, ": el brazo mide ", alto_brazo, " mm (máx. ", plataforma_max,
         "); use un láser más corto o equilibre con el centro de masa más al medio"));
+// V-04 (012): el brazo del motor, con la aguja de índice, también entra
+assert(alto_brazo_motor <= plataforma_max,
+    str("holgura_aguja=", holgura_aguja, ": el brazo del motor mide ", alto_brazo_motor, " mm con la aguja (máx. ",
+        plataforma_max, ")"));
 // V-05: entre el carro y el eje conducido entran el tope tensor y el alojamiento del 608
 assert(r_tope_int >= rod608_d_ext/2 + pared_alojamiento_608 + 2,
     str("largo_correa=", largo_correa, ": distancia entre centros ", distancia_centros,

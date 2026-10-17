@@ -19,6 +19,7 @@ use <puntero_laser_plataforma_azimut.scad>
 use <puntero_laser_brazo_horquilla.scad>
 use <puntero_laser_cuna_laser.scad>
 use <puntero_laser_polea_altitud.scad>
+use <puntero_laser_disco_escala.scad>
 use <puntero_laser_carro_motor.scad>
 use <puntero_laser_separador_azimut.scad>
 use <puntero_laser_tapa_electronica.scad>
@@ -181,7 +182,8 @@ giro_enroscar_cable = [[0, 0, z_eje_altura], [1, 0, 0], -720];   // el perno del
 grupo_base = ["base", "tuerca_tripode", "608_base_sup", "608_base_inf", "arandela_sup", "arandela_inf",
               "separador", "perno_az", "autoblocante_az"];
 grupo_horquilla = ["brazo_motor", "brazo_cable", "608_brazo_motor", "608_brazo_cable", "cuna", "tuerca_munon",
-                   "perno_alt_motor", "tuerca_munon_cable", "perno_alt_cable", "arandela_cable", "polea_alt"];
+                   "perno_alt_motor", "tuerca_munon_cable", "perno_alt_cable", "arandela_cable", "polea_alt",
+                   "disco_escala", "tornillos_disco"];
 grupo_motor_alt = ["carro_alt", "motor_alt", "tornillos_orejas_alt"];
 con_lastre = tuercas_lastre_tapa > 0;   // sin tuercas, el lastre no se dibuja ni aparece en los pasos
 paso_union_horquilla = 8;   // la horquilla armada se atornilla a la plataforma
@@ -204,7 +206,8 @@ pasos = [
     /* 6 */ [["arandela_cable", [-30, 0, 0], true], ["perno_alt_cable", [-50, 0, 0], true, undef, giro_enroscar_cable]],
     /* 7 */ [["tuerca_munon", -130*v_laser, true],
              ["polea_alt", [45, 0, 0], true, undef, giro_enroscar],
-             ["perno_alt_motor", [45, 0, 0], true, undef, giro_enroscar]],
+             ["perno_alt_motor", [45, 0, 0], true, undef, giro_enroscar],
+             ["disco_escala", [70, 0, 0], true], ["tornillos_disco", [95, 0, 0], true]],
     /* 8 */ concat([["plataforma", [0, 0, 0], false]],
                    [for (e = grupo_horquilla) [e, [0, 0, 50], e == "brazo_motor" || e == "brazo_cable"]],
                    [["tuercas_pie_motor", [35, 0, 50], true, [0, 0, 50]],
@@ -269,6 +272,24 @@ assert(y_conducto + ancho_canal/2 + pared_canal + distancia_min_cable_correa
 assert(altura_max_canal < altura_libre_central, "altura_max_canal: el conducto invade la altura libre central");
 // La parte ancha del brazo del motor no se mete en la tapa
 assert(x_cara_ext_brazo < x_tapa0, "espesor_brazo: el brazo del motor se mete en la tapa");
+// Marcas de orientación y de altura (012)
+// M-03: la aguja de índice libra la correa de altura y el disco de la escala
+assert(r_aguja_int - r_correa_ext_alt >= 2 && r_aguja_int > r_exterior_disco_escala,
+    str("holgura_aguja=", holgura_aguja, ": la aguja de índice queda a ", r_aguja_int - r_correa_ext_alt,
+        " mm de la correa de altura (mín. 2 mm)"));
+// M-07: en reposo el láser (+Y) apunta a la «S» de la base, y la «O» está 90° en sentido horario
+assert(abs(angulo_marca_sur - atan2(1, 0)) < 0.01 && abs(angulo_marca_sur - angulo_marca_oeste - 90) < 0.01,
+    "angulo_marca_sur: la «S» no está en la dirección del láser en reposo o la «O» no está 90° en sentido horario");
+// M-08: con la cuna a a grados, la raya de a grados del disco queda frente a la aguja (+Z). El disco va con
+// rotate([0, 90, 0]): el (x, y) de la pieza pasa a (Y, Z) = (y, −x), y la cuna lo gira a grados alrededor de X.
+function error_raya(a) = let (t = angulo_raya(a), y0 = sin(t), z0 = -cos(t),
+                              y1 = y0*cos(a) - z0*sin(a), z1 = y0*sin(a) + z0*cos(a)) atan2(y1, z1);
+for (a = [0:paso_escala:angulo_escala_max])
+    assert(abs(error_raya(a)) < 0.1,
+        str("disco de la escala: la raya de ", a, "° queda a ", error_raya(a), "° de la aguja con el láser a ", a, "°"));
+if (angulo_escala_max % paso_escala != 0)
+    echo(str("AVISO: paso_escala=", paso_escala, ": la última raya queda en ",
+             angulo_escala_max - angulo_escala_max % paso_escala, "°, no en ", angulo_escala_max, "°"));
 // Tabla de pasos: un paso por cada instrucción de la guía (los elementos los comprueba armado())
 assert(len(pasos) == 19, "pasos: la guía tiene 19 pasos de armado");
 
@@ -301,7 +322,8 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
              "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
              "placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "barra", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
-             "interruptor", "resistencia_rele", "enchufe_usb", "cable_laser", "conectores"];
+             "interruptor", "resistencia_rele", "enchufe_usb", "cable_laser", "conectores",
+             "disco_escala", "tornillos_disco"];
 
 // Nombre y tipo de cada elemento para el visor 3D (contrato: specs/008-identificacion-componentes/
 // contracts/ensamblaje.md). Lo comprado usa la descripción de docs/puntero_laser_bom.csv.
@@ -313,6 +335,7 @@ nombres_elementos = [
     ["brazo_cable",     "Brazo de la horquilla, lado cable",              "impresa"],
     ["cuna",            "Cuna del láser",                                 "impresa"],
     ["polea_alt",       "Polea de altura",                                "impresa"],
+    ["disco_escala",    "Disco de la escala de altura",                   "impresa"],
     ["carro_az",        "Carro del motor de azimut",                      "impresa"],
     ["carro_alt",       "Carro del motor de altura",                      "impresa"],
     ["separador",       "Separador de los rodamientos de azimut",         "impresa"],
@@ -353,6 +376,7 @@ nombres_elementos = [
     ["tornillos_orejas_az", "Tornillo M3 × 8 mm: orejas del motor de azimut (2)", "comprada"],
     ["tornillos_orejas_alt", "Tornillo M3 × 8 mm: orejas del motor de altura (2)", "comprada"],
     ["tornillos_carro_alt", "Tornillo M3 × 12 mm: carro de altura (2)",   "comprada"],
+    ["tornillos_disco", "Tornillo M3 × 8 mm + arandela: disco de la escala (2)", "comprada"],
     ["tornillos_tapa",  "Tornillo M3 × 10 mm: tapa (2)",                  "comprada"],
     ["tuercas_tapa",    "Tuerca M3: tapa (2)",                            "comprada"],
     // Electrónica y láser
@@ -643,7 +667,8 @@ pasos_tapa_cableado = concat(
 // que el catálogo dibuja sus elementos (reposo).
 largo_haz_simulacion = 600;   // largo del haz del láser en el visor
 elementos_altura = ["cuna", "laser", "pila_falsa", "tapa_trasera", "lastre", "grapa", "tuerca_munon",
-                    "tuerca_munon_cable", "perno_alt_cable", "perno_alt_motor", "polea_alt"];
+                    "tuerca_munon_cable", "perno_alt_cable", "perno_alt_motor", "polea_alt",
+                    "disco_escala", "tornillos_disco"];
 elementos_motor_azimut = ["polea20_az"];
 elementos_motor_altura = ["polea20_alt"];
 elementos_azimut = [for (e = elementos)
@@ -651,7 +676,7 @@ elementos_azimut = [for (e = elementos)
         && !contiene(elementos_motor_altura, e) && e != "cable_laser") e];
 // Azimut positivo: horario visto desde arriba; altura positiva: sube el láser (tabla del firmware)
 articulaciones = [
-    ["azimut", "Azimut", elementos_azimut, [0, 0, 0], [0, 0, -1], undef, 0, "",
+    ["azimut", "Azimut", elementos_azimut, [0, 0, 0], [0, 0, -1], undef, azimut_reposo, "",
      velocidad_max_eje, "", pasos_por_grado],
     ["altura", "Altura", elementos_altura, [0, 0, z_eje_altura], [1, 0, 0],
      [angulo_altura_min, angulo_altura_max], angulo_altura, "azimut",
@@ -666,7 +691,8 @@ motores = [
 // La punta del láser está en +l_delantero sobre el eje del láser (+Y de su sistema)
 emisores = [["laser", "Láser", en_conjunto([0, l_delantero, 0], angulo_altura),
              [0, cos(angulo_altura), sin(angulo_altura)], "Lime", "altura", largo_haz_simulacion]];
-// Objetivos de demostración del modo automático: [nombre, [azimut, altura]]
+// Objetivos de demostración del modo automático: [nombre, [azimut, altura]]. El azimut es de brújula
+// (0 = norte, horario); la posición modelada (láser hacia +Y, frente a la «S» de la base) es 180° (012).
 objetivos = [["Norte bajo", [0, 10]], ["Este", [90, 35]], ["Cenit", [180, 88]], ["Oeste alto", [270, 60]],
              ["Casi norte", [350, 25]], ["Noreste", [10, 45]]];
 // El cable va en parte con el láser y en parte con la horquilla: se exporta cada 5° de altura
@@ -676,7 +702,7 @@ transparentes_simulacion = ["tapa", "conectores"];
 function color_elemento(e) =
     e == "base" ? "SlateGray" : e == "plataforma" ? "DarkSeaGreen" :
     e == "brazo_motor" || e == "brazo_cable" ? "SteelBlue" : e == "cuna" ? "Peru" :
-    e == "polea_alt" ? "Goldenrod" : e == "carro_az" || e == "carro_alt" ? "Khaki" :
+    e == "polea_alt" ? "Goldenrod" : e == "disco_escala" ? "WhiteSmoke" : e == "carro_az" || e == "carro_alt" ? "Khaki" :
     e == "separador" || e == "arandela_sup" || e == "arandela_inf" || e == "arandela_cable" ? "Wheat" :
     e == "tapa" ? "LightGray" : e == "motor_az" || e == "motor_alt" ? "Gold" :
     e == "correa_az" || e == "correa_alt" ? "Black" : e == "placa_uln_az" || e == "placa_uln_alt" ? "ForestGreen" :
@@ -735,6 +761,14 @@ module elemento(e) {
         translate([0, 0, x_punta_perno_alt_motor]) cylinder(d = rod608_d_int, h = largo_perno_alt_cable);
         translate([0, 0, x_punta_perno_alt_motor + largo_perno_alt_cable]) tuerca(m8_cabeza_ec, m8_cabeza_alto);
     }
+    // Disco de la escala (012): sobre la cara exterior de la polea, con la escala hacia +X; gira con la cuna
+    if (e == "disco_escala") translate([x_ext_polea_alt, 0, z_eje_altura]) rotate([angulo_altura, 0, 0])
+        rotate([0, 90, 0]) pieza_disco_escala();
+    if (e == "tornillos_disco") translate([x_punta_aguja, 0, z_eje_altura]) rotate([angulo_altura, 0, 0])
+        for (s = [-1, 1]) translate([0, 0, s*r_agujeros_disco]) rotate([0, 90, 0]) {
+            cylinder(d = d_arandela_m3, h = alto_arandela_m3, $fn = 20);
+            translate([0, 0, alto_arandela_m3]) tornillo_m3(8);
+        }
     // Motores, poleas 20T y correas
     if (e == "motor_az") translate([0, distancia_centros, z_sup + espesor_carro]) rotate([0, 0, 90]) rotate([180, 0, 0])
         motor_28byj();
@@ -869,6 +903,11 @@ function anclas(e) =
     e == "608_base_inf" ? [[0, 0, z_camara_sup + rod608_ancho/2]] :
     e == "tuerca_munon" ? [[diametro_interior_cuna/2 + m8_tuerca_alto/2, 0, z_eje_altura]] :
     e == "perno_alt_motor" ? [[x_punta_perno_alt_motor, 0, z_eje_altura]] :
+    // Disco de la escala y sus tornillos (012): la flecha llega a la cara exterior de la polea, en el
+    // agujero central del disco y en cada tornillo
+    e == "disco_escala" ? [[x_punta_aguja, 0, z_eje_altura]] :
+    e == "tornillos_disco" ? [for (s = [-1, 1]) [x_punta_aguja + alto_arandela_m3 + alto_cabeza_m3, 0, z_eje_altura]
+                                                  + s*r_agujeros_disco*[0, -sin(angulo_altura), cos(angulo_altura)]] :
     e == "tuerca_munon_cable" ? [[-diametro_interior_cuna/2 - m8_tuerca_alto/2, 0, z_eje_altura]] :
     e == "perno_alt_cable" ? [[-x_punta_perno_alt_motor - largo_perno_alt_cable, 0, z_eje_altura]] :
     e == "608_brazo_motor" ? [[x_cara_ext_brazo, 0, z_eje_altura]] :
