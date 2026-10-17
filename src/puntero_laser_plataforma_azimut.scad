@@ -3,7 +3,8 @@
 // Componente: Plataforma de azimut
 // Descripción: Plataforma giratoria que lleva los dos brazos de la horquilla (en marcos de
 //              alineación), el carro y el tope tensor del motor de azimut (+Y), el bolsillo del
-//              power bank (−X), los soportes de las placas y del interruptor bajo la tapa (+X), el
+//              power bank (−X), los soportes de las placas, de la barra de distribución y del
+//              interruptor bajo la tapa (+X), el
 //              conducto elevado de cables que cruza la franja del láser y el alojamiento del
 //              contrapeso. Gira sobre el perno M8 central, con la cabeza embutida en el cubo.
 //              Se imprime con la cara inferior sobre la cama.
@@ -135,6 +136,7 @@ module soportes_placas() {
     soporte_placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, pad_soporte_esp32);
     soporte_placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, pad_soporte);
     soporte_placa(x_col_a0, y_reg0, regulador_ancho, regulador_largo, alto_soporte_placa, pad_soporte);   // regulador (006)
+    soporte_placa(x_barra0, y_barra0, barra_ancho, barra_largo, alto_soporte_placa, pad_soporte_barra);   // barra de distribución (010)
 }
 // Celda que empieza en [x0, y0]; placa de a × l (a en X, l en Y) apoyada a z_apoyo sobre la plataforma
 module soporte_placa(x0, y0, a, l, z_apoyo, pad) {

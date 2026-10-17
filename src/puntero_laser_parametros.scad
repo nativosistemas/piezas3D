@@ -3,7 +3,7 @@
 // Componente: Parámetros compartidos
 // Descripción: Medidas compartidas por todas las piezas del puntero láser motorizado alt-az:
 //              parámetros editables, constantes de componentes estándar, valores derivados,
-//              reglas de validación (V-01…V-25) y módulos utilitarios (dentado GT2, etc.).
+//              reglas de validación (V-01…V-25, V-27…V-29) y módulos utilitarios (dentado GT2, etc.).
 //              Desde la 006, el láser va sin batería: lo alimenta el power bank a través de una pila
 //              falsa y una tapa trasera impresa con lastre.
 //              No dibuja nada; al renderizarlo solo imprime los derivados con echo.
@@ -90,6 +90,12 @@ ancho_enchufe_usb = 11; // [8:0.5:14]
 alto_enchufe_usb = 7.5; // [5:0.5:10]
 // Largo del cable de fábrica del motor 28BYJ-48, del motor al enchufe (medir)
 largo_cable_motor = 230; // [150:5:400]
+// Pines de cada tira de la barra de distribución (+5 V y GND): destinos + reserva (010)
+pines_barra = 6; // [6:1:10]
+// Largo del trozo de placa perforada de la barra (medir; 3 × 10 agujeros = 25,4 mm)
+barra_largo = 25.4; // [20:0.1:36]
+// Ancho del trozo de placa perforada de la barra (medir)
+barra_ancho = 7.6; // [7:0.1:10]
 
 /* [Transmisión] */
 // Dientes de la polea conducida impresa (≥ 80 para la relación ≥ 1:4 de FR-005)
@@ -220,6 +226,11 @@ separacion_filas_esp32 = 25.4; // entre las dos filas de pines del ESP32
 alto_conector_usb_esp32 = 3;   // conector USB soldado sobre el ESP32
 pad_soporte_esp32 = 2.5;       // apoyos de las esquinas bajo el ESP32
 pierna_soporte = 5;            // largo de cada lado de los postes en L de los soportes
+// Barra de distribución (010, research R2 y R5)
+destinos_5v = 5;               // ESP32 VIN, 2 × ULN2003, relé VCC y relé COM
+destinos_gnd = 5;              // ESP32, 2 × ULN2003, relé y regulador IN−
+masa_barra_g = 3;
+pad_soporte_barra = 2;         // apoyos de las esquinas: dejan libre la soldadura del agujero 2
 altura_libre_central = 5;
 eps = 0.01;
 cama_max = 200;
@@ -513,6 +524,9 @@ largo_soporte_uln = uln2003_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_esp32 = esp32_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_rele = rele_largo + 2*holgura_encastre + 2*pared_soporte;
 largo_soporte_regulador = regulador_largo + 2*holgura_encastre + 2*pared_soporte;
+// Barra de distribución (010, research R1): al lado (+X) del regulador, en la columna de los ULN2003
+ancho_soporte_barra = barra_ancho + 2*holgura_encastre + 2*pared_soporte;
+largo_soporte_barra = barra_largo + 2*holgura_encastre + 2*pared_soporte;
 alto_col_a = 2*largo_soporte_uln + largo_soporte_regulador + 2*holgura_zonas;
 alto_col_b = largo_soporte_esp32 + largo_soporte_rele + holgura_zonas;
 y_uln_alt0 = -alto_col_a/2;
@@ -520,6 +534,9 @@ y_uln_az0 = y_uln_alt0 + largo_soporte_uln + holgura_zonas;
 y_reg0 = y_uln_az0 + largo_soporte_uln + holgura_zonas;
 y_esp32_0 = -alto_col_b/2;
 y_rele_0 = y_esp32_0 + largo_soporte_esp32 + holgura_zonas;
+x_reg1 = x_col_a0 + regulador_ancho + 2*holgura_encastre + 2*pared_soporte;
+x_barra0 = x_reg1 + holgura_zonas;
+y_barra0 = y_reg0;
 // Conectores (009): un Dupont conectado ocupa la tira, su cuerpo y la curva del cable
 curva_cable = radio_curva_cable + diametro_cable_dupont;
 alto_dupont_conectado = alto_tira_pines + largo_dupont + curva_cable;
@@ -543,7 +560,7 @@ alto_abertura_usb = alto_enchufe_usb + 2*holgura_usb;
 x_tapa1 = x_col_b1 + holgura_encastre + pared_tapa;
 y_tapa0 = min(y_uln_alt0, y_esp32_0) - holgura_encastre - pared_tapa;
 // Hueco para el cable sobrante (FR-012) e interruptor general (FR-013), dentro de la tapa
-y_sob0 = max(y_reg0 + largo_soporte_regulador, y_rele_0 + largo_soporte_rele) + holgura_zonas;
+y_sob0 = max(y_reg0 + largo_soporte_regulador, y_rele_0 + largo_soporte_rele, y_barra0 + largo_soporte_barra) + holgura_zonas;
 y_sob1 = y_sob0 + alto_sobrante_cables;
 x_interruptor = x_col_b1 - espesor_soporte_interruptor;
 y_interruptor = (y_sob0 + y_sob1)/2;
@@ -579,7 +596,8 @@ zona_uln_altura = [x_col_a0, y_uln_alt0, x_col_a1, y_uln_alt0 + largo_soporte_ul
 zona_uln_azimut = [x_col_a0, y_uln_az0, x_col_a1, y_uln_az0 + largo_soporte_uln, altura_placas, "uln azimut"];
 zona_esp32 = [x_col_b0, y_esp32_0, x_col_b1, y_esp32_0 + largo_soporte_esp32, alto_esp32_total, "esp32"];
 zona_rele = [x_col_b0, y_rele_0, x_col_b1, y_rele_0 + largo_soporte_rele, altura_placas, "rele"];
-zona_regulador = [x_col_a0, y_reg0, x_col_a1, y_reg0 + largo_soporte_regulador, altura_placas, "regulador"];
+zona_regulador = [x_col_a0, y_reg0, x_reg1, y_reg0 + largo_soporte_regulador, altura_placas, "regulador"];
+zona_barra = [x_barra0, y_barra0, x_barra0 + ancho_soporte_barra, y_barra0 + largo_soporte_barra, altura_placas, "barra"];
 y_puente_brida_az = y_carro_az1 + holgura_zonas + ancho_puente_brida/2 + 1;   // brida del cable del motor de azimut
 zona_sobrante_cables = [x_col_a0, y_sob0, x_col_b1, y_sob1, 0, "sobrante de cables"];
 zona_tapa = [x_tapa0, y_tapa0 - largo_oreja_tapa, x_tapa1, y_tapa1 + largo_oreja_tapa, alto_tapa, "tapa"];
@@ -591,7 +609,7 @@ zona_contrapeso = [x_contrapeso - d_contrapeso/2, y_contrapeso - d_contrapeso/2,
 
 zonas_componentes = concat(
     [zona_cubo, zona_brazo_motor, zona_brazo_cable, zona_motor_azimut, zona_tope_azimut,
-     zona_powerbank, zona_uln_altura, zona_uln_azimut, zona_esp32, zona_rele, zona_regulador],
+     zona_powerbank, zona_uln_altura, zona_uln_azimut, zona_esp32, zona_rele, zona_regulador, zona_barra],
     con_contrapeso ? [zona_contrapeso] : []);
 zonas_todas = concat(zonas_componentes, [zona_tapa, zona_conducto]);
 
@@ -647,7 +665,8 @@ masas_giratorias = [
     [10, (x_col_a0+x_col_a1)/2, y_uln_az0 + largo_soporte_uln/2],
     [masa_placas_g - 35, (x_col_b0+x_col_b1)/2, y_esp32_0 + largo_soporte_esp32/2],
     [15, (x_col_b0+x_col_b1)/2, y_rele_0 + largo_soporte_rele/2],
-    [masa_regulador_g, (x_col_a0+x_col_a1)/2, y_reg0 + largo_soporte_regulador/2],
+    [masa_regulador_g, (x_col_a0+x_reg1)/2, y_reg0 + largo_soporte_regulador/2],
+    [masa_barra_g, x_barra0 + ancho_soporte_barra/2, y_barra0 + largo_soporte_barra/2],
     [masa_tapa_g, (x_tapa0+x_tapa1)/2, (y_tapa0+y_tapa1)/2],
     [masa_grupo_az_g, 0, distancia_centros + motor_desplazamiento_eje],
     [masa_motor_g + masa_carro_g + masa_polea20_g, x_cara_int_carro_alt - motor_alto_cuerpo/2, 0],
@@ -769,6 +788,25 @@ assert(r_tope_int >= rod608_d_ext/2 + pared_alojamiento_608 + 2,
 assert(distancia_centros >= (d_exterior_conducida + polea20_d_brida)/2 + 3,
     str("largo_correa=", largo_correa, ": distancia entre centros ", distancia_centros, " mm < ",
         (d_exterior_conducida + polea20_d_brida)/2 + 3, " mm; las poleas se tocan, use una correa más larga"));
+// V-27…V-29: barra de distribución (010, data-model §4)
+comprobar_rango("pines_barra", pines_barra, 6, 10);
+comprobar_rango("barra_largo", barra_largo, 20, 36);
+comprobar_rango("barra_ancho", barra_ancho, 7, 10);
+// V-27: un pin por destino en cada tira, más uno de reserva
+assert(pines_barra >= max(destinos_5v, destinos_gnd) + 1,
+    str("pines_barra=", pines_barra, ": la barra necesita al menos ", max(destinos_5v, destinos_gnd) + 1,
+        " pines por tira (", max(destinos_5v, destinos_gnd), " destinos + reserva)"));
+// V-28: la placa tiene lugar para los pines, la entrada y las esquinas libres sobre los apoyos (research R2)
+assert(barra_largo >= (pines_barra + 4)*paso_pines - 0.5,
+    str("barra_largo=", barra_largo, ": la placa no tiene lugar para ", pines_barra,
+        " pines, la entrada y las esquinas libres (mín. ", (pines_barra + 4)*paso_pines - 0.5, " mm)"));
+assert(barra_ancho >= 3*paso_pines - 0.5,
+    str("barra_ancho=", barra_ancho, ": la placa no tiene lugar para las dos tiras separadas (mín. ",
+        3*paso_pines - 0.5, " mm)"));
+// V-29: la barra entra al lado del regulador, dentro de la columna de los ULN2003
+assert(x_barra0 + ancho_soporte_barra <= x_col_a1,
+    str("barra_ancho=", barra_ancho, ": la barra no entra al lado del regulador (máx. ",
+        x_col_a1 - x_barra0 - 2*holgura_encastre - 2*pared_soporte, " mm)"));
 // V-08: zonas de la plataforma sin solaparse
 assert(len(choques_componentes) == 0,
     str(len(choques_componentes) > 0 ? choques_componentes[0] : "", "_ancho: componentes solapados en la plataforma: ",

@@ -3,8 +3,8 @@
 // Componente: Ensamblaje (solo revisión, NO se exporta)
 // Descripción: Coloca todas las piezas en su posición del conjunto, dibuja los componentes
 //              comprados como volúmenes simplificados (motores, poleas 20T, correas, 608ZZ, pernos,
-//              tornillería, placas, regulador, power bank y láser sin batería con su pila falsa, tapa
-//              trasera, lastre, grapa y cable) y comprueba con asserts los choques y
+//              tornillería, placas, barra de distribución, regulador, power bank y láser sin batería
+//              con su pila falsa, tapa trasera, lastre, grapa y cable) y comprueba con asserts los choques y
 //              alineaciones que no se pueden ver en una pieza sola (V-07, V-09 y separaciones entre
 //              piezas). Las vistas explotadas y los datos del visor 3D salen de la tabla de pasos con la
 //              biblioteca común armado_comun.scad.
@@ -120,7 +120,7 @@ subconjunto_plataforma = concat(grupo_horquilla,
                                  "carro_az", "motor_az", "tornillos_orejas_az", "tuercas_carro_az",
                                  "tornillos_carro_az", "polea20_az"]);
 // Placas electrónicas: un elemento por placa, para que el visor nombre cada una
-placas = ["placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele"];
+placas = ["placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "barra"];
 pasos = [
     /* 1 */ [["base", [0, 0, 0], false], ["tuerca_tripode", [0, 0, 70], true]],
     /* 2 */ [["608_base_sup", [0, 0, 60], true], ["608_base_inf", [0, -60, 0], true]],
@@ -228,7 +228,7 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "autoblocante_cable", "motor_az", "motor_alt", "polea20_az", "polea20_alt", "correa_az", "correa_alt",
              "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
              "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
-             "placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
+             "placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "barra", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
              "cable_laser", "conectores"];
 
 // Nombre y tipo de cada elemento para el visor 3D (contrato: specs/008-identificacion-componentes/
@@ -289,6 +289,7 @@ nombres_elementos = [
     ["placa_uln_az",    "Placa driver ULN2003 (motor de azimut)",         "comprada"],
     ["placa_uln_alt",   "Placa driver ULN2003 (motor de altura)",         "comprada"],
     ["regulador",       "Módulo reductor de tensión MP1584EN (3,7 V)",    "comprada"],
+    ["barra",           "Barra de distribución +5 V / GND (placa perforada)", "comprada"],
     ["powerbank",       "Power bank USB de 5 V y ≥ 2 A",                  "comprada"],
     ["laser",           "Puntero láser verde \"303\" (sin su batería)",   "comprada"],
     ["cable_laser",     "Cable de silicona de 2 × 26 AWG (regulador → láser)", "comprada"],
@@ -337,7 +338,7 @@ function color_elemento(e) =
     e == "separador" || e == "arandela_sup" || e == "arandela_inf" || e == "arandela_cable" ? "Wheat" :
     e == "tapa" ? "LightGray" : e == "motor_az" || e == "motor_alt" ? "Gold" :
     e == "correa_az" || e == "correa_alt" ? "Black" : e == "placa_uln_az" || e == "placa_uln_alt" ? "ForestGreen" :
-    e == "placa_esp32" ? "DarkSlateGray" : e == "placa_rele" ? "Teal" :
+    e == "placa_esp32" ? "DarkSlateGray" : e == "placa_rele" ? "Teal" : e == "barra" ? "SaddleBrown" :
     e == "powerbank" ? "DarkBlue" : e == "laser" ? "LimeGreen" :
     e == "pila_falsa" ? "Tomato" : e == "tapa_trasera" || e == "grapa" ? "Peru" : e == "regulador" ? "RoyalBlue" :
     e == "cable_laser" ? "Red" : e == "conectores" ? "LightSlateGray" :
@@ -435,6 +436,17 @@ module elemento(e) {
         placa(x_col_b0, y_esp32_0, esp32_ancho, esp32_largo, elevacion_esp32, alto_modulo_esp32 + espesor_pcb);
     if (e == "placa_rele")
         placa(x_col_b0, y_rele_0, rele_ancho, rele_largo, alto_soporte_placa, altura_placas - alto_soporte_placa);
+    // Barra de distribución (010, research R2): placa perforada con una tira de pines en cada columna de
+    // los costados, en los agujeros 2 a pines_barra + 1 (el 1 y el último quedan sobre los apoyos)
+    if (e == "barra") {
+        placa(x_barra0, y_barra0, barra_ancho, barra_largo, alto_soporte_placa, espesor_pcb);
+        for (c = [0, 2], i = [1:pines_barra])
+            translate([x_barra0 + m_placa + (c + 0.5)*paso_pines, y_barra0 + m_placa + (i + 0.5)*paso_pines,
+                       z_sup + alto_soporte_placa + espesor_pcb]) {
+                translate([-paso_pines/2, -paso_pines/2, 0]) cube([paso_pines, paso_pines, alto_tira_pines]);
+                translate([-0.32, -0.32, 0]) cube([0.64, 0.64, alto_tira_pines + 6]);
+            }
+    }
     if (e == "powerbank")
         translate([x_pb1 + pared_bolsillo + holgura_encastre, y_pb0 + pared_bolsillo + holgura_encastre, z_sup])
             cube([powerbank_alto, powerbank_largo, powerbank_ancho]);
@@ -456,7 +468,7 @@ module elemento(e) {
     if (e == "conectores") {
         // Dupont y enchufes hacia arriba, sobre toda la planta de las placas bajas
         for (c = [[x_col_a0, y_uln_alt0, uln2003_ancho, uln2003_largo], [x_col_a0, y_uln_az0, uln2003_ancho, uln2003_largo],
-                  [x_col_b0, y_rele_0, rele_ancho, rele_largo]])
+                  [x_col_b0, y_rele_0, rele_ancho, rele_largo], [x_barra0, y_barra0, barra_ancho, barra_largo]])
             translate([c[0] + m_placa, c[1] + m_placa, z_sup + alto_soporte_placa + espesor_pcb])
                 cube([c[2], c[3], alto_dupont_conectado]);
         // Dupont del ESP32 hacia abajo: una franja por fila, con la curva del cable hacia el centro
@@ -528,6 +540,7 @@ function anclas(e) =
     e == "placa_uln_az" ? [[x_col_a0 + m_placa + uln2003_ancho/2, y_uln_az0 + m_placa + uln2003_largo/2, z_sup]] :
     e == "placa_esp32" ? [[x_col_b0 + m_placa + esp32_ancho/2, y_esp32_0 + m_placa + esp32_largo/2, z_sup]] :
     e == "placa_rele" ? [[x_col_b0 + m_placa + rele_ancho/2, y_rele_0 + m_placa + rele_largo/2, z_sup]] :
+    e == "barra" ? [[x_barra0 + m_placa + barra_ancho/2, y_barra0 + m_placa + barra_largo/2, z_sup]] :
     e == "powerbank" ? [[x_pb1 + pared_bolsillo + holgura_encastre + powerbank_alto/2, y_pb0 + powerbank_largo/2, z_sup]] :
     e == "tapa" ? [[x_tapa_c, (y_tapa0 + y_tapa1)/2, z_sup + alto_tapa]] :
     e == "tornillos_tapa" ? [for (y = y_orejas_tapa) [x_tapa_c, y, z_sup + 10]] :
