@@ -8,7 +8,7 @@
 
 // Origen de los valores
 perfil_medido = false;      // true solo después de imprimir y medir el peine de calibración
-perfil_impresora = "";      // marca y modelo
+perfil_impresora = "Bambu Lab A1"; // marca y modelo
 perfil_material = "PETG";   // las holguras cambian con el material: PLA ≠ PETG ≠ ABS
 perfil_boquilla = 0.4;      // [mm]
 perfil_fecha = "";          // AAAA-MM-DD de la medición
@@ -28,7 +28,7 @@ espesor_min_pared = 1.2;    // [mm]
 espesor_min_piso = 0.8;     // [mm]
 voladizo_max = 45;          // [°] respecto de la vertical
 puente_max = 10;            // [mm]
-cama = [220, 220, 250];     // [mm] X, Y, Z (specs 001 y 002)
+cama = [256, 256, 256];     // [mm] X, Y, Z (Bambu Lab A1)
 margen_cama = 10;           // [mm] por lado
 
 // --- VALIDACIONES ---

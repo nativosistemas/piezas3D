@@ -42,6 +42,11 @@ caras sobre la cama tienen un chaflán de 0,6 mm que absorbe la "pata de elefant
 admite ≈ 1 %: si se imprime en PLA, bajar `saliente_reborde` a 0,35 mm antes de exportar
 (sección 4).
 
+> **Bambu Lab A1**: imprimir el PETG sobre la placa texturizada de PEI, que se despega sola al
+> enfriarse. En una placa lisa (PEI liso o Cool Plate SuperTack) el PETG se pega demasiado y puede
+> arrancar trozos de la superficie: usar laca o pegamento en barra como desmoldeante. En Bambu Studio
+> sirve el perfil "Generic PETG" o el de la marca del filamento. Al ser abierta, no conviene ABS ni ASA.
+
 ## 2. Ensamblaje y Lista de Materiales (BOM)
 
 ### Herrajes / Tornillería Requerida
