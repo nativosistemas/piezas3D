@@ -47,9 +47,11 @@ bastante menos (el laminador da el valor exacto).
     brim de 3 mm.
 * **Material Recomendado:** **PETG**, con boquilla a 230–245 °C, cama a 70–85 °C y ventilador al
   30–50 %. Resiste mejor que el PLA la deformación lenta bajo carga permanente (fluencia) y el calor
-  de un taller. En cama de PEI conviene usar laca o pegamento en barra como desmoldeante.
+  de un taller. En la Bambu Lab A1 conviene la placa texturizada de PEI, que se despega sola al
+  enfriarse; en una placa lisa (PEI liso o Cool Plate SuperTack) usar laca o pegamento en barra como
+  desmoldeante. En Bambu Studio sirve el perfil "Generic PETG" o el de la marca del filamento.
   * **Alternativa:** PLA, solo en interiores a temperatura ambiente y lejos del sol directo.
-  * **No recomendados:** TPU (flexible) y ABS (no aporta ventajas y exige cámara cerrada).
+  * **No recomendados:** TPU (flexible) y ABS (no aporta ventajas y exige cámara cerrada; la A1 es abierta).
 
 ## 2. Ensamblaje y Lista de Materiales (BOM)
 
