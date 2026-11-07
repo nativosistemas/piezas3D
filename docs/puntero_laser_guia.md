@@ -286,9 +286,18 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
 14. **Preparar el láser.** Antes de sacar la batería, fijarse hacia dónde apunta su **+** (en el 303
     suele ir hacia el cabezal). Desenroscar la tapa original y sacar la batería; guardar las dos para
     volver a usar el láser a mano (ver "Volver a la batería original").
-    - **Prueba del tubo**: con el multímetro en continuidad, medir entre la rosca trasera y el cuerpo
-      del cabezal. Debe dar < 1 Ω; si no, limar un punto de la rosca donde va a morder el prisionero.
-    - **Pila falsa**: crimpar o soldar un terminal de ojal M3 al hilo **rojo**. Meter la tuerca M3 por
+    - **Prueba del tubo**: el negativo llega al láser por el prisionero del ojal negro, que apoya en la
+      rosca trasera del tubo. Si el tubo es de aluminio anodizado o pintado, esa capa aísla. Con el
+      multímetro en continuidad, medir entre la rosca trasera y el cuerpo del cabezal: debe dar < 1 Ω.
+      Si da más, calzar la tapa impresa y marcar la rosca a través del agujero del prisionero que está
+      a 45° de la ventana. Sacar la tapa y raspar esa marca con una lima de aguja o una lija fina
+      hasta ver metal brillante, en un punto de 2–3 mm y sin comerse la rosca (la tapa original
+      tiene que volver a enroscar). Repetir la medición con la punta del multímetro en el punto
+      raspado.
+      ![Corte de la tapa trasera: el prisionero del negativo lleva el ojal del hilo negro y muerde el punto limado del tubo](img/puntero_laser_prisionero_negativo.svg)
+    - **Pila falsa**: preparar un terminal de ojal M3 para el hilo **rojo**: el terminal entero no entra en
+      la cara de la pila (su caño tocaría el tubo, que es el negativo), así que cortar el caño, dejar una
+      lengüeta de unos 3 mm desde el aro y soldar el hilo en la punta. Meter la tuerca M3 por
       la ranura lateral de la pila, poner el ojal sobre la cara delantera (la del "+") y apretar el
       tornillo M3 × 8 de cabeza alomada. Pasar el hilo por el agujero axial y sacarlo por la ranura de
       la cara trasera. Meter la pila en el tubo con la cabeza del tornillo hacia donde iba el + de la
@@ -302,15 +311,16 @@ Antes de empezar, retirar los restos de impresión de todos los alojamientos y p
     - **Grapa**: calzarla a presión sobre el tubo, delante de la tapa, con su ojal alineado con la
       ventana, y meter los 2 hilos a presión en el ojal. La grapa es el alivio de tensión: un tirón del
       cable no llega a los contactos.
-15. **Láser en la cuna.** Trabar el pulsador del láser en encendido. Si el pulsador es momentáneo (se
-    apaga al soltarlo), puentearlo con un hilo soldado, a través de la ventana del pulsador de la cuna.
-    Pasar el láser por la cuna con el cabezal hacia +Y (adelante), entrándolo **por el extremo
-    trasero de la cuna, cabezal primero**: la tapa trasera no pasa por la cuna y queda atrás. Si el
-    cabezal no pasa por la cuna, sacar la grapa y la tapa (aflojando los prisioneros, sin sacar la
-    pila falsa), entrar el láser cola primero por el extremo delantero y volver a ponerlas. Enhebrar los 2 hilos por los
-    3 puentes de la **canaleta** de la cuna (lado −X, abajo), desde el borde trasero hasta el muñón −X.
-    Pasarlos por el agujero del brazo cable dejando un **bucle de 40 mm** y bajarlos por el canal de la
-    cara exterior del brazo.
+15. **Láser en la cuna.**
+    - **Pulsador**: dejar el láser siempre encendido. Si el pulsador se apaga al soltarlo, puentearlo
+      con un hilo soldado, por la ventana del pulsador de la cuna.
+    - **Entrada**: meter el láser por el **extremo trasero** de la cuna, **cabezal primero** y
+      apuntando hacia +Y (adelante). La tapa trasera queda afuera, atrás.
+    - **Si el cabezal no pasa**: sacar la grapa y la tapa (aflojar los prisioneros; la pila falsa
+      queda adentro), entrar el láser cola primero por el extremo delantero y volver a ponerlas.
+    - **Cable**: pasar los 2 hilos por los 3 puentes de la **canaleta** (lado −X, abajo) hasta el
+      muñón −X, luego por el agujero del brazo cable dejando un **bucle de 40 mm**, y bajarlos por el
+      canal exterior del brazo.
 16. **Electrónica.** Armar y probar la **barra de distribución** en el banco (sección 5.4). Encajar las
     placas en sus soportes (lado +X): los 2 ULN2003, el **regulador** (en el tercer soporte de la misma
     columna), la **barra** (en el soporte angosto al lado del regulador, con los pines hacia arriba y
@@ -595,6 +605,7 @@ están en `specs/002-puntero-laser-estelar/quickstart.md`, escenario 2, y en
 | V-27 | `pines_barra=…: la barra necesita al menos` | Faltan pines para los 5 destinos y la reserva | Usar al menos 6 pines por tira |
 | V-28 | `barra_largo=` o `barra_ancho=…: la placa no tiene lugar` | El trozo de placa perforada es chico para los pines, la entrada y las esquinas libres | Cortar un trozo más grande (3 × (pines + 4) agujeros) |
 | V-29 | `barra_ancho=…: la barra no entra al lado del regulador` | La barra no cabe en la columna de los ULN2003 junto al regulador | Placa más angosta (3 agujeros) o un regulador más chico |
+| V-30 | `…: el ojal del contacto positivo no entra en la cara de la pila falsa` | El aro del terminal de ojal y su lengüeta no caben en la cara delantera de la pila | Usar un terminal de aro más chico o recortar más la lengüeta |
 | — | `altura_placas=…, largo_dupont=…: la tapa (… mm) toca el carro o el motor de altura` | Los conectores hacen crecer la tapa hasta el carro del motor de altura | Conectores más cortos o a 90° |
 | Aviso | `AVISO: alto_brazo=` | El brazo supera 131 mm | Repetir el cálculo de flexión (sección 3.6) |
 

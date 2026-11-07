@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="380" viewBox="0 0 680 380" role="img">
+<title>Corte de la tapa trasera del láser: prisionero del negativo</title>
+<desc>Corte transversal del tubo del láser con la tapa trasera impresa. Arriba, el prisionero del negativo atraviesa la tapa y su punta cónica muerde un punto limado del tubo; sobre la tapa lleva el ojal del hilo negro apretado con una tuerca. Abajo, el prisionero opuesto con contratuerca. A 45°, la ventana del hilo rojo.</desc>
+<style>
+text { font-family: system-ui, "Segoe UI", sans-serif; font-size: 12px; fill: #3d3d3a; }
+text.th { font-size: 14px; font-weight: 500; fill: #1f1e1d; }
+line.leader { stroke: #73726c; stroke-width: 0.5; stroke-dasharray: 3 3; }
+circle.punto { fill: #73726c; }
+</style>
+<rect width="680" height="380" fill="#ffffff"/>
+<path fill-rule="evenodd" fill="#5DCAA5" stroke="#0F6E56" stroke-width="0.5" d="M136 220a84 84 0 1 0 168 0a84 84 0 1 0 -168 0ZM150 220a70 70 0 1 0 140 0a70 70 0 1 0 -140 0Z"/>
+<rect x="208" y="126" width="24" height="14" fill="#5DCAA5" stroke="#0F6E56" stroke-width="0.5"/>
+<rect x="208" y="300" width="24" height="14" fill="#5DCAA5" stroke="#0F6E56" stroke-width="0.5"/>
+<path fill-rule="evenodd" fill="#B4B2A9" d="M150 220a70 70 0 1 0 140 0a70 70 0 1 0 -140 0ZM160 220a60 60 0 1 0 120 0a60 60 0 1 0 -120 0Z"/>
+<circle cx="220" cy="220" r="70" fill="none" stroke="#2C2C2A" stroke-width="3"/>
+<path d="M211 150.6A70 70 0 0 1 229 150.6" fill="none" stroke="#F1EFE8" stroke-width="4"/>
+<g transform="translate(220 220) rotate(-45)"><rect x="-6" y="-85" width="12" height="16" fill="#2C2C2A"/></g>
+<rect x="216" y="92" width="8" height="57" fill="#888780" stroke="#444441" stroke-width="0.5"/>
+<polygon points="216,149 224,149 220,156" fill="#888780" stroke="#444441" stroke-width="0.5"/>
+<rect x="203" y="120" width="34" height="5" rx="2" fill="#BA7517"/>
+<rect x="209" y="109" width="22" height="11" fill="#5F5E5A"/>
+<path d="M203 122Q176 122 169 95L166 58" fill="none" stroke="#2C2C2A" stroke-width="4" stroke-linecap="round"/>
+<rect x="216" y="291" width="8" height="57" fill="#888780" stroke="#444441" stroke-width="0.5"/>
+<polygon points="216,291 224,291 220,284" fill="#888780" stroke="#444441" stroke-width="0.5"/>
+<rect x="209" y="314" width="22" height="11" fill="#5F5E5A"/>
+<text x="220" y="224" text-anchor="middle">pila falsa</text>
+<text x="166" y="44" text-anchor="middle">al regulador (OUT−)</text>
+<line class="leader" x1="130" y1="158" x2="156" y2="159"/>
+<text x="40" y="152">Ventana del</text>
+<text x="40" y="168">hilo rojo (+)</text>
+<line class="leader" x1="224" y1="96" x2="424" y2="76"/><circle class="punto" cx="224" cy="96" r="2"/>
+<text class="th" x="430" y="80">Prisionero del negativo</text>
+<line class="leader" x1="231" y1="114" x2="424" y2="106"/><circle class="punto" cx="231" cy="114" r="2"/>
+<text x="430" y="110">Tuerca M3: aprieta el ojal</text>
+<line class="leader" x1="237" y1="123" x2="424" y2="136"/><circle class="punto" cx="237" cy="123" r="2"/>
+<text x="430" y="140">Ojal del hilo negro</text>
+<line class="leader" x1="228" y1="152" x2="424" y2="171"/><circle class="punto" cx="228" cy="152" r="2"/>
+<text class="th" x="430" y="175">Punto limado (metal desnudo)</text>
+<line class="leader" x1="300" y1="215" x2="424" y2="211"/><circle class="punto" cx="300" cy="215" r="2"/>
+<text x="430" y="215">Tapa trasera impresa</text>
+<line class="leader" x1="283" y1="240" x2="424" y2="251"/><circle class="punto" cx="283" cy="240" r="2"/>
+<text x="430" y="255">Tubo del láser (cuerpo = −)</text>
+<line class="leader" x1="281" y1="255" x2="424" y2="281"/><circle class="punto" cx="281" cy="255" r="2"/>
+<text x="430" y="285">Anodizado o pintura (aísla)</text>
+<line class="leader" x1="231" y1="320" x2="424" y2="326"/><circle class="punto" cx="231" cy="320" r="2"/>
+<text x="430" y="330">Prisionero opuesto + contratuerca</text>
+</svg>

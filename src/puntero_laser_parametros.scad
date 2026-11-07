@@ -3,7 +3,7 @@
 // Componente: Parámetros compartidos
 // Descripción: Medidas compartidas por todas las piezas del puntero láser motorizado alt-az:
 //              parámetros editables, constantes de componentes estándar, valores derivados,
-//              reglas de validación (V-01…V-25, V-27…V-29) y módulos utilitarios (dentado GT2, etc.).
+//              reglas de validación (V-01…V-25, V-27…V-30) y módulos utilitarios (dentado GT2, etc.).
 //              Desde la 006, el láser va sin batería: lo alimenta el power bank a través de una pila
 //              falsa y una tapa trasera impresa con lastre.
 //              No dibuja nada; al renderizarlo solo imprime los derivados con echo.
@@ -372,6 +372,9 @@ iso7380_m3_cabeza_d = 5.7;     // tornillo M3 × 8 de cabeza alomada (contacto +
 iso7380_m3_cabeza_alto = 1.65;
 largo_tornillo_contacto = 8;
 espesor_ojal = 0.8;            // terminal de ojal M3
+d_ext_ojal = 6;                // aro del terminal de ojal M3 (013, research R3)
+d_int_ojal = 3.2;
+ancho_lengueta_ojal = 3;       // el caño del terminal se corta y el hilo rojo se suelda en la lengüeta
 compresion_resorte = 2;        // compresión del resorte del cabezal con la pila falsa puesta
 pared_min_tubo_laser = 0.5;    // pared del tubo de aluminio del láser alrededor del hueco de la batería
 d_hilo = 1.3;                  // hilo de silicona de 26 AWG
@@ -972,6 +975,9 @@ assert(diametro_hueco_bateria + 2*pared_min_tubo_laser <= diametro_zona_tapa,
 assert(d_pila_falsa/2 - descentrado_hilo_pila - d_paso_hilo/2 >= espesor_min_pared
        && descentrado_hilo_pila - d_paso_hilo/2 >= r_esquina_tuerca_contacto + 0.4,
     str("diametro_hueco_bateria=", diametro_hueco_bateria, ": la pila falsa es muy fina para el paso del hilo"));
+// V-30 (013): el ojal del contacto positivo, con su lengüeta hasta el agujero del hilo, entra en la cara de la pila
+assert(descentrado_hilo_pila + ancho_lengueta_ojal/2 <= d_pila_falsa/2 - 0.5 && d_ext_ojal/2 <= d_pila_falsa/2 - 0.5,
+    str("diametro_hueco_bateria=", diametro_hueco_bateria, ": el ojal del contacto positivo no entra en la cara de la pila falsa"));
 assert(tuercas_lastre_tapa == 0 || r_funda_int - r_esquina_lastre >= 1,
     str("tuercas_lastre_tapa=", tuercas_lastre_tapa, ": las tuercas M10 de lastre no dejan escalón para el borde del tubo de ",
         diametro_zona_tapa, " mm"));

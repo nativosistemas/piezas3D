@@ -75,8 +75,12 @@
   .cables { margin: 0; padding: 0; list-style: none; font-size: 13px; }
   .cables .grupo-cables { font-weight: 600; margin-top: 8px; color: var(--texto); }
   .cables ul { list-style: none; padding: 0; margin: 2px 0 0; font-weight: 400; color: var(--suave); }
-  .cables li[data-c] { display: flex; gap: 6px; align-items: center; border-radius: 6px; padding: 1px 4px; cursor: default; }
-  .cables li[data-c]:hover, .cables li[data-c]:focus { background: #eef5f2; color: var(--texto); outline: none; }
+  .cables li[data-c], .cables li[data-m] { display: flex; gap: 6px; align-items: center; border-radius: 6px; padding: 1px 4px; cursor: default; }
+  .cables li[data-c]:hover, .cables li[data-c]:focus,
+  .cables li[data-m]:hover, .cables li[data-m]:focus { background: #eef5f2; color: var(--texto); outline: none; }
+  .circuitos[hidden], #panel-circuito[hidden] { display: none; }
+  .circuitos button[aria-pressed=true] { background: var(--acento); border-color: var(--acento); color: #fff; }
+  #panel-circuito { display: flex; flex-direction: column; gap: 8px; }
   .muestra { display: inline-flex; flex: none; width: 18px; height: 10px; border: 1px solid var(--borde);
              border-radius: 2px; overflow: hidden; }
   .muestra span { flex: 1; }
@@ -148,7 +152,12 @@
     <div class="panel" id="panel-cableado" hidden>
       <h1>Cableado</h1>
       <p class="texto">Cada cable de pin a pin. +5 V en rojo, GND en negro; las señales, en colores.</p>
+      <div class="controles circuitos" id="circuitos" hidden></div>
       <label class="casilla"><input type="checkbox" id="atenuar" checked> Atenuar las piezas</label>
+      <div id="panel-circuito" hidden>
+        <p class="texto" id="descripcion-circuito"></p>
+        <ul class="cables" id="miembros-circuito"></ul>
+      </div>
       <ul class="cables" id="cables"></ul>
       <button id="inicial-cab">Vista inicial</button>
       <p class="leyenda">Los recorridos son orientativos: muestran por dónde pasa cada cable, no su forma exacta.
@@ -338,7 +347,7 @@ function soltar() {
   for (const m of senaladas) for (const mat of materiales(m)) {
     mat.emissive.setRGB(0, 0, 0);
     mat.emissiveIntensity = 1;
-    if (mat.transparent) mat.opacity = ALFA_ARMADO;
+    if (mat.transparent) mat.opacity = mat.userData.alfa ?? ALFA_ARMADO;
   }
   senalada = null;
   senaladas = [];
@@ -510,7 +519,7 @@ addEventListener("keydown", e => {
   if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
   if (modo === "funcionamiento") return teclaFuncionamiento(e);
   if (modo === "cableado") {
-    if (e.key === "Home") { vistaCableado(); e.preventDefault(); }
+    if (e.key === "Home") { vistaCableadoActual(); e.preventDefault(); }
     return;
   }
   if (e.key === "ArrowRight") mostrarPaso(indice + 1);
@@ -955,8 +964,57 @@ function atenuarPiezas() {
     m.material.transparent = !opaca;
     m.material.opacity = opaca ? 1 : ALFA_ARMADO;
     m.material.depthWrite = opaca;
+    m.material.userData.alfa = m.material.opacity;
     m.material.needsUpdate = true;
   }
+}
+
+// --- Circuitos: un botón por recorrido eléctrico (specs/013-circuito-laser) ---
+// Con un circuito activo, sus miembros conservan el color (translúcidos los que contienen a otros) y todo lo demás
+// queda gris y casi invisible. Al soltarlo, cada malla vuelve a su color y se aplica de nuevo "Atenuar las piezas".
+const ALFA_TRANSLUCIDO = 0.25, ALFA_FUERA = 0.08, GRIS_FUERA = new THREE.Color("#b8bcc2");
+let circuito = null;
+const mallasDeMiembro = m => mallasDeCable[m] ?? piezasCab.filter(p => p.userData.elemento === m);
+const nombreMiembro = m => cablePorId[m]?.nombre ?? nombreDe(m);
+const muestraMiembro = m => cablePorId[m] ? muestra(cablePorId[m])
+  : `<span class="muestra"><span style="background:${escapar(DATOS.elementos[m].color.toLowerCase())}"></span></span>`;
+function aspecto(m, color, alfa) {
+  const mat = m.material;
+  mat.color.copy(color);
+  mat.transparent = alfa < 1;
+  mat.opacity = alfa;
+  mat.depthWrite = alfa === 1;
+  mat.userData.alfa = alfa;
+  mat.needsUpdate = true;
+}
+function vistaCircuito() {
+  const caja = new THREE.Box3();
+  for (const e of circuito.encuadre) for (const m of mallasDeMiembro(e)) caja.union(new THREE.Box3().setFromObject(m));
+  encuadrar(caja, direccionCableado);
+}
+const vistaCableadoActual = () => circuito ? vistaCircuito() : vistaCableado();
+function activarCircuito(id) {
+  soltar();
+  circuito = (CAB.circuitos ?? []).find(k => k.id === id) ?? null;
+  for (const b of $("circuitos").children) b.setAttribute("aria-pressed", b.dataset.k === circuito?.id);
+  $("panel-circuito").hidden = !circuito;
+  $("cables").hidden = !!circuito;
+  $("atenuar").disabled = !!circuito;
+  for (const m of mallasCab) m.userData.color ??= m.material.color.clone();
+  if (!circuito) {
+    for (const m of mallasCab) aspecto(m, m.userData.color, 1);
+    atenuarPiezas();
+    return;
+  }
+  const miembros = circuito.grupos.flatMap(g => g.miembros);
+  const dentro = new Set(miembros.flatMap(mallasDeMiembro)), translucidas = new Set(circuito.translucidos.flatMap(mallasDeMiembro));
+  for (const m of mallasCab)
+    aspecto(m, dentro.has(m) ? m.userData.color : GRIS_FUERA, translucidas.has(m) ? ALFA_TRANSLUCIDO : dentro.has(m) ? 1 : ALFA_FUERA);
+  $("descripcion-circuito").textContent = circuito.descripcion;
+  $("miembros-circuito").innerHTML = circuito.grupos.map(g => `<li class="grupo-cables">${escapar(g.titulo)}<ul>` +
+    g.miembros.map(m => `<li tabindex="0" data-m="${escapar(m)}">${muestraMiembro(m)}${escapar(nombreMiembro(m))}</li>`).join("")
+    + `</ul></li>`).join("");
+  vistaCircuito();
 }
 
 const muestra = c => `<span class="muestra">` + (c.hilos.length ? c.hilos : [DATOS.elementos[c.elemento].color])
@@ -983,7 +1041,24 @@ if (CAB) {
   for (const tipo of ["pointerout", "focusout"])
     $("cables").addEventListener(tipo, ev => { if (renglonCable(ev)) soltar(); });
   $("atenuar").onchange = atenuarPiezas;
-  $("inicial-cab").onclick = vistaCableado;
+  $("inicial-cab").onclick = vistaCableadoActual;
+  if (CAB.circuitos) {
+    $("circuitos").hidden = false;
+    $("circuitos").innerHTML = CAB.circuitos.map(k =>
+      `<button type="button" data-k="${escapar(k.id)}" aria-pressed="false">${escapar(k.nombre)}</button>`).join("");
+    $("circuitos").onclick = ev => {
+      const b = ev.target.closest?.("button[data-k]");
+      if (b) activarCircuito(circuito?.id === b.dataset.k ? null : b.dataset.k);
+    };
+    const renglonMiembro = ev => ev.target.closest?.("li[data-m]");
+    for (const tipo of ["pointerover", "focusin", "click"])
+      $("miembros-circuito").addEventListener(tipo, ev => {
+        const li = renglonMiembro(ev);
+        if (li) resaltar(mallasDeMiembro(li.dataset.m)[0]);
+      });
+    for (const tipo of ["pointerout", "focusout"])
+      $("miembros-circuito").addEventListener(tipo, ev => { if (renglonMiembro(ev)) soltar(); });
+  }
 }
 
 // Pestañas: aparecen si hay otro modo además del armado; cada una, si su modo existe
@@ -996,6 +1071,8 @@ if (SIM || CAB) {
 
 // Modo inicial: #cableado o ?modo=cableado
 if (CAB && (consulta.get("modo") === "cableado" || location.hash === "#cableado")) cambiarModo("cableado");
+// Circuito inicial: ?modo=cableado&circuito=<id> (013)
+if (CAB && modo === "cableado" && consulta.has("circuito")) activarCircuito(consulta.get("circuito"));
 
 // Modo inicial: #funcionamiento o ?modo=funcionamiento&<articulación>=<grados>&<emisor>=1&auto=1&vel=N
 if (SIM && (consulta.get("modo") === "funcionamiento" || location.hash === "#funcionamiento")) {

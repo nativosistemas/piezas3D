@@ -122,6 +122,15 @@ ensamblaje comprobó choques y largos. Capturar con `?modo=cableado&senalar=<cab
 - La tapa transparente y, con "Atenuar las piezas", las piezas impresas también.
 - Cambiar una conexión en la guía obliga a cambiar el ensamblaje: si no, la generación falla.
 
+**Circuitos** (si el ensamblaje declara `circuitos`; skill `disenio-multipieza`, sección 4, punto 11).
+Capturar con `?modo=cableado&circuito=<id>` (p. ej. `?modo=cableado&circuito=laser`) y, para la
+etiqueta de una pieza, sumar `&senalar=<elemento>`. Revisar:
+
+- El botón presionado, la descripción y la lista con sus grupos en el orden del recorrido.
+- Los miembros en color; los translúcidos dejan ver lo de adentro; lo demás casi invisible.
+- La vista inicial encuadra la zona del `encuadre`.
+- Soltar el botón y volver, y señalar los renglones, se le piden al usuario en su navegador.
+
 Revisar la página en un navegador. Captura sin abrir ventanas (fuera del sandbox, con el Edge de
 Windows):
 
