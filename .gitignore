@@ -5,8 +5,19 @@
 # Sistema operativo y editores
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
+.idea
+.vscode
+
+# Archivos vacíos que deja el sandbox de Claude Code en la raíz
+/.bash_profile
+/.bashrc
+/.profile
+/.zprofile
+/.zshrc
+/.gitconfig
+/.gitmodules
+/.ripgreprc
+/.mcp.json
 
 # Copias de seguridad de FreeCAD y OpenSCAD
 *.FCBak
