@@ -7,7 +7,9 @@
 //              con su pila falsa, tapa trasera, lastre, grapa y cable, interruptor y resistencia del relé)
 //              y comprueba con asserts los choques y alineaciones que no se pueden ver en una pieza sola
 //              (V-07, V-09 y separaciones entre piezas). Declara los 26 cables de la electrónica de pin a
-//              pin y comprueba que no atraviesen nada y que el cable comprado alcance (011). Las vistas
+//              pin y comprueba que no atraviesen nada y que el cable comprado alcance (011). Dibuja los
+//              contactos del láser (tornillo, prisioneros, tuercas, ojales y el final de los hilos) y declara
+//              el circuito que el visor muestra con un botón en el modo Cableado (013). Las vistas
 //              explotadas y los datos del visor 3D salen de la tabla de pasos con la biblioteca común
 //              armado_comun.scad.
 // ==========================================
@@ -42,6 +44,7 @@ ver_cables = false;
 /* [Hidden] */
 z_sup = z_plataforma_sup;
 z_eje_motor_alt = z_eje_altura - distancia_centros;
+largo_tornillo_tensor = 16;   // M3 × 16 de los topes tensores (guía, sección 3.2)
 grosor_correa = 1.4;
 // Brazo del motor: X de impresión → Y, Y de impresión → Z, Z de impresión → +X
 matriz_brazo_motor = [[0, 0, 1, semiancho_interior_horquilla], [1, 0, 0, 0], [0, 1, 0, z_sup], [0, 0, 0, 1]];
@@ -62,8 +65,29 @@ r_cable_canaleta = radio_exterior_cuna + sobre_anillo_colim - prof_canaleta + d_
 r_cable_grapa = diametro_laser/2 - holgura("presion") + pared_grapa + d_hilo + 0.1;
 y_fin_canaleta = -d_munon/2 - 2;
 x_cara_int_brazo_cable = -semiancho_interior_horquilla;
+// Contactos del láser (013, research R2). En el sistema de la tapa trasera: ángulo de cada prisionero y radio de
+// su punta (muerde la rosca del tubo) y de la cara de su resalte (donde apoyan el ojal o la contratuerca)
+angulo_prisionero_neg = angulo_cable + desfase_prisionero_tapa;
+angulo_prisionero_fij = angulo_prisionero_neg + 180;
+y_prisioneros = -l_trasero + z_prisioneros_tapa;
+r_punta_prisionero = r_funda_int - holgura("deslizante");
+r_cara_resalte = r_funda_ext + espesor_resalte_prisionero;
+largo_punta_prisionero = 1.5;  // punta cónica del DIN 914
+// Pila falsa: cara delantera (ojal y cabeza del tornillo); el vástago pasa el ojal y entra en la pila
+y_cara_pila = y_borde_tubo + largo_pila_falsa;
+// Hilo rojo: bajo el borde del tubo por la ranura del escalón y sobre la cara trasera de la pila por su ranura
+y_hilo_escalon = y_borde_tubo - prof_ranura_cable/2;
+y_hilo_pila = y_borde_tubo + prof_ranura_cable/2;
+// Hilo negro: llega al ojal del negativo de costado; la lengüeta asoma del resalte hacia el lado del cable
+largo_lengueta_negativo = ancho_resalte_prisionero/2 + d_hilo;
+r_hilo_negro = r_funda_ext + d_hilo/2 + 0.2;
+desvio_hilo_negro = asin((ancho_resalte_prisionero/2 + d_hilo)/r_hilo_negro);   // ángulo libre junto al resalte
 // Punto del cable a angulo_cable, a radio r del eje del láser y a y del eje de altura
 function punto_cable(r, y) = [r*cos(angulo_cable), y, -r*sin(angulo_cable)];
+// Punto a radio r del eje del láser, en el ángulo a del sistema de la tapa (y de la pila) y a y del eje de altura
+function punto_tapa(r, a, y) = [r*cos(a), y, -r*sin(a)];
+// Dirección de giro creciente en el ángulo a del sistema de la tapa
+function tangente_tapa(a) = [-sin(a), 0, -cos(a)];
 // Punto del sistema del láser pasado al conjunto con el láser a "a" grados
 function en_conjunto(p, a) = [p[0], p[1]*cos(a) - p[2]*sin(a), p[1]*sin(a) + p[2]*cos(a) + z_eje_altura];
 y_orejas_tapa = [y_tapa0 - largo_oreja_tapa/2, y_tapa1 + largo_oreja_tapa/2];
@@ -166,10 +190,35 @@ color_flecha = "OrangeRed";
 diametro_flecha = 2.4;
 // Dirección del láser al entrar en la cuna (desde atrás, a lo largo de su eje)
 v_laser = [0, -cos(angulo_altura), -sin(angulo_altura)];
+// Dirección radial del ángulo a de la tapa, en el conjunto (los prisioneros entran por ahí)
+function radial(a) = en_conjunto([cos(a), 0, -sin(a)], angulo_altura) - [0, 0, z_eje_altura];
+// Hilos de los contactos (013): rojo de la ventana al ojal, por dentro de la pila; negro de la ventana al ojal
+// del prisionero del negativo, por fuera de la tapa
+hilo_rojo_puntos = [punto_cable(r_funda_ext + d_hilo, y_borde_tubo), punto_cable(r_funda_ext + d_hilo, y_hilo_escalon),
+                    punto_cable(diametro_hueco_bateria/2, y_hilo_escalon), punto_cable(d_pila_falsa/2, y_hilo_pila),
+                    punto_cable(descentrado_hilo_pila, y_hilo_pila),
+                    punto_cable(descentrado_hilo_pila, y_cara_pila + espesor_ojal + d_hilo/2)];
+hilo_negro_puntos = concat(
+    [punto_cable(r_funda_ext + d_hilo, y_borde_tubo), punto_tapa(r_hilo_negro, angulo_cable, y_prisioneros)],
+    [for (a = [angulo_cable + 10:10:angulo_prisionero_neg - desvio_hilo_negro]) punto_tapa(r_hilo_negro, a, y_prisioneros)],
+    [punto_tapa(r_hilo_negro, angulo_prisionero_neg - desvio_hilo_negro, y_prisioneros),
+     punto_tapa(r_cara_resalte + espesor_ojal + d_hilo/2, angulo_prisionero_neg, y_prisioneros)
+         - largo_lengueta_negativo*tangente_tapa(angulo_prisionero_neg)]);
 // La polea y su perno se enroscan en la tuerca del muñón +X: dos vueltas alrededor del eje de altura
 // (solo el visor 3D muestra el giro)
 giro_enroscar = [[0, 0, z_eje_altura], [1, 0, 0], 720];
 giro_enroscar_cable = [[0, 0, z_eje_altura], [1, 0, 0], -720];   // el perno del lado cable entra hacia +X
+// Tornillos tensores: entran por el tope hasta la cara del carro más cercana al eje conducido
+punta_tensor_az = [0, distancia_centros + carro_x_min, z_sup + espesor_carro/2];   // avanza hacia +Y
+punta_tensor_alt = [x_cara_int_carro_alt + espesor_carro/2, 0, z_eje_motor_alt - carro_x_min];   // avanza hacia −Z
+giro_tensor_az = [punta_tensor_az, [0, 1, 0], -720];
+giro_tensor_alt = [punta_tensor_alt, [0, 0, 1], 720];
+
+// Piezas de los contactos del láser (013): las del positivo se arman en la pila antes de meterla; la tuerca, el
+// ojal y el hilo del negativo van sobre el prisionero del negativo
+contacto_positivo = ["tornillo_contacto", "tuerca_contacto", "ojal_positivo", "hilo_rojo_pila"];
+contacto_negativo = ["tuerca_negativo", "ojal_negativo", "hilo_negro_tapa"];
+piezas_contactos = concat(contacto_positivo, ["prisionero_negativo", "prisionero_fijacion"], contacto_negativo);
 
 // Pasos de armado de la guía (docs/puntero_laser_guia.md, sección 2): por cada paso, la lista de
 // [elemento, desplazamiento de la vista explotada, resaltar, origen (opcional), giro (opcional)]
@@ -222,15 +271,21 @@ pasos = [
                     [["arandela_sup", [0, 0, 45], true], ["perno_az", [0, 0, 150], true],
                      ["separador", [0, -60, 0], true], ["arandela_inf", [0, -80, 0], true],
                      ["autoblocante_az", [0, -100, 0], true]]),
-    /* 12 */ [["correa_az", [0, 0, -30], true]],
+    /* 12 */ [["correa_az", [0, 0, -30], true], ["tornillo_tensor_az", [0, -25, 0], true, undef, giro_tensor_az]],
     /* 13 */ [["carro_alt", [45, 0, 0], true], ["motor_alt", [45, 0, 0], true], ["tornillos_orejas_alt", [45, 0, 0], false],
-              ["tornillos_carro_alt", [80, 0, 0], true], ["polea20_alt", [65, 0, 0], true], ["correa_alt", [25, 0, 0], true]],
+              ["tornillos_carro_alt", [80, 0, 0], true], ["polea20_alt", [65, 0, 0], true], ["correa_alt", [25, 0, 0], true],
+              ["tornillo_tensor_alt", [0, 0, 25], true, undef, giro_tensor_alt]],
     /* 14 */ concat([["laser", [0, 0, 0], false], ["pila_falsa", 120*v_laser, true]],
+                    [for (e = contacto_positivo) [e, 120*v_laser, true]],
                     con_lastre ? [["lastre", 90*v_laser, true]] : [],
-                    [["tapa_trasera", 60*v_laser, true], ["grapa", [0, 0, 35], true]]),
+                    [["tapa_trasera", 60*v_laser, true],
+                     ["prisionero_negativo", 60*v_laser + 20*radial(angulo_prisionero_neg), true],
+                     ["prisionero_fijacion", 60*v_laser + 20*radial(angulo_prisionero_fij), true]],
+                    [for (e = contacto_negativo) [e, 60*v_laser + 30*radial(angulo_prisionero_neg), true]],
+                    [["grapa", [0, 0, 35], true]]),
     /* 15 */ concat([["laser", 150*v_laser, true]],
-                    [for (e = ["pila_falsa", "lastre", "tapa_trasera", "grapa"]) if (e != "lastre" || con_lastre)
-                        [e, 150*v_laser, false]]),
+                    [for (e = concat(["pila_falsa", "lastre", "tapa_trasera", "grapa"], piezas_contactos))
+                        if (e != "lastre" || con_lastre) [e, 150*v_laser, false]]),
     /* 16 */ concat([for (e = placas) [e, [0, 0, 70], true]],
                     [["regulador", [0, 0, 150], true], ["powerbank", [0, 0, 100], true],
                      ["interruptor", [0, 0, 70], true], ["resistencia_rele", [0, 0, 70], true]]),
@@ -247,6 +302,8 @@ assert(abs(z_centro_dentado_base - z_dientes_polea20_az) <= 0.5,
 assert(abs(plano_correa_altura - x_dientes_polea20_alt) <= 0.5,
     str("alto_pilar_motor: plano de la correa de altura desalineado ", plano_correa_altura - x_dientes_polea20_alt, " mm"));
 // Separaciones entre piezas
+assert(largo_tornillo_tensor >= r_carro_int + recorrido_tensor - r_tope_int,
+    str("largo_tornillo_tensor: el M3 × ", largo_tornillo_tensor, " no alcanza el carro en todo su recorrido"));
 assert(holgura_munon_brazo > 0 && alto_arandela_contacto > 1,
     "holgura_encastre: el muñón toca el brazo o la plataforma toca la base");
 assert(altura_eje - distancia_centros - carro_x_max - recorrido_tensor > espesor_carro + motor_alto_cuerpo + holgura_zonas,
@@ -290,6 +347,16 @@ for (a = [0:paso_escala:angulo_escala_max])
 if (angulo_escala_max % paso_escala != 0)
     echo(str("AVISO: paso_escala=", paso_escala, ": la última raya queda en ",
              angulo_escala_max - angulo_escala_max % paso_escala, "°, no en ", angulo_escala_max, "°"));
+// K-01…K-03 (013): contactos del láser. El vástago del tornillo pasa la tuerca sin salir por la cara trasera de
+// la pila; la cabeza llega al resorte comprimido; el prisionero alcanza para el ojal y la tuerca sobre el resalte.
+assert(largo_tornillo_contacto - espesor_ojal >= prof_tuerca_contacto + m3_tuerca_alto
+       && largo_tornillo_contacto - espesor_ojal < largo_pila_falsa - prof_ranura_cable,
+    str("largo_tornillo_contacto=", largo_tornillo_contacto, ": el tornillo del contacto positivo no pasa la tuerca o sale por",
+        " la cara trasera de la pila"));
+assert(abs(y_cara_pila + espesor_ojal + iso7380_m3_cabeza_alto - (y_borde_tubo + profundidad_hueco_bateria + compresion_resorte)) < 0.01,
+    "largo_pila_falsa: la cabeza del tornillo no llega al resorte del cabezal comprimido");
+assert(r_punta_prisionero + largo_prisionero_tapa >= r_cara_resalte + espesor_ojal + m3_tuerca_alto,
+    str("largo_prisionero_tapa=", largo_prisionero_tapa, ": el prisionero del negativo no alcanza para el ojal y la tuerca"));
 // Tabla de pasos: un paso por cada instrucción de la guía (los elementos los comprueba armado())
 assert(len(pasos) == 19, "pasos: la guía tiene 19 pasos de armado");
 
@@ -320,8 +387,11 @@ elementos = ["base", "plataforma", "brazo_motor", "brazo_cable", "cuna", "polea_
              "perno_az", "autoblocante_az", "tuerca_munon", "perno_alt_motor", "tuerca_munon_cable", "perno_alt_cable",
              "motor_az", "motor_alt", "polea20_az", "polea20_alt", "correa_az", "correa_alt",
              "tornillos_pie", "tuercas_pie_motor", "tuercas_pie_cable", "tornillos_carro_az", "tuercas_carro_az",
-             "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillos_tapa", "tuercas_tapa",
+             "tornillos_orejas_az", "tornillos_orejas_alt", "tornillos_carro_alt", "tornillo_tensor_az",
+             "tornillo_tensor_alt", "tornillos_tapa", "tuercas_tapa",
              "placa_uln_alt", "placa_uln_az", "placa_esp32", "placa_rele", "barra", "powerbank", "laser", "pila_falsa", "lastre", "tapa_trasera", "grapa", "regulador",
+             "tornillo_contacto", "tuerca_contacto", "ojal_positivo", "hilo_rojo_pila", "prisionero_negativo",
+             "tuerca_negativo", "ojal_negativo", "hilo_negro_tapa", "prisionero_fijacion",
              "interruptor", "resistencia_rele", "enchufe_usb", "cable_laser", "conectores",
              "disco_escala", "tornillos_disco"];
 
@@ -376,6 +446,8 @@ nombres_elementos = [
     ["tornillos_orejas_az", "Tornillo M3 × 8 mm: orejas del motor de azimut (2)", "comprada"],
     ["tornillos_orejas_alt", "Tornillo M3 × 8 mm: orejas del motor de altura (2)", "comprada"],
     ["tornillos_carro_alt", "Tornillo M3 × 12 mm: carro de altura (2)",   "comprada"],
+    ["tornillo_tensor_az", "Tornillo M3 × 16 mm: tensor de azimut, autorroscante en el tope", "comprada"],
+    ["tornillo_tensor_alt", "Tornillo M3 × 16 mm: tensor de altura, autorroscante en el tope", "comprada"],
     ["tornillos_disco", "Tornillo M3 × 8 mm + arandela: disco de la escala (2)", "comprada"],
     ["tornillos_tapa",  "Tornillo M3 × 10 mm: tapa (2)",                  "comprada"],
     ["tuercas_tapa",    "Tuerca M3: tapa (2)",                            "comprada"],
@@ -392,6 +464,16 @@ nombres_elementos = [
     ["powerbank",       "Power bank USB de 5 V y ≥ 2 A",                  "comprada"],
     ["laser",           "Puntero láser verde \"303\" (sin su batería)",   "comprada"],
     ["cable_laser",     "Cable de silicona de 2 × 26 AWG (regulador → láser)", "comprada"],
+    // Contactos del láser (013)
+    ["tornillo_contacto", "Tornillo M3 × 8 mm cabeza alomada (ISO 7380): contacto positivo de la pila falsa", "comprada"],
+    ["tuerca_contacto", "Tuerca M3 del contacto positivo (embutida en la pila falsa)", "comprada"],
+    ["ojal_positivo",   "Terminal de ojal M3 del hilo rojo, bajo la cabeza del tornillo", "comprada"],
+    ["hilo_rojo_pila",  "Hilo rojo (+): de la ventana de la tapa al ojal, por dentro de la pila falsa", "comprada"],
+    ["prisionero_negativo", "Prisionero M3 × 12 mm punta cónica (DIN 914): contacto negativo, muerde la rosca del tubo", "comprada"],
+    ["tuerca_negativo", "Tuerca M3 que aprieta el ojal del hilo negro", "comprada"],
+    ["ojal_negativo",   "Terminal de ojal M3 del hilo negro, en el prisionero del negativo", "comprada"],
+    ["hilo_negro_tapa", "Hilo negro (−): de la salida del cable al ojal del prisionero", "comprada"],
+    ["prisionero_fijacion", "Prisionero M3 × 12 mm punta cónica + contratuerca M3: fijación de la tapa trasera", "comprada"],
     ["conectores",      "Cables Dupont y enchufes (espacio reservado)",   "comprada"]];
 
 // --- CABLEADO (modo Cableado del visor 3D) ---
@@ -605,6 +687,25 @@ cables = [
     ["hilos_laser", "Regulador OUT±", "Láser (pila falsa y tapa trasera)", "señal", "motores_laser", ["Red", "Black"], d_hilo,
      recorrido_hilos_laser, ["soldadura", "pila_falsa"], undef, "cable_laser"]];
 
+// Circuito del láser (013): un botón del modo Cableado que deja a la vista todo el camino de la energía, del power
+// bank al láser. Contrato: specs/013-circuito-laser/contracts/ensamblaje.md. Va por etapas: cada pieza aparece una
+// sola vez aunque lleve los dos polos (el power bank, la barra, el regulador y el cable del láser). El relé es la
+// llave del láser y el ESP32 lo maneja; el tubo del láser es el retorno negativo. El láser y la pila se ven
+// translúcidos para mostrar el tornillo, la tuerca y el hilo que van adentro; el power bank y el ESP32, para no
+// tapar la cola del láser ni los cables que pasan por debajo.
+circuitos = [
+    ["laser", "Circuito del láser",
+     "Todo el camino de la energía: del power bank pasa por el interruptor, la barra y el relé (que maneja el ESP32) al regulador, y de ahí al láser: el positivo entra por el tornillo de la pila falsa y el negativo vuelve por el tubo.",
+     [["Power bank e interruptor", ["powerbank", "enchufe_usb", "usb_5v", "interruptor", "interruptor_barra", "usb_gnd"]],
+      ["Barra de distribución", ["barra", "v5_rele_com", "gnd_regulador"]],
+      ["Relé: la llave del láser (COM → NA)", ["placa_rele", "rele_regulador"]],
+      ["Control del relé", ["placa_esp32", "sen_rele", "resistencia_rele", "v5_rele_vcc", "gnd_rele"]],
+      ["Regulador a 3,7 V y cable del láser", ["regulador", "hilos_laser"]],
+      ["Positivo (+) en el láser", ["hilo_rojo_pila", "ojal_positivo", "tornillo_contacto", "tuerca_contacto", "pila_falsa"]],
+      ["Negativo (−) en el láser", ["laser", "prisionero_negativo", "ojal_negativo", "tuerca_negativo", "hilo_negro_tapa"]]],
+     ["powerbank", "placa_esp32", "laser", "pila_falsa"],
+     ["powerbank", "barra", "placa_rele", "regulador", "pila_falsa", "tapa_trasera"]]];
+
 // Obstáculos de los cables (C-03): placas, componentes, postes y apoyos de los soportes, plataforma y tapa.
 // [nombre, mín, máx, componente]: un cable puede tocar su componente en los tramos de sus extremos.
 function caja_placa(nombre, x0, y0, a, l, z_apoyo, alto, componente) =
@@ -666,9 +767,9 @@ pasos_tapa_cableado = concat(
 // gira en azimut; la cuna y lo montado en ella giran en altura. Cada articulación parte del ángulo con
 // que el catálogo dibuja sus elementos (reposo).
 largo_haz_simulacion = 600;   // largo del haz del láser en el visor
-elementos_altura = ["cuna", "laser", "pila_falsa", "tapa_trasera", "lastre", "grapa", "tuerca_munon",
-                    "tuerca_munon_cable", "perno_alt_cable", "perno_alt_motor", "polea_alt",
-                    "disco_escala", "tornillos_disco"];
+elementos_altura = concat(["cuna", "laser", "pila_falsa", "tapa_trasera", "lastre", "grapa", "tuerca_munon",
+                           "tuerca_munon_cable", "perno_alt_cable", "perno_alt_motor", "polea_alt",
+                           "disco_escala", "tornillos_disco"], piezas_contactos);
 elementos_motor_azimut = ["polea20_az"];
 elementos_motor_altura = ["polea20_alt"];
 elementos_azimut = [for (e = elementos)
@@ -709,7 +810,10 @@ function color_elemento(e) =
     e == "placa_esp32" ? "DarkSlateGray" : e == "placa_rele" ? "Teal" : e == "barra" ? "SaddleBrown" :
     e == "powerbank" ? "DarkBlue" : e == "laser" ? "LimeGreen" :
     e == "pila_falsa" ? "Tomato" : e == "tapa_trasera" || e == "grapa" ? "Peru" : e == "regulador" ? "RoyalBlue" :
-    e == "cable_laser" ? "Red" : e == "conectores" ? "LightSlateGray" :
+    e == "cable_laser" || e == "hilo_rojo_pila" ? "Red" : e == "conectores" ? "LightSlateGray" :
+    e == "hilo_negro_tapa" ? "Black" : e == "ojal_positivo" || e == "ojal_negativo" ? "Goldenrod" :
+    e == "tuerca_contacto" || e == "tuerca_negativo" ? "DarkGray" :
+    e == "tornillo_contacto" || e == "prisionero_negativo" || e == "prisionero_fijacion" ? "Silver" :
     e == "interruptor" ? "DimGray" : e == "resistencia_rele" ? "Tan" : e == "enchufe_usb" ? "Gainsboro" :
     e == "608_base_sup" || e == "608_base_inf" || e == "608_brazo_motor" || e == "608_brazo_cable"
         || e == "polea20_az" || e == "polea20_alt" ? "Silver" : "DimGray";
@@ -801,6 +905,10 @@ module elemento(e) {
             tornillo_m3(8);
     if (e == "tornillos_carro_alt") multmatrix(matriz_motor_alt) for (s = [-1, 1])
         translate([ranura_carro_x, s*ranura_carro_y, espesor_carro]) tornillo_m3(12);
+    if (e == "tornillo_tensor_az")
+        translate(punta_tensor_az - [0, largo_tornillo_tensor, 0]) rotate([90, 0, 0]) tornillo_m3(largo_tornillo_tensor);
+    if (e == "tornillo_tensor_alt")
+        translate(punta_tensor_alt + [0, 0, largo_tornillo_tensor]) tornillo_m3(largo_tornillo_tensor);
     if (e == "tornillos_tapa") for (y = y_orejas_tapa)
         translate([x_tapa_c, y, z_sup + espesor_oreja_tapa]) tornillo_m3(10);
     if (e == "tuercas_tapa") for (y = y_orejas_tapa)
@@ -839,6 +947,26 @@ module elemento(e) {
             translate([0, 0, -1]) cylinder(d = 10, h = m10_tuerca_alto + 2);
         }
     if (e == "grapa") laser_en(angulo_altura) translate([0, y_grapa, 0]) rotate([-90, 0, 0]) pieza_grapa_cable();
+    // Contactos del láser (013, research R2): en el sistema de la pila (cara delantera en largo_pila_falsa, agujero
+    // del hilo sobre +X) y en el de la tapa (prisioneros radiales a z_prisioneros_tapa)
+    if (e == "tornillo_contacto") en_pila() translate([0, 0, largo_pila_falsa + espesor_ojal]) {
+        cylinder(d1 = iso7380_m3_cabeza_d, d2 = iso7380_m3_cabeza_d*0.6, h = iso7380_m3_cabeza_alto, $fn = 24);
+        translate([0, 0, -largo_tornillo_contacto]) cylinder(d = m3_d, h = largo_tornillo_contacto, $fn = 16);
+    }
+    if (e == "tuerca_contacto") en_pila() translate([0, 0, largo_pila_falsa - prof_tuerca_contacto - m3_tuerca_alto])
+        tuerca_m3();
+    if (e == "ojal_positivo") en_pila() translate([0, 0, largo_pila_falsa]) linear_extrude(height = espesor_ojal)
+        ojal_2d(descentrado_hilo_pila, 0);
+    if (e == "hilo_rojo_pila") laser_en(angulo_altura) hilo(hilo_rojo_puntos);
+    if (e == "prisionero_negativo") en_tapa() prisionero_tapa(angulo_prisionero_neg);
+    if (e == "prisionero_fijacion") en_tapa() {
+        prisionero_tapa(angulo_prisionero_fij);
+        sobre_resalte(angulo_prisionero_fij, 0) tuerca_m3();
+    }
+    if (e == "tuerca_negativo") en_tapa() sobre_resalte(angulo_prisionero_neg, espesor_ojal) tuerca_m3();
+    if (e == "ojal_negativo") en_tapa() sobre_resalte(angulo_prisionero_neg, 0) linear_extrude(height = espesor_ojal)
+        ojal_2d(largo_lengueta_negativo, 180);
+    if (e == "hilo_negro_tapa") laser_en(angulo_altura) hilo(hilo_negro_puntos);
     if (e == "regulador")
         placa(x_col_a0, y_reg0, regulador_ancho, regulador_largo, alto_soporte_placa, alto_modulo_regulador);
     // Interruptor general (011): en su soporte, con las patas hacia −X y la palanca hacia +X
@@ -924,6 +1052,8 @@ function anclas(e) =
     e == "tornillos_carro_az" ? [for (s = [-1, 1]) [s*ranura_carro_y, distancia_centros + ranura_carro_x, z_sup + 10]] :
     e == "tuercas_carro_az" ? [for (s = [-1, 1]) [s*ranura_carro_y, distancia_centros + ranura_carro_x, z_plataforma_inf]] :
     e == "tornillos_carro_alt" ? [for (s = [-1, 1]) [x_cara_int_carro_alt + espesor_carro, s*ranura_carro_y, z_eje_motor_alt - ranura_carro_x]] :
+    e == "tornillo_tensor_az" ? [punta_tensor_az - [0, largo_tornillo_tensor + alto_cabeza_m3, 0]] :   // detrás de la cabeza
+    e == "tornillo_tensor_alt" ? [punta_tensor_alt + [0, 0, largo_tornillo_tensor + alto_cabeza_m3]] :
     e == "polea20_az" ? [[0, distancia_centros, z_sup - polea20_alto_total]] :
     e == "polea20_alt" ? [[x_inicio_cubo20_alt + polea20_alto_total, 0, z_eje_motor_alt]] :
     e == "correa_az" ? [[0, distancia_centros/2, z_dientes_polea20_az]] :
@@ -938,6 +1068,11 @@ function anclas(e) =
     e == "laser" ? [[0, 0, z_eje_altura] + (l_trasero + 130)*v_laser] :   // detrás del láser, no dentro
     e == "pila_falsa" || e == "lastre" || e == "tapa_trasera" ? [[0, 0, z_eje_altura] + (l_trasero + 3)*v_laser] :
     e == "grapa" ? [en_conjunto([0, y_grapa + ancho_grapa/2, diametro_laser/2 + pared_grapa + 1], angulo_altura)] :
+    // Contactos (013): los del positivo, detrás de la cola como la pila; los de los prisioneros, por fuera de su punta
+    contiene(contacto_positivo, e) ? [[0, 0, z_eje_altura] + (l_trasero + 3)*v_laser] :
+    e == "prisionero_negativo" || contiene(contacto_negativo, e) ?
+        [en_conjunto(punto_tapa(r_tapa_trasera + 1, angulo_prisionero_neg, y_prisioneros), angulo_altura)] :
+    e == "prisionero_fijacion" ? [en_conjunto(punto_tapa(r_tapa_trasera + 1, angulo_prisionero_fij, y_prisioneros), angulo_altura)] :
     e == "regulador" ? let (m = pared_soporte + holgura_encastre)
         [[x_col_a0 + m + regulador_ancho/2, y_reg0 + m + regulador_largo/2, z_sup + alto_soporte_placa + 4]] :
     e == "cable_laser" ? [[x_cara_int_brazo_cable, 0, z_eje_altura - dist_agujero_cable]] :
@@ -970,6 +1105,49 @@ module laser() {
     rotate([-90, 0, 0]) translate([0, 0, y_borde_tubo]) difference() {
         cylinder(d = diametro_laser, h = largo_laser_sin_tapa);
         translate([0, 0, -1]) cylinder(d = diametro_hueco_bateria, h = profundidad_hueco_bateria + 1);
+    }
+}
+// Sistema de impresión de la pila falsa y de la tapa trasera, en el conjunto (como sus elementos)
+module en_pila() {
+    laser_en(angulo_altura) translate([0, y_borde_tubo, 0]) rotate([-90, 0, 0]) rotate([0, 0, angulo_cable]) children();
+}
+module en_tapa() {
+    laser_en(angulo_altura) translate([0, -l_trasero, 0]) rotate([-90, 0, 0]) children();
+}
+// Prisionero DIN 914 radial en el ángulo a de la tapa: punta cónica en la rosca del tubo, hacia afuera
+module prisionero_tapa(a) {
+    rotate([0, 0, a]) translate([r_punta_prisionero, 0, z_prisioneros_tapa]) rotate([0, 90, 0]) {
+        cylinder(d1 = 0.6, d2 = m3_d, h = largo_punta_prisionero, $fn = 16);
+        translate([0, 0, largo_punta_prisionero]) cylinder(d = m3_d, h = largo_prisionero_tapa - largo_punta_prisionero, $fn = 16);
+    }
+}
+// Sistema apoyado en la cara del resalte del ángulo a, a "sobre" de ella: z hacia afuera, y en el sentido de giro
+module sobre_resalte(a, sobre) {
+    rotate([0, 0, a]) translate([r_cara_resalte + sobre, 0, z_prisioneros_tapa]) rotate([0, 90, 0]) rotate([0, 0, 90])
+        children();
+}
+// Terminal de ojal M3 recortado (research R3): aro y lengüeta de largo l desde el centro, hacia el ángulo a (2D)
+module ojal_2d(l, a) {
+    difference() {
+        union() {
+            circle(d = d_ext_ojal, $fn = 24);
+            rotate(a) translate([0, -ancho_lengueta_ojal/2]) square([l, ancho_lengueta_ojal]);
+            rotate(a) translate([l, 0]) circle(d = ancho_lengueta_ojal, $fn = 16);
+        }
+        circle(d = d_int_ojal, $fn = 16);
+    }
+}
+module tuerca_m3() {
+    difference() {
+        tuerca(m3_tuerca_ec, m3_tuerca_alto);
+        translate([0, 0, -1]) cylinder(d = m3_d, h = m3_tuerca_alto + 2, $fn = 16);
+    }
+}
+// Un hilo de silicona (d_hilo) por una lista de puntos
+module hilo(puntos) {
+    for (i = [0:len(puntos) - 2]) hull() {
+        translate(puntos[i]) sphere(d = d_hilo, $fn = 10);
+        translate(puntos[i + 1]) sphere(d = d_hilo, $fn = 10);
     }
 }
 // Cable de 2 hilos (un cordón de 2·d_hilo) por una lista de puntos

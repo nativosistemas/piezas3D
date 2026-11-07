@@ -147,6 +147,16 @@ La maquinaria común está en `src/armado_comun.scad`; el contrato completo, en
     - Un cable que ya es un elemento (porque se mueve con un eje) se referencia con `elemento`; su
       recorrido, si tiene, es el tramo fijo.
     - Revisar los recorridos en OpenSCAD con `-D ver_cables=true -D ver_tapa=false`.
+11. **Circuitos (opcional, con cables)**: para enseñar por dónde pasa la energía hasta un componente,
+    declarar `circuitos`: cada uno es un botón del modo Cableado que deja a la vista sus miembros y
+    atenúa todo lo demás. Contrato: `specs/013-circuito-laser/contracts/ensamblaje.md`; modelo: el
+    circuito del láser del puntero.
+    - Los miembros van en grupos con título (p. ej. positivo y negativo), en el orden del recorrido.
+      Un miembro es un elemento o el id de un cable; el tramo móvil de un cable se nombra por su cable.
+    - Las piezas que conducen y no se ven (tornillos, tuercas, terminales, tramos de hilo dentro de
+      una pieza) tienen que existir como elementos, con su nombre: si no están modeladas, modelarlas.
+    - `translúcidos`: los miembros que contienen a otros (un tubo, una pila impresa). `encuadre`: lo
+      que tiene que entrar en la vista inicial del circuito.
 
 ## 5. Lista de control
 

@@ -14,7 +14,8 @@ Lee (fuentes únicas):
                                    articulaciones, también la simulación de funcionamiento (ejes,
                                    motores, emisores, objetivos y fotogramas de los deformables);
                                    si declara nombres_elementos, el nombre y el tipo de cada elemento;
-                                   si declara cables, el modo Cableado (cada cable de pin a pin)
+                                   si declara cables, el modo Cableado (cada cable de pin a pin) y, si
+                                   declara circuitos, un botón por circuito en ese modo
     docs/<diseño>_guia.md          título y texto de cada paso; con cables, su Tabla de cables, que
                                    tiene que tener los mismos cables que el ensamblaje
     scripts/plantilla_visor.html   la página
@@ -30,7 +31,8 @@ Con simulación, comprueba que cada articulación gire sus piezas como OpenSCAD 
 Contratos: specs/005-visor-armado-3d/contracts/scripts.md,
 specs/007-simulacion-funcionamiento/contracts/scripts.md,
 specs/008-identificacion-componentes/contracts/scripts.md y
-specs/011-vista-cableado/contracts/scripts.md. Solo usa la biblioteca estándar de Python.
+specs/011-vista-cableado/contracts/scripts.md y specs/013-circuito-laser/contracts/scripts.md.
+Solo usa la biblioteca estándar de Python.
 """
 import argparse
 import base64
@@ -50,7 +52,7 @@ RAIZ = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 OPENSCAD = os.path.join(RAIZ, ".tools", "bin", "openscad")
 PLANTILLA = os.path.join(RAIZ, "scripts", "plantilla_visor.html")
 MOTOR = os.path.join(RAIZ, "scripts", "vendor", "three-0.160.0")
-VERSION = 4             # formato de los datos (2: simulación; 3: nombre y tipo de cada elemento; 4: cableado)
+VERSION = 5             # formato de los datos (2: simulación; 3: nombre y tipo; 4: cableado; 5: circuitos)
 FN_VISOR = 32           # resolución de las curvas en el visor (las STL de impresión usan 64)
 TAMANO_MAXIMO = 10e6    # bytes por diseño (FR-005)
 TIPOS = ("impresa", "comprada")
@@ -211,11 +213,20 @@ def cableado_declarado(texto, vector, lista):
             cable["elemento"] = elemento
         cables.append(cable)
     radio = re.search(r'^ECHO: "RADIO_CURVA_CABLEADO;([^"]*)"$', texto, re.M)
-    return {"cables": cables,
+    circuitos = [{"id": k[0], "nombre": k[1], "descripcion": k[2],
+                  "grupos": [{"titulo": g[0], "miembros": g[1]} for g in k[3]],
+                  "translucidos": k[4], "encuadre": k[5]} for k in lista("CIRCUITOS")]
+    return {"cables": cables, **({"circuitos": circuitos} if circuitos else {}),
             "grupos": [{"id": g[0], "titulo": g[1]} for g in lista("GRUPOS_CABLEADO")],
             "conectores": {t[0]: {"medidas": t[1], "color": t[2]} for t in lista("CONECTORES_CABLEADO")},
             "radio_curva": float(radio.group(1)) if radio else 0,
             "transparentes": lista("TRANSPARENTES_CABLEADO"), "ocultos": lista("OCULTOS_CABLEADO")}
+
+
+def miembros_de(circuito):
+    """Todo lo que nombra un circuito: miembros de sus grupos, translúcidos y encuadre."""
+    return ([m for g in circuito["grupos"] for m in g["miembros"]]
+            + circuito["translucidos"] + circuito["encuadre"])
 
 
 def simulacion_declarada(lista):
@@ -345,7 +356,9 @@ def exportar(ensamblaje):
         de_pasos = {en["e"] for p in pasos for en in p["entradas"]} | {e for p in pasos for e in p["contexto"]}
         solo_simulacion = elementos_de_simulacion(sim) - de_pasos if sim else set()
         de_cableado = ({c["elemento"] for c in cableado["cables"] if "elemento" in c}
-                       | set(cableado["transparentes"])) - de_pasos if cableado else set()
+                       | set(cableado["transparentes"])
+                       | {e for k in cableado.get("circuitos", []) for e in miembros_de(k)}
+                       - {c["id"] for c in cableado["cables"]}) - de_pasos if cableado else set()
         nombres = sorted(de_pasos | solo_simulacion | de_cableado)
         donde = {}
         for n, p in enumerate(pasos, start=1):
@@ -443,6 +456,11 @@ def validar(datos, pagina):
                 raise Fallo(f"El cable '{c['id']}' no tiene recorrido")
             if "elemento" in c and c["elemento"] not in datos["elementos"]:
                 raise Fallo(f"El cable '{c['id']}' referencia el elemento '{c['elemento']}', que no está en el visor")
+        ids = {c["id"] for c in cab["cables"]}
+        for k in cab.get("circuitos", []):   # C-08
+            for m in miembros_de(k):
+                if m not in ids and not (datos["elementos"].get(m) or {}).get("malla"):
+                    raise Fallo(f"El circuito '{k['id']}' nombra '{m}', que no está en el visor")
     if re.search(r"""(?:src|href)\s*=\s*["']https?://""", pagina):
         raise Fallo("La página carga recursos de internet: el visor tiene que funcionar sin conexión")
     return tamano
@@ -513,6 +531,8 @@ def ejecutar(diseno, carpeta_spec, comprobar_solo=False, reexportar=False):
         con_nombres = " con nombres" if any("nombre" in el for el in datos["elementos"].values()) else ""
         cab = datos.get("cableado")
         cables = f"{len(cab['cables'])} cables, " if cab else ""
+        if cab and cab.get("circuitos"):
+            cables += f"{len(cab['circuitos'])} circuitos, "
         print(f"✓ Visor 3D: {rel(ruta)} ({tamano/1e6:.1f} MB, {len(datos['elementos'])} piezas{con_nombres}, "
               f"{articulaciones}{cables}{'mallas reutilizadas' if reutiliza else 'mallas exportadas'})")
         return 0

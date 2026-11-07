@@ -44,6 +44,10 @@
 //   reserva_cable          largo que queda sin tensar en cada cable comprado
 //   radio_curva_cableado   radio con que el visor redondea las esquinas de los recorridos
 //   largo_elementos_cableado  [elemento, largo]: largo del tramo de cable que dibuja un elemento
+// Y, para enseñar un recorrido eléctrico en el modo Cableado (un botón por circuito; contrato:
+// specs/013-circuito-laser/contracts/ensamblaje.md), esta lista opcional (requiere cables):
+//   circuitos   [id, nombre, descripción, [[título, [miembro, …]], …], translúcidos, encuadre]
+//               (miembro: elemento del catálogo o id de un cable, en el orden del recorrido)
 // Se leen con is_undef (consultar una variable que no existe no avisa con --hardwarnings).
 // Proporciones de la flecha respecto de su diámetro y resolución de sus cilindros:
 //   punta de 2,5 diámetros de ancho y hasta 10/3 diámetros de largo; 16 lados.
@@ -55,6 +59,7 @@ module armado() {
     comprobar_simulacion();
     comprobar_nombres();
     comprobar_cables();
+    comprobar_circuitos();
     if (solo_elemento != "")
         elemento(solo_elemento);
     else if (paso_armado == -1)
@@ -107,6 +112,7 @@ module datos_armado() {
     echo(str("TRANSPARENTES_CABLEADO;", cableado_transparentes()));
     echo(str("OCULTOS_CABLEADO;", cableado_ocultos()));
     echo(str("RADIO_CURVA_CABLEADO;", cableado_radio()));
+    echo(str("CIRCUITOS;", circuitos_declarados()));
 }
 
 // Validación de la tabla de pasos
@@ -244,6 +250,40 @@ module comprobar_cables() {
         }
 }
 
+// Validación de los circuitos (botones del modo Cableado). Un miembro es un elemento o un cable; el tramo
+// móvil de un cable se nombra por su cable, porque en ese modo sus mallas son del cable
+module comprobar_circuitos() {
+    lista = circuitos_declarados();
+    ids_cables = [for (c = cableado_cables()) c[0]];
+    tramos = [for (c = cableado_cables()) if (!is_undef(c[10])) c[10]];
+    texto_valido = function (t) is_string(t) && len(t) > 0 && len(search(";", t)) == 0 && len(search("\"", t)) == 0;
+    assert(len(lista) == 0 || len(ids_cables) > 0, "circuitos: el diseño no declara cables (el botón vive en el modo Cableado)");
+    for (k = lista) {
+        assert(is_list(k) && len(k) == 6, str("circuitos: ", k, " debe ser [id, nombre, descripción, grupos, translúcidos, encuadre]"));
+        assert(texto_valido(k[0]) && texto_valido(k[1]) && texto_valido(k[2]),
+               str("circuitos: el id, el nombre y la descripción de '", k[0], "' no pueden estar vacíos ni tener ';' o comillas"));
+        assert(len([for (x = lista) if (x[0] == k[0]) 0]) == 1, str("circuitos: '", k[0], "' está repetido"));
+        assert(is_list(k[3]) && len(k[3]) > 0, str("circuitos: '", k[0], "' no tiene grupos"));
+        for (g = k[3]) assert(is_list(g) && len(g) == 2 && texto_valido(g[0]) && is_list(g[1]) && len(g[1]) > 0,
+                              str("circuitos: el grupo ", g, " de '", k[0], "' debe ser [título, [miembro, …]] con algún miembro"));
+        miembros = [for (g = k[3]) for (m = g[1]) m];
+        for (m = miembros) {
+            assert(contiene(elementos, m) || contiene(ids_cables, m),
+                   str("circuitos: '", k[0], "' nombra '", m, "', que no es un elemento ni un cable"));
+            assert(!contiene(cableado_ocultos(), m), str("circuitos: '", k[0], "' nombra '", m, "', que está oculto en el modo Cableado"));
+            assert(!contiene(tramos, m), str("circuitos: '", k[0], "' nombra '", m, "', que es el tramo de un cable: nombrar el cable '",
+                                             [for (c = cableado_cables()) if (c[10] == m) c[0]][0], "'"));
+            assert(len([for (x = miembros) if (x == m) 0]) == 1, str("circuitos: '", k[0], "' repite '", m, "'"));
+        }
+        assert(is_list(k[4]), str("circuitos: los translúcidos de '", k[0], "' deben ser una lista"));
+        for (t = k[4]) assert(contiene(miembros, t) && contiene(elementos, t),
+                              str("circuitos: el translúcido '", t, "' de '", k[0], "' no es un elemento del circuito"));
+        assert(is_list(k[5]) && len(k[5]) > 0, str("circuitos: '", k[0], "' necesita algo que encuadrar"));
+        for (e = k[5]) assert(contiene(elementos, e) || contiene(ids_cables, e),
+                              str("circuitos: el encuadre de '", k[0], "' nombra '", e, "', que no es un elemento ni un cable"));
+    }
+}
+
 // --- FUNCIONES ---
 // Listas de la simulación del diseño, o vacías si no las define
 function simulacion_articulaciones() = is_undef(articulaciones) ? [] : articulaciones;
@@ -264,6 +304,8 @@ function cableado_transparentes() = is_undef(transparentes_cableado) ? [] : tran
 function cableado_ocultos() = is_undef(ocultos_cableado) ? [] : ocultos_cableado;
 function cableado_reserva() = is_undef(reserva_cable) ? 0 : reserva_cable;
 function cableado_radio() = is_undef(radio_curva_cableado) ? 0 : radio_curva_cableado;
+// Circuitos del modo Cableado, o vacía si el diseño no los define
+function circuitos_declarados() = is_undef(circuitos) ? [] : circuitos;
 function largo_elemento_cableado(e) =
     let (x = is_undef(largo_elementos_cableado) || is_undef(e) ? [] : [for (l = largo_elementos_cableado) if (l[0] == e) l[1]])
     len(x) > 0 ? x[0] : 0;
